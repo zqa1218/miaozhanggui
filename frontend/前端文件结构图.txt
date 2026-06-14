@@ -1,0 +1,235 @@
+================================================================================
+  miazhanggui.xyz 前端网页文件结构图
+  (frontend/ 目录，Vue 3 + Vite + Element Plus)
+  导出日期: 2026-06-09
+================================================================================
+
+frontend/
+├── .gitignore
+├── .user.ini
+├── .vscode/
+│   └── extensions.json                 # VSCode 推荐插件配置
+├── README.md
+├── index.html                          # Vite 入口 HTML（单页面入口）
+├── package.json                        # 前端依赖声明
+├── package-lock.json                   # 依赖锁文件
+├── vite.config.js                      # Vite 构建配置（含 SCSS 全局变量注入）
+├── public/
+│   └── favicon.svg                     # 网站图标
+├── dist/                               # 构建产物（部署目录）
+│   ├── index.html                      # 构建后的入口页
+│   ├── favicon.svg
+│   └── assets/
+│       ├── index-B7OSvNYN.js           # 主入口 JS（含 Element Plus）
+│       ├── index-CG5UduG6.css          # 全局样式
+│       ├── AdminLayout-B1SQRM5Y.js     # 后台布局 JS
+│       ├── AdminLayout-DeAAT_ye.css    # 后台布局 CSS
+│       ├── ClientLayout-C9rqB22v.js    # 客户端布局 JS
+│       ├── ClientLayout-CFRlXjnZ.css   # 客户端布局 CSS
+│       ├── LoginView-DaH30ayp.js       # 登录页 JS
+│       ├── OrderManagement-CyuMfFX_.js # 订单管理 JS
+│       ├── OrderManagement-L-cO7rTM.css# 订单管理 CSS
+│       ├── EditStudio-6UPwFegl.js      # 编辑工作室 JS
+│       ├── EditStudio-B1kWweLm.css     # 编辑工作室 CSS
+│       ├── StylesView-MmVBJQQ1.js      # 预设管理 JS
+│       ├── StylesView-CooHsrds.css     # 预设管理 CSS
+│       ├── StudioList-N1_0ANln.js      # 工作室列表 JS
+│       ├── StudioList-w_k53CGN.css     # 工作室列表 CSS
+│       ├── StudioDetail-CohU1qq1.js    # 工作室详情 JS
+│       ├── StyleList-DmQD9jcl.js       # C端预设列表 JS
+│       ├── Window_B_Step1-xxhlAeDl.js  # 创建项目-步骤1 JS
+│       ├── Window_B_Step1-DnT7FWBc.css # 创建项目-步骤1 CSS
+│       ├── Window_B_Step2-DULTAI72.js  # 创建项目-步骤2 JS
+│       ├── Window_B_Step2-DOux8kyv.css # 创建项目-步骤2 CSS
+│       ├── Window_B_Step3-iqLBm6kO.js  # 创建项目-步骤3 JS
+│       ├── Window_B_Step3-DNOzojP6.css # 创建项目-步骤3 CSS
+│       ├── Window_C_Step1-CMrMhcYU.js  # 客户端预约-步骤1 JS
+│       ├── Window_C_Step1-CNMPku70.css # 客户端预约-步骤1 CSS
+│       ├── Window_C_Step2-BlHdx8SC.js  # 客户端预约-步骤2 JS
+│       ├── Window_C_Step2-BtY1Ze0s.css # 客户端预约-步骤2 CSS
+│       ├── SettingsView-BKJ6bY18.js    # 设置页 JS
+│       ├── LogsView-D_IMfkEn.js        # 日志页 JS
+│       ├── NotificationsView-TEGIj_M3.js # 通知页 JS
+│       ├── adminApi-DEMKr1lU.js        # 后台 API 封装
+│       ├── studioApi-CbD-GWKo.js       # 工作室 API 封装
+│       ├── styleApi-4jTEUAiB.js        # 预设 API 封装
+│       ├── http-0sa4j2xm.js            # HTTP 请求工具
+│       ├── studio-CEcfFrBa.js          # 工作室 Store
+│       ├── style-Q2VPIgZD.js           # 预设 Store
+│       ├── wizardB-wC9dRi1k.js         # B窗口向导 Store
+│       └── wizardC-By4YyiSh.js         # C窗口向导 Store
+│
+└── src/                                # ===== 前端源码 =====
+    │
+    ├── main.js                         # 应用入口（挂载 Vue、注册 Element Plus / Pinia / Router）
+    ├── App.vue                         # 根组件（含页面切换过渡动画）
+    │
+    ├── router/
+    │   └── index.js                    # Vue Router 路由配置（嵌套布局：ClientLayout + AdminLayout）
+    │
+    ├── stores/                         # === Pinia 状态管理 ===
+    │   ├── auth.js                     # 认证/登录状态
+    │   ├── booking.js                  # 预约流程状态
+    │   ├── order.js                    # 订单状态
+    │   ├── schedule.js                 # 排期状态
+    │   ├── settings.js                 # 系统设置状态
+    │   ├── studio.js                   # 工作室状态（列表/详情）
+    │   ├── studioCreate.js             # 工作室创建向导状态（备用，3步 reactive）
+    │   ├── style.js                    # 预设状态（列表/CRUD）
+    │   ├── wizardB.js                  # B窗口项目创建向导（3步，ref 驱动）
+    │   └── wizardC.js                  # C窗口客户预约向导（2步）
+    │
+    ├── api/                            # === API 请求层 ===
+    │   ├── adminApi.js                 # 后台管理 API（统计等）
+    │   ├── bookingApi.js               # 预约 API
+    │   ├── log.js                      # 操作日志 API
+    │   ├── merchant.js                 # 商家 API
+    │   ├── notification.js             # 通知 API
+    │   ├── order.js                    # 订单 API
+    │   ├── refund.js                   # 退款 API
+    │   ├── reschedule.js               # 改期 API
+    │   ├── schedule.js                 # 排期 API
+    │   ├── settings.js                 # 设置 API
+    │   ├── studio.js                   # 工作室 API
+    │   ├── studioApi.js                # 工作室 API（fetch 封装版）
+    │   ├── style.js                    # 预设 API
+    │   ├── styleApi.js                 # 预设 API（fetch 封装版）
+    │   └── upload.js                   # 上传 API
+    │
+    ├── utils/                          # === 工具函数 ===
+    │   ├── http.js                     # Axios 封装（拦截器、错误处理）
+    │   └── storage.js                  # 本地存储封装（含 getQueryParam）
+    │
+    ├── composables/                    # === Vue 组合式函数 ===
+    │   └── useBookingEngine.js         # 预约引擎核心逻辑
+    │
+    ├── layouts/                        # === 布局组件 ===
+    │   ├── AdminLayout.vue             # 后台管理布局（顶栏 + 横向Tab导航 + 内容区，手机端汉堡菜单+抽屉）
+    │   └── ClientLayout.vue            # 客户端布局（顶部导航栏 + 底部导航 + 内容区）
+    │
+    ├── components/                     # === 可复用组件 ===
+    │   ├── admin/
+    │   │   └── CalendarGrid.vue        # 后台日历格组件
+    │   ├── client/
+    │   │   └── CalendarPicker.vue      # 客户端日历选择器
+    │   └── shared/
+    │       └── StepIndicator.vue       # 步骤指示器（桌面横向 / 手机竖向）
+    │
+    ├── assets/
+    │   └── styles/
+    │       ├── element-override.scss   # Element Plus SCSS 变量覆盖（主色/圆角/阴影）
+    │       ├── theme.css               # 日系阳光设计主题变量（色板/间距/动画/圆角）
+    │       └── global.css              # 全局样式 + Element Plus 组件覆盖 + 响应式适配
+    │
+    └── views/                          # ===== 页面视图 =====
+        │
+        ├── NotFoundView.vue            # 404 页面
+        │
+        ├── admin/                      # --- 后台管理页面（B端） ---
+        │   ├── LoginView.vue           # 后台登录（登录/注册双Tab）
+        │   ├── DashboardView.vue       # 仪表盘（统计卡片：营收/进行中/退款/归档）
+        │   ├── OrderManagement.vue     # 订单管理（Tab筛选+表格+展开详情+时间轴可视化）
+        │   ├── OrdersView.vue          # 订单列表（备用视图，Tab筛选+卡片列表）
+        │   ├── ScheduleView.vue        # 排期管理（日历视图+时间片管理）
+        │   ├── StudiosView.vue         # 工作室卡片列表（后台视图）
+        │   ├── EditStudio.vue          # 编辑工作室（fieldset表单：信息/日期/时间/定价）
+        │   ├── StudioCreateView.vue    # 工作室创建容器（3步骤指示器 + 动态组件）[备用]
+        │   ├── StudioCreateStep1.vue   # 创建工作室-步骤1：基础信息 [备用]
+        │   ├── StudioCreateStep2.vue   # 创建工作室-步骤2：时间配置 [备用]
+        │   ├── StudioCreateStep3.vue   # 创建工作室-步骤3：定价与定金 [备用]
+        │   ├── Window_B_Step1.vue      # 创建项目-步骤1：基本信息（标题/城市/封面/详情图/开放日期+全时段开关）
+        │   ├── Window_B_Step2.vue      # 创建项目-步骤2：时间轴（工作时间/逐日调整/休息段）
+        │   ├── Window_B_Step3.vue      # 创建项目-步骤3：定价模式（预设/原生定价/耗时/加时/定金比例 0%-50%）
+        │   ├── StylesView.vue          # 预设管理（列表+全屏弹窗新增/编辑：名称/示意图/价格/时长/套餐/预览图）
+        │   ├── Window_B_Style_Create.vue # 预设创建（独立页面版，路由已重定向到预设管理）[备用]
+        │   ├── LogsView.vue            # 操作日志
+        │   ├── NotificationsView.vue   # 通知管理
+        │   ├── ProfileView.vue         # 个人资料
+        │   └── SettingsView.vue        # 系统设置
+        │
+        ├── client/                     # --- 客户端页面（C端，ClientLayout 包裹） ---
+        │   ├── HomeView.vue            # 首页/工作室宫格（封面卡片流）
+        │   ├── StudioDetailView.vue    # 工作室详情
+        │   ├── BookingStep1.vue        # 预约-步骤1：选择服务/时间
+        │   ├── BookingStep2.vue        # 预约-步骤2：填写信息/确认
+        │   ├── Window_C_Step1.vue      # 客户端预约-步骤1：选择样式/日期/时间/数量
+        │   ├── Window_C_Step2.vue      # 客户端预约-步骤2：确认信息/支付定金
+        │   ├── MyOrdersView.vue        # 我的订单列表
+        │   └── OrderDetailView.vue     # 订单详情
+        │
+        ├── booking/
+        │   └── BookingCreate.vue       # 预约创建页（旧版）
+        │
+        ├── studio/
+        │   ├── StudioList.vue          # 工作室列表（B端管理/C端浏览共用，宫格卡片）
+        │   └── StudioDetail.vue        # 工作室详情（公共）
+        │
+        └── style/
+            └── StyleList.vue           # 预设列表（C端浏览）
+
+
+================================================================================
+  技术栈摘要
+================================================================================
+  框架:       Vue 3 (Composition API / <script setup>)
+  构建工具:   Vite 5
+  UI 组件库:  Element Plus 2.x
+  状态管理:   Pinia
+  路由:       Vue Router 4 (createWebHistory)
+  HTTP:       Axios + 原生 fetch
+  CSS:        SCSS (Element Plus 变量覆盖) + 原生 CSS (设计变量 / 全局覆盖)
+  语言:       JavaScript (ES Module)
+
+================================================================================
+  设计体系
+================================================================================
+  风格:       日系简约·阳光活力
+  主色:       暖杏 #F4A460 (linear-gradient → #F7C57C)
+  辅色:       山吹黄 #F9E0A0 / 薄荷绿 #A8D8B9 / 珊瑚粉 #EFA8A8 / 天蓝灰 #A9C1D9
+  背景:       米白 #F9F8F6 (页面) / 纯白 #FFFFFF (卡片)
+  圆角:       基础 14px / 卡片 24px / 按钮 28px 胶囊形
+  阴影:       轻柔分层 (0 2px 8px ~ 0 12px 36px)
+  动画:       cubic-bezier(0.34, 1.56, 0.64, 1) 弹性曲线
+  响应式:     手机 <768px (汉堡菜单+抽屉/表格横滚/表单竖排/弹窗全屏)
+              平板 768-1023px (tabs保持/双列网格/弹窗85%)
+
+================================================================================
+  路由结构（router/index.js）
+================================================================================
+
+  【C端前台 — ClientLayout 包裹】
+  /                              → 重定向到 /studios
+  /studios                       → studio/StudioList.vue（工作室宫格列表）
+  /studios/:id                   → studio/StudioDetail.vue（工作室详情）
+  /styles                        → style/StyleList.vue（预设列表）
+  /booking/:studioId             → client/Window_C_Step1.vue（预约步骤1）
+  /booking/:studioId/step2       → client/Window_C_Step2.vue（预约步骤2）
+
+  【B端后台 — AdminLayout 包裹】
+  /admin                         → 重定向到 /admin/orders
+  /admin/login                   → admin/LoginView.vue（登录/注册）
+  /admin/orders                  → admin/OrderManagement.vue（订单管理）[需登录]
+  /admin/styles                  → admin/StylesView.vue（预设管理）[需登录]
+  /admin/styles/create           → 重定向到 /admin/styles
+  /admin/studios                 → studio/StudioList.vue（项目管理）[需登录]
+  /admin/studio/create/step1     → admin/Window_B_Step1.vue（创建项目-步骤1）[需登录]
+  /admin/studio/create/step2     → admin/Window_B_Step2.vue（创建项目-步骤2）[需登录]
+  /admin/studio/create/step3     → admin/Window_B_Step3.vue（创建项目-步骤3）[需登录]
+  /admin/studio/edit/:id         → admin/EditStudio.vue（编辑项目）[需登录]
+  /admin/settings                → admin/SettingsView.vue（系统设置）[需登录]
+  /admin/notifications           → admin/NotificationsView.vue（通知管理）[需登录]
+  /admin/logs                    → admin/LogsView.vue（操作日志）[需登录]
+  *                              → NotFoundView.vue（404）
+
+  全局导航守卫:
+    - 已登录访问 /admin/login → 重定向到 /admin/orders
+    - 需鉴权路由无 Token → 重定向到 /admin/login
+
+================================================================================
+  构建产物 (dist/)
+================================================================================
+  构建命令: cd frontend && npm run build (Vite)
+  输出目录: frontend/dist/
+  部署方式: 将 dist/ 目录内容作为静态站点部署（Nginx 指向 dist/）
+            dist/index.html 为唯一入口（SPA，需配置 fallback 到 index.html）
+================================================================================

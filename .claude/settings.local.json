@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vue-compiler-sfc *)",
+      "Bash(node -e \"const fs = require\\('fs'\\); const c = fs.readFileSync\\('src/views/admin/Window_B_Style_Create.vue','utf8'\\); const sc = c.match\\(/<script[^>]*>\\([\\\\s\\\\S]*?\\)<\\\\/script>/\\); const tc = c.match\\(/<template[^>]*>\\([\\\\s\\\\S]*?\\)<\\\\/template>/\\); console.log\\('Template length:', tc?.[1]?.length || 0\\); console.log\\('Script length:', sc?.[1]?.length || 0\\); console.log\\('Has scoped style:', c.includes\\('scoped'\\)\\);\")",
+      "Bash(npx vite *)",
+      "Bash(npm install *)",
+      "Bash(node ./node_modules/.bin/knex migrate:latest --env production)",
+      "Bash(node -e ' *)",
+      "Bash(chown -R www:www /www/wwwroot/miazhanggui.xyz/frontend/dist/)",
+      "Bash(pm2 list *)",
+      "Bash(pm2 describe *)",
+      "Bash(pm2 restart *)",
+      "Bash(node -p \"require\\('dotenv'\\).config\\(\\);const k=require\\('knex'\\)\\(require\\('./knexfile'\\).production\\);k\\('merchants'\\).select\\('m_id'\\).first\\(\\).then\\(r=>{console.log\\(r.m_id\\);k.destroy\\(\\)}\\)\")",
+      "Bash(curl -s \"http://localhost:3000/api/settings?mId=$\\(node -p \"require\\('dotenv'\\).config\\(\\);const k=require\\('knex'\\)\\(require\\('./knexfile'\\).production\\);k\\('merchants'\\).select\\('m_id'\\).first\\(\\).then\\(r=>{console.log\\(r.m_id\\);k.destroy\\(\\)}\\)\" \\)\")",
+      "Bash(python3 -m json.tool)"
+    ]
+  }
+}

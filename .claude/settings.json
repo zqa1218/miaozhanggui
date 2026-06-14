@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node node_modules/.bin/knex migrate:list)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s http://localhost:3000/api/settings?mId=shop_1780253016365)",
+      "Bash(find /etc/nginx -name \"*.conf\" 2>/dev/null; find /www -name \"*.conf\" 2>/dev/null; cat /www/wwwroot/miazhanggui.xyz/frontend/dist/index.html)",
+      "Read(//www/**)",
+      "Bash(node node_modules/.bin/knex migrate:latest)",
+      "Bash(nginx -T)",
+      "Bash(node ./node_modules/knex/bin/cli.js migrate:latest)",
+      "Bash(xxd)",
+      "Bash(python3 -c ' *)",
+      "Bash(node -c src/modules/order/order.repository.js)",
+      "Bash(git diff *)",
+      "Read(//dev/**)",
+      "Bash(curl -s http://localhost:5173/admin/studio/create/step3)",
+      "Bash(curl -sI http://localhost:5173/)",
+      "WebFetch(domain:localhost)",
+      "Bash(npx vue-tsc *)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(curl -s http://localhost:5173/src/views/admin/Window_B_Step3.vue)",
+      "Bash(node /tmp/patch-studio.js)",
+      "Bash(node /tmp/patch-studio2.js)",
+      "Bash(node /tmp/patch-studio3.js)",
+      "Bash(node -e \"require\\('/www/wwwroot/miazhanggui.xyz/src/modules/studio/studio.service.js'\\); console.log\\('Parse OK'\\)\")",
+      "Bash(node /tmp/patch-order.js)",
+      "Bash(node ./node_modules/knex/bin/cli.js migrate:latest --knexfile knexfile.js --env production)",
+      "Bash(node -e \"require\\('/www/wwwroot/miazhanggui.xyz/src/modules/order/order.service.js'\\); console.log\\('Order service OK'\\)\")",
+      "Bash(node -e \"require\\('/www/wwwroot/miazhanggui.xyz/src/modules/studio/studio.service.js'\\); console.log\\('Studio service OK'\\)\")",
+      "Bash(curl -s http://localhost:3000/api/health)",
+      "Bash(node_modules/.bin/vite build *)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}

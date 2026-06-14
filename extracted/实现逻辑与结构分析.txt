@@ -1,0 +1,502 @@
+================================================================================
+    喵掌柜自助下单系统 —— Excel表格提取填入 & 封面日历 功能实现分析
+================================================================================
+
+编写日期: 2026-06-02
+项目名称: 喵掌柜自助下单系统 (miaozhanggui-server)
+技术栈: Node.js + Express + MySQL + Vue3 + Element Plus
+
+================================================================================
+一、整体目录结构
+================================================================================
+
+extracted/
+├── excel/                                    # Excel导入导出相关
+│   ├── utils/
+│   │   └── excelHelper.js                   # Excel核心工具库
+│   ├── modules/schedule/
+│   │   ├── schedule.controller.js           # 控制器(Excel 4个端点)
+│   │   ├── schedule.service.js              # 业务层(导入/导出/匹配)
+│   │   ├── schedule.routes.js              # 路由(Excel 5个API)
+│   │   ├── schedule.repository.js           # 数据层(Excel CRUD)
+│   │   └── schedule.validator.js            # 参数校验
+│   ├── database/
+│   │   └── 009_create_schedule_excel_imports.js  # 导入记录表DDL
+│   ├── ui/
+│   │   └── admin.html                       # 管理端UI(完整页面)
+│   └── package.json                         # 依赖(xlsx, multer)
+│
+├── calendar/                                 # 日历排期相关
+│   ├── utils/
+│   │   ├── dateHelper.js                    # 日期工具函数
+│   │   └── priceEngine.js                   # 价格计算引擎
+│   ├── modules/schedule/                    # 排期模块(同excel模块)
+│   ├── modules/order/                       # 订单模块
+│   │   ├── order.service.js                # 订单创建(含时段校验)
+│   │   └── order.repository.js             # 订单数据操作
+│   ├── database/
+│   │   ├── 003_create_orders.js            # 订单表DDL
+│   │   └── 004_create_slot_bookings.js     # 时段占位表DDL
+│   ├── ui/
+│   │   ├── index.html                       # 用户端UI(含日历组件)
+│   │   └── admin.html                       # 管理端UI(含排期管理)
+│   └── package.json
+│
+└── [本文件] 实现逻辑与结构分析.txt
+
+
+================================================================================
+二、Excel表格提取填入 —— 完整实现链路
+================================================================================
+
+【2.1 依赖说明】
+  - xlsx: ^0.18.5 (SheetJS社区版, 核心Excel解析库)
+  - multer: ^1.4.5 (文件上传中间件, 处理multipart上传)
+  - uuid: ^9.0.1 (生成批次ID)
+
+【2.2 数据库表: schedule_excel_imports】
+  文件: database/migrations/009_create_schedule_excel_imports.js
+
+  表字段:
+    id              BIGINT      主键自增
+    batch_id        VARCHAR(64) 导入批次号 (一次上传一个批次)
+    project         VARCHAR(255) 项目名称 (Excel第1列)
+    schedule_date   DATE         日期 (Excel第2列, 年/月/日)
+    time_slot_start TIME         开始时间 (Excel第3列)
+    time_slot_end   TIME         结束时间 (Excel第4列)
+    contact         VARCHAR(128) 联系方式 (Excel第5列)
+    remarks         TEXT         备注 (Excel第6列, 可选)
+    studio_id       BIGINT       关联项目ID (自动匹配后回填)
+    studio_name     VARCHAR(255) 项目名称冗余
+    status          ENUM         pending/processed/failed (处理状态)
+    error_message   TEXT         失败原因
+    merchant_id     BIGINT       所属商家ID
+
+  索引:
+    - batch_id (普通索引)
+    - merchant_id (普通索引)
+    - (merchant_id, batch_id) 复合索引
+    - (schedule_date, time_slot_start) 复合索引
+
+【2.3 核心工具: excelHelper.js】
+  文件: src/shared/utils/excelHelper.js
+
+  该文件是Excel处理的核心，包含三个主要函数:
+
+  (A) generateTemplateBuffer() —— 生成下载模板
+      1. 使用 XLSX.utils.book_new() 创建空白工作簿
+      2. 用 XLSX.utils.aoa_to_sheet() 写入表头行:
+         ["项目", "时间（年/月/日）", "时间段-开始", "时间段-结束", "联系方式", "备注"]
+      3. 设置列宽 (ws['!cols'])
+      4. 用 XLSX.write() 输出为 xlsx Buffer
+
+  (B) parseUploadedExcel(filePath) —— 解析上传的Excel
+      1. 用 fs.existsSync 检查文件是否存在
+      2. 用 XLSX.readFile() 读取Excel文件
+      3. 取第一个Sheet (wb.SheetNames[0])
+      4. 用 XLSX.utils.sheet_to_json() 将Sheet转为JSON数组
+         参数 { defval: '' } 保证空单元格返回空字符串
+      5. 逐行解析，每行包含6个字段:
+         - 项目:         直接取字符串trim
+         - 时间(年/月/日): 支持3种格式
+           ① Excel数字日期(5位数字>40000) → XLSX.SSF.parse_date_code()
+           ② 文本日期 正则: /^(\d{4})[\/\-.\s](\d{1,2})[\/\-.\s](\d{1,2})$/
+           ③ 最终统一为 YYYY-MM-DD 格式
+         - 时间段-开始:   支持2种格式
+           ① Excel小数时间(<1) → 乘以24*60换算成分钟
+           ② 文本时间 正则: /^(\d{1,2}):(\d{2})$/
+         - 时间段-结束:   同上
+         - 联系方式:      直接取字符串trim
+         - 备注:          直接取字符串trim (可选)
+      6. 时间段逻辑校验: 开始时间 < 结束时间
+      7. 返回 { validRows, errors, total, successCount, failCount }
+
+  (C) exportToExcelBuffer(rows) —— 导出数据为Excel
+      1. 创建 { headers + data } 的二维数组
+      2. 用 XLSX.utils.aoa_to_sheet() 生成Sheet
+      3. 输出为 xlsx Buffer 供下载
+
+  关键数据结构 TEMPLATE_HEADERS:
+    [
+      { key:'project',        label:'项目',             width:20, required:true  },
+      { key:'schedule_date',  label:'时间（年/月/日）',  width:18, required:true  },
+      { key:'time_slot_start',label:'时间段-开始',       width:14, required:true  },
+      { key:'time_slot_end',  label:'时间段-结束',       width:14, required:true  },
+      { key:'contact',        label:'联系方式',          width:20, required:true  },
+      { key:'remarks',        label:'备注',              width:30, required:false },
+    ]
+
+【2.4 业务层: schedule.service.js (Excel部分)】
+
+  (A) downloadTemplate()
+      调用 excelHelper.generateTemplateBuffer()
+      返回 { buffer, fileName: '排期导入模板_2026-06-02.xlsx' }
+
+  (B) importExcel(filePath, originalName, merchantId)
+      1. 校验扩展名 (.xlsx 或 .xls)
+      2. 调用 excelHelper.parseUploadedExcel(filePath) 解析
+      3. 用 fs.unlink() 删除临时文件 (finally中清理)
+      4. 生成批次号: BATCH_{timestamp}_{uuid前8位}
+      5. 将 validRows 转为 insertRows (添加 batch_id, merchant_id, status)
+      6. 调用 repo.batchInsertExcelRows() 批量入库
+      7. 调用 autoMatchStudios() 自动匹配项目名 → studio_id
+      8. 返回 { batchId, total, successCount, failCount, errors, message }
+
+  (C) autoMatchStudios(batchId, merchantId)
+      1. 查询批次下所有行
+      2. 查询商户下所有工作室
+      3. 逐行比较 project 与 studio.name (忽略大小写+trim)
+      4. 匹配成功后回填 studio_id 和 studio_name
+
+  (D) listImportBatches(merchantId, filters)
+      分页查询导入批次列表，支持按 batch_id / status 筛选
+
+  (E) getBatchDetail(batchId, merchantId)
+      查询某批次下所有导入行
+
+  (F) exportData(merchantId, filters)
+      调用 excelHelper.exportToExcelBuffer() 导出数据为Excel下载
+
+【2.5 控制器: schedule.controller.js (Excel部分)】
+
+  GET  /schedule/excel/template      → downloadTemplate()   下载导入模板
+  POST /schedule/excel/import        → importExcel()         上传Excel批量导入
+  GET  /schedule/excel/batches       → listBatches()         查询批次列表(分页)
+  GET  /schedule/excel/batches/:id   → getBatchDetail()      批次详情
+  GET  /schedule/excel/export        → exportData()          导出数据为Excel
+
+【2.6 路由层: schedule.routes.js (Excel部分)】
+
+  使用 multer 中间件处理文件上传:
+    - 存储: os.tmpdir() 系统临时目录
+    - 限制: 最大10MB
+    - 过滤: 仅允许 .xlsx / .xls
+    - 字段名: 'file'
+
+  所有Excel路由均需要 auth 认证中间件
+
+【2.7 数据层: schedule.repository.js (Excel部分)】
+
+  batchInsertExcelRows(rows)        批量插入记录
+  findExcelImportBatches(mId, filters)  分页查询批次(支持batch_id/status筛选)
+  findRowsByBatchId(batchId, mId)   按批次号查询所有行
+  batchUpdateStatus(ids, status, err)  批量更新状态
+
+【2.8 前端UI: admin.html (Excel部分)】
+
+  管理端 "排期设置" Tab页下的 Excel功能区:
+
+  组件状态:
+    excelDownloading    下载按钮loading
+    excelUploading      上传按钮loading
+    excelExporting      导出按钮loading
+    excelLastResult     最近导入结果 (含批次号/成功数/失败数/错误详情)
+    excelBatches        批次列表
+    excelBatchPage      批次分页
+    excelBatchTotal     批次总数
+    excelBatchStatusFilter  状态筛选 (pending/processed/failed)
+    excelDetailVisible  详情弹窗
+    excelDetailRows     详情数据
+
+  前端函数:
+    downloadExcelTemplate()   GET /schedule/excel/template → 触发浏览器下载
+    onExcelFileChange(e)       POST /schedule/excel/import → FormData上传
+    loadExcelBatches()         GET /schedule/excel/batches → 加载批次列表
+    viewBatchDetail(batch)     GET /schedule/excel/batches/:batchId → 查看详情
+    exportExcelData()          GET /schedule/excel/export → 导出数据下载
+
+  关键UI元素:
+    - el-button "下载模板" (带loading)
+    - label.file-label "上传Excel" (隐藏input[type=file])
+    - excel-result-box 展示导入结果 (成功/失败数+错误详情)
+    - batch-row 列表 (显示项目/日期/时段/联系方式/状态)
+    - el-dialog 批次详情弹窗 (el-table展示所有字段)
+    - el-button "导出当前数据" (支持按状态筛选后导出)
+
+【2.9 Excel完整数据流】
+
+  导入流程:
+    用户点击"下载模板" → 后端生成xlsx Buffer → 浏览器下载
+    → 用户填写数据后点击"上传Excel" → FormData上传
+    → multer解析存入临时目录 → schedule.service.importExcel()
+    → excelHelper.parseUploadedExcel() 解析验证
+    → repo.batchInsertExcelRows() 批量入库
+    → autoMatchStudios() 自动匹配项目
+    → 返回结果给前端展示
+
+  导出流程:
+    用户点击"导出当前数据" → schedule.service.exportData()
+    → repo.findExcelImportBatches() 查询数据库
+    → excelHelper.exportToExcelBuffer() 生成xlsx
+    → 返回Buffer给浏览器下载
+
+
+================================================================================
+三、封面日历 —— 完整实现链路
+================================================================================
+
+【3.1 核心依赖】
+  - Vue 3 (响应式UI框架)
+  - Element Plus (日期选择器组件)
+  - 无额外日历库, 纯手写日历组件
+
+【3.2 数据库表】
+
+  (A) orders 订单表 (003_create_orders.js)
+    关键字段:
+      order_no      VARCHAR(32)  订单号
+      m_id          VARCHAR(64)  商户ID
+      studio_id     BIGINT       项目ID
+      order_date    DATE         预约日期
+      time_slots    JSON         时段数组 (如 ["09:00","10:00"])
+      is_package_order BOOLEAN   是否包天
+      total_price   DECIMAL      总价
+      deposit_amount DECIMAL     定金
+      contact_info  VARCHAR(512) 联系方式
+      status        ENUM         状态 (待支付/已付定金/尾款待确认/已结清/已完成拍摄/已取消/退款审核中/已退款取消)
+      user_device_id VARCHAR(128) 用户设备ID
+
+  (B) slot_bookings 时段占位表 (004_create_slot_bookings.js)
+    关键字段:
+      m_id          VARCHAR(64)  商户ID
+      studio_id     BIGINT       项目ID
+      booking_date  DATE         预约日期
+      time_slot     VARCHAR(8)   时段 (HH:MM格式)
+      order_no      VARCHAR(32)  关联订单号
+      is_package_day BOOLEAN     是否包天
+      booking_count INTEGER      photo_time模式的占用数
+    联合唯一索引: (m_id, studio_id, booking_date, time_slot)
+
+  (C) studios 项目表 (关联)
+    关键字段:
+      open_time     VARCHAR(8)   营业开始时间 (如 '09:00')
+      close_time    VARCHAR(8)   营业结束时间 (如 '21:00')
+      time_interval INTEGER      排期间隔分钟数 (默认60)
+      is_package_day BOOLEAN     是否支持包天
+      package_price DECIMAL      包天价格
+
+  (D) unavailable_slots 不可接单时段表
+    关键字段:
+      m_id, studio_id, disabled_date, time_slot
+
+【3.3 日期工具: dateHelper.js】
+  文件: main/src/shared/utils/dateHelper.js
+
+  函数列表:
+    formatDate(date)              Date → 'YYYY-MM-DD'
+    getDaysInMonth(year, month)   获取某月天数
+    getFirstDayOfWeek(year, month)  获取某月第一天是周几 (0=周日)
+    generateTimeSlots(open, close, interval)  生成时间段列表
+      例: ('09:00', '21:00', 60) → ['09:00','10:00',...,'20:00']
+    generateHalfHourSlots(open, close)  生成半小时粒度时段
+      用于不可接单网格
+    isBeforeToday(dateStr)        判断日期是否已过
+
+【3.4 日历组件实现 (index.html 用户端)】
+
+  日历是纯CSS+Vue实现的，不依赖第三方日历库。
+
+  数据结构:
+    calYear         年 (number)
+    calMonth        月 (number, 1-12)
+    calDays         计算属性 — 生成当月所有日期格子
+    selectedDate    选中日期 'YYYY-MM-DD'
+    holidayCache    节假日缓存 { '2026-05-01': { isHoliday: true, tag: '劳动节' } }
+
+  日历生成算法 (calDays computed):
+    1. 获取当月天数: new Date(year, month, 0).getDate()
+    2. 获取当月第一天是周几: new Date(year, month-1, 1).getDay()
+    3. 前面补空白格 (firstDow 个)
+    4. 生成 1~daysInMonth 的日期格:
+       - isPast: 是否已过期 (不能点击)
+       - isToday: 是否今天 (蓝色高亮)
+       - isHoliday: 是否节假日 (红色)
+       - has-order: 是否有预约点 (红色小圆点)
+    5. CSS Grid布局: 7列, 每个格子可点击
+
+  节假日加载 (loadHolidays):
+    - API: https://timor.news/api/holiday/year/{year}?month={month}
+    - 缓存策略: localStorage key = 'holiday_{year}_{month}', 24小时过期
+    - 按月加载, watch calYear/calMonth 自动触发
+
+  时段选择 (timeSlots computed):
+    根据项目的 openTime/closeTime/timeInterval 生成时段列表
+    前端直接计算, 不需要后端
+
+  时段占用查询 (loadBookedSlots):
+    GET /booked-times?mId={}&date={}&studioId={}
+    返回 { bookedMap: {'09:00': true, '10:00': true}, packageDayDate: '...'|null }
+    已被占用的时段显示灰色禁用状态
+
+  包天检测:
+    如果某日存在 is_package_day 的占位记录, 全天不可选
+
+  改期功能日历 (reschedule):
+    使用 Element Plus 的 el-date-picker + 自定义 disabledDate
+    新日期选好后, 再次调用时段查询API加载可用时段
+
+【3.5 日历排期 (admin.html 管理端)】
+
+  管理端排期设置:
+    1. 选择项目 (el-select)
+    2. 选择日期 (el-date-picker)
+    3. 加载不可接单网格: GET /unavailable-slots/grid
+       返回 [{slot: '09:00', disabled: true}, {slot: '09:30', disabled: false}, ...]
+    4. 点击切换 红色(不接单)/白色(可接单)
+    5. 保存: POST /unavailable-slots/save
+       参数 { mId, studioId, date, slots: ['09:00','09:30'] }
+
+【3.6 后端排期服务 (schedule.service.js)】
+
+  (A) getBookedTimes(mId, studioId, date)
+      并行查询三个数据源:
+        - repo.getBookedSlots()   已支付订单的时段占用
+        - repo.getUnavailableSlots()  商家手动设置的不接单时段
+        - repo.hasPackageDayBooking()  包天占用检测
+      合并为 bookedMap: { '09:00': true, ... }
+      返回 { bookedMap, packageDayDate }
+
+  (B) getUnavailableGrid(mId, studioId, date)
+      1. 查项目营业时间 (open_time, close_time)
+      2. 调用 generateHalfHourSlots() 生成30分钟粒度全时段
+      3. 查数据库中已设置的不可接单时段
+      4. 交运算标记每个slot的disabled状态
+      返回 [{slot, disabled}, ...]
+
+  (C) saveUnavailableSlots(mId, studioId, date, slots)
+      事务内先删后插 replaceUnavailableSlots()
+
+【3.7 订单创建与时段校验 (order.service.js)】
+
+  createOrder() 中的时段冲突检测:
+    ① 包天冲突: 检查是否已有包天占位
+    ② 不可接单检测: 检查 selectedTimes 是否在 unavailSet 中
+    ③ 时段冲突(行级锁): 用 SELECT ... FOR UPDATE 锁行检查
+    ④ photo_time 模式还需检查张数上限
+
+  时段释放:
+    订单取消/退款时, scheduleRepo.deleteSlotsByOrderNo() 删除占位记录
+
+【3.8 价格计算引擎 (priceEngine.js)】
+
+  calculate() 函数 — 纯函数, 零副作用:
+    输入: { studio, selectedTimes, peopleCount, photoCount, isPackageDaySelected, holidayCache, selectedDate }
+
+    计费模式分支:
+      A. 包天: 固定 packagePrice
+      B. 按张数(photo): photoCount × 单价
+      C. 按张数+时段(photo_time): photoCount × 单价
+      D. 按时段(time): hours × 单价 (支持多时段折扣阶梯)
+
+    额外人数费: (N-1) × extraPersonFee × hours或photoCount
+    总价 = basePrice + extraTotal (四舍五入到分)
+    定金 = totalPrice × depositRatio%
+
+    节假日不同价:
+      getEffectivePrice() 根据 holidayCache 判断
+      holiday → holidayPrice, weekday → weekdayPrice
+
+【3.9 API路由一览 (与日历相关)】
+
+  用户端:
+    GET  /booked-times?mId=&date=&studioId=   查询某日已占时段
+    POST /create-order                          创建预约订单
+
+  管理端:
+    GET  /unavailable-slots/grid?mId=&studioId=&date=  获取不可接单网格
+    POST /unavailable-slots/save                       保存不可接单时段设置
+
+  共用:
+    GET  /studios-lite?mId=        获取项目列表(含营业时间配置)
+    GET  /settings?mId=            获取店铺设置(公告等)
+
+
+================================================================================
+四、数据流关系图
+================================================================================
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │                      用户端 (index.html)                       │
+  │  ┌──────────┐   ┌──────────────┐   ┌───────────────────┐   │
+  │  │ 日历组件  │   │  时段选择器    │   │  预约表单(联系/人数) │   │
+  │  │ (手写CSS) │ → │ (30/60min粒度)│ → │  确认下单 → API     │   │
+  │  └──────────┘   └──────────────┘   └───────────────────┘   │
+  └─────────────────────────────────────────────────────────────┘
+         │                  │                     │
+         ▼                  ▼                     ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │                    后端 API 层 (Express)                      │
+  │  /booked-times  /create-order  /unavailable-slots/grid      │
+  │  /studios-lite  /settings                                    │
+  └─────────────────────────────────────────────────────────────┘
+         │                  │                     │
+         ▼                  ▼                     ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │                      数据库 (MySQL)                           │
+  │  ┌────────────┐  ┌──────────────┐  ┌───────────────────┐   │
+  │  │ slot_bookings│  │unavailable   │  │ schedule_excel    │   │
+  │  │ (时段占位)   │  │  _slots      │  │   _imports        │   │
+  │  └────────────┘  │ (不接单时段)   │  │ (Excel导入记录)    │   │
+  │                   └──────────────┘  └───────────────────┘   │
+  │  ┌────────────┐  ┌──────────────┐                           │
+  │  │   orders   │  │   studios     │                           │
+  │  │ (订单主表)  │  │ (项目/报价)    │                           │
+  │  └────────────┘  └──────────────┘                           │
+  └─────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │                  管理端 (admin.html)                           │
+  │  ┌──────────────────┐   ┌────────────────────────────┐      │
+  │  │ 排期设置Tab        │   │ Excel导入导出区域            │      │
+  │  │ - 不可接单网格     │   │ - 下载模板 → 上传 → 自动入库 │      │
+  │  │ - 半小时粒度切换    │   │ - 批次列表/详情/导出        │      │
+  │  └──────────────────┘   └────────────────────────────┘      │
+  └─────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+五、关键技术要点
+================================================================================
+
+【5.1 Excel格式兼容性】
+  - 日期兼容: 文本格式(yyyy/mm/dd, yyyy-mm-dd, yyyy.mm.dd) + Excel数字序列号
+  - 时间兼容: 文本格式(HH:mm) + Excel小数格式(0.375代表09:00)
+  - 使用 XLSX.SSF.parse_date_code() 解析Excel序列号日期
+  - 5位数字且>40000作为序列号识别标志
+
+【5.2 并发安全】
+  - 订单创建时使用 SELECT ... FOR UPDATE 行级锁防止时段重复预定
+  - 包天订单检测在事务内执行
+  - 不可接单时段替换使用事务先删后插
+
+【5.3 节假日系统】
+  - 使用第三方API (timor.news) 获取中国节假日数据
+  - localStorage 24小时缓存, 减少API请求
+  - 前端 watch 年月变化自动加载
+  - 后端 pricing 依赖前端的 holidayCache 传值
+
+【5.4 日历纯手写实现】
+  - 零第三方日历依赖
+  - CSS Grid 7列布局
+  - Vue computed 响应式生成日历格子
+  - 支持: 过期标记、今日高亮、节假日红色、预约点标记
+
+【5.5 Excel自动匹配】
+  - 导入后自动将Excel中的"项目名称"与 studios 表匹配
+  - 大小写不敏感 + trim 处理
+  - 匹配成功后回填 studio_id, 便于后续关联查询
+
+
+================================================================================
+六、涉及的关键npm包
+================================================================================
+
+  xlsx:        ^0.18.5   Excel读写核心库 (SheetJS)
+  multer:      ^1.4.5    文件上传中间件
+  uuid:        ^9.0.1    生成UUID (批次号)
+  express:     ^4.21.0   Web框架
+  knex:        ^3.1.0    数据库查询构建器
+  mysql2:      ^3.11.0   MySQL驱动
+  joi:         ^17.13.3  参数校验
+  vue:         3.4.21    (CDN引入) 前端框架
+  element-plus: 2.6.1    (CDN引入) UI组件库

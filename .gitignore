@@ -1,0 +1,68 @@
+# ========== Dependencies ==========
+node_modules/
+
+# Lockfiles from other package managers (project uses npm)
+pnpm-lock.yaml
+yarn.lock
+
+# ========== Environment & Secrets ==========
+.env
+.env.*
+!.env.example
+
+# ========== Build Output ==========
+dist/
+build/
+*.tsbuildinfo
+
+# ========== Logs ==========
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========== Runtime & PID ==========
+.pids
+*.pid
+*.seed
+*.pid.lock
+
+# ========== Uploads / User-generated ==========
+uploads/
+
+# ========== OS ==========
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ========== IDE & Editors ==========
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ========== aaPanel / BT Panel ==========
+.user.ini
+.htaccess
+.autoBackup
+
+# ========== PM2 ==========
+.pm2/
+
+# ========== Misc ==========
+*.bak
+*.tmp
+*.temp
+.cache/

@@ -1,0 +1,387 @@
+/* =============================================================
+   喵掌柜预约系统 — 日系简约·阳光活力 设计体系
+   温暖米白 · 低饱和暖色 · 大圆角胶囊 · 宽松留白
+   ============================================================= */
+
+:root {
+  /* ─── 日系阳光色板 ─── */
+  --color-primary:       #F4A460;
+  --color-primary-light: #F7C57C;
+  --color-primary-dark:  #D4893E;
+  --color-primary-gradient: linear-gradient(135deg, #F4A460 0%, #F7C57C 100%);
+
+  /* ─── 日系辅色 ─── */
+  --color-secondary:     #F9E0A0;
+  --color-tertiary:      #A8D8B9;
+  --color-quaternary:    #EFA8A8;
+  --color-info:          #A9C1D9;
+
+  --color-sakura:        #EFA8A8;
+  --color-sakura-light:  #FDF2F2;
+  --color-sky:           #A9C1D9;
+  --color-sky-light:     #F0F4F8;
+  --color-mint:          #A8D8B9;
+  --color-mint-light:    #EDF6F0;
+  --color-peach:         #F4A460;
+  --color-peach-light:   #FEF7EF;
+
+  /* ─── 状态语义色 ─── */
+  --color-success:       #A8D8B9;
+  --color-success-bg:    #EDF6F0;
+  --color-warning:       #F9E0A0;
+  --color-warning-bg:    #FEF9ED;
+  --color-danger:        #EFA8A8;
+  --color-danger-bg:     #FDF2F2;
+  --color-info-bg:       #F0F4F8;
+  --color-disabled:      #D4CFC8;
+  --color-disabled-bg:   #F4F2EE;
+
+  /* ─── 文字层级 ─── */
+  --text-primary:        #4A4A4A;
+  --text-secondary:      #8E8E8E;
+  --text-sub:            #8E8E8E;
+  --text-placeholder:    #B0B0B0;
+  --text-inverse:        #ffffff;
+
+  /* ─── 背景体系 — 日系温暖米白 ─── */
+  --bg-page:             #F9F8F6;
+  --bg-card:             #FFFFFF;
+  --bg-card-solid:       #FFFFFF;
+  --bg-glass:            #FFFFFF;
+  --bg-glass-heavy:      #FFFFFF;
+  --bg-input:            #FFFFFF;
+  --bg-table-stripe:     #FDFBF7;
+
+  /* ─── 边框 ─── */
+  --border-color:        #E8E5DF;
+  --border-color-solid:  #E8E5DF;
+
+  /* ─── 圆角 — 日系大圆角胶囊 ─── */
+  --radius-sm:           10px;
+  --radius-md:           14px;
+  --radius-lg:           24px;
+  --radius-xl:           32px;
+  --radius-2xl:          36px;
+  --radius-pill:         9999px;
+  --radius-btn:          28px;
+
+  /* Element Plus 组件级圆角覆盖 */
+  --el-border-radius-base: 10px;
+  --el-border-radius-small: 6px;
+  --el-border-radius-round: 20px;
+  --el-border-radius-circle: 50%;
+  --el-card-border-radius: 14px;
+  --el-dialog-border-radius: 16px;
+  --el-tag-border-radius: 20px;
+  --el-button-border-radius: 28px;
+  --el-input-border-radius: 10px;
+  --el-popover-border-radius: 14px;
+  --el-message-border-radius: 12px;
+
+  /* ─── 阴影层 — 轻柔有层次 ─── */
+  --shadow-xs:           0 1px 4px rgba(0,0,0,.03);
+  --shadow-sm:           0 2px 8px rgba(0,0,0,.03);
+  --shadow-md:           0 6px 20px rgba(0,0,0,.05);
+  --shadow-lg:           0 12px 36px rgba(0,0,0,.07);
+  --shadow-xl:           0 16px 48px rgba(0,0,0,.10);
+  --shadow-glow:         0 0 28px rgba(244,164,96,.18);
+  --shadow-hover:        0 8px 28px rgba(0,0,0,.08), 0 2px 10px rgba(0,0,0,.04);
+
+  /* ─── 玻璃效果变量（保留兼容，但改为纯白）─── */
+  --glass-blur:          none;
+  --glass-blur-heavy:    none;
+  --glass-blur-light:    none;
+  --glass-bg:            #FFFFFF;
+  --glass-bg-hover:      #FEFBF6;
+  --glass-border:        #E8E5DF;
+  --glass-box-shadow:    var(--shadow-md);
+  --glass-box-shadow-hover: var(--shadow-hover);
+
+  /* ─── 动画曲线 — 日系弹性 ─── */
+  --ease-out:            cubic-bezier(0.25, 0.8, 0.25, 1);
+  --ease-in-out:         cubic-bezier(0.42, 0, 0.58, 1);
+  --ease-spring:         cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast:       150ms;
+  --duration-normal:     250ms;
+  --duration-slow:       400ms;
+  --transition-fast:     0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --transition-smooth:   0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --transition-spring:   0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── 间距宽松化 ─── */
+  --space-xs:            8px;
+  --space-sm:            16px;
+  --space-md:            24px;
+  --space-lg:            36px;
+  --space-xl:            48px;
+
+  /* ─── 字体 ─── */
+  --font-stack:          'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --font-mono:           'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  /* ─── 旧别名兼容 ─── */
+  --purple:              var(--color-primary);
+  --purple-light:        var(--color-primary-light);
+  --sakura:              var(--color-secondary);
+  --sakura-light:        var(--color-sakura-light);
+  --sky:                 var(--color-sky);
+  --sky-light:           var(--color-sky-light);
+  --mint:                var(--color-tertiary);
+  --mint-light:          var(--color-mint-light);
+  --peach:               var(--color-quaternary);
+  --peach-light:         var(--color-peach-light);
+  --danger:              var(--color-danger);
+  --danger-light:        var(--color-danger-bg);
+  --text:                var(--text-primary);
+  --sub:                 var(--text-sub);
+  --border:              var(--border-color);
+  --card-bg:             var(--bg-card);
+  --glass:               var(--bg-glass);
+}
+
+/* ─── 全局重置 ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-stack);
+  background: var(--bg-page);
+  background-attachment: fixed;
+  color: var(--text-secondary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+
+/* ─── 柔和环境光 ─── */
+body::before {
+  content: ''; position: fixed; top: -160px; right: -100px; width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(244,164,96,0.05) 0%, rgba(249,224,160,0.03) 40%, transparent 70%);
+  border-radius: 50%; pointer-events: none; z-index: 0;
+}
+body::after {
+  content: ''; position: fixed; bottom: 40px; left: -140px; width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(168,216,185,0.04) 0%, rgba(244,164,96,0.02) 40%, transparent 70%);
+  border-radius: 50%; pointer-events: none; z-index: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   按钮设计 — 日系胶囊
+   ══════════════════════════════════════════════════════════════ */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 13px 28px; border: none; border-radius: var(--radius-btn);
+  font-size: 15px; font-weight: 600; letter-spacing: 0.3px; cursor: pointer;
+  color: var(--text-inverse);
+  background: var(--color-primary-gradient);
+  box-shadow: 0 4px 16px rgba(244,164,96,.20), 0 1px 3px rgba(0,0,0,.04);
+  transition: transform var(--duration-fast) var(--ease-spring),
+              box-shadow var(--duration-fast) var(--ease-spring);
+}
+.btn-primary:hover  { box-shadow: 0 8px 24px rgba(244,164,96,.28), 0 2px 6px rgba(0,0,0,.05); transform: translateY(-2px) scale(1.02); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled {
+  background: var(--color-disabled); box-shadow: none; cursor: not-allowed; transform: none;
+}
+
+.btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 22px; border: 1px solid var(--border-color); border-radius: var(--radius-btn);
+  font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-primary);
+  background: var(--bg-card);
+  transition: all var(--duration-fast) var(--ease-spring);
+}
+.btn-secondary:hover  { border-color: var(--color-primary); background: #FEF7EF; transform: translateY(-1px); }
+.btn-secondary:active { transform: scale(0.97); }
+
+.btn-danger {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 20px; border: 1px solid rgba(239,168,168,0.30); border-radius: var(--radius-btn);
+  font-size: 12px; font-weight: 600; cursor: pointer; color: #D48888;
+  background: var(--color-danger-bg);
+  transition: all var(--duration-fast) var(--ease-spring);
+}
+.btn-danger:hover { background: #FBE8E8; transform: translateY(-1px); }
+
+.btn-success {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 20px; border: none; border-radius: var(--radius-btn);
+  font-size: 12px; font-weight: 600; cursor: pointer; color: #fff;
+  background: linear-gradient(135deg, #A8D8B9, #BDE4CB);
+  box-shadow: 0 3px 12px rgba(168,216,185,.20);
+  transition: all var(--duration-fast) var(--ease-spring);
+}
+.btn-success:hover { box-shadow: 0 6px 18px rgba(168,216,185,.30); transform: translateY(-1px); }
+.btn-success:active { transform: scale(0.97); }
+
+.btn-sm { padding: 6px 16px; font-size: 11px; border-radius: 20px; }
+
+/* ══════════════════════════════════════════════════════════════
+   表单 — 日系圆润输入
+   ══════════════════════════════════════════════════════════════ */
+.input-field {
+  width: 100%; padding: 12px 16px; border: 1px solid var(--border-color);
+  border-radius: var(--radius-md); font-size: 14px; font-family: inherit;
+  color: var(--text-primary); background: var(--bg-input);
+  outline: none; transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+.input-field:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(244,164,96,.12);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   标签系统
+   ══════════════════════════════════════════════════════════════ */
+.badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; padding: 3px 12px; border-radius: var(--radius-pill); font-weight: 600;
+  white-space: nowrap; letter-spacing: 0.3px;
+}
+.badge-pending   { background: var(--color-warning-bg); color: #B8933E; }
+.badge-prepaid   { background: var(--color-info-bg);    color: #5A7A9A; }
+.badge-confirmed { background: #FEF7EF; color: var(--color-primary-dark); }
+.badge-completed { background: var(--color-success-bg); color: #5A8A6A; }
+.badge-cancelled { background: var(--color-disabled-bg); color: #888; }
+.badge-refunding { background: var(--color-danger-bg);  color: #C87878; }
+.badge-paid      { background: var(--color-mint-light); color: #5A8A6A; }
+
+/* ══════════════════════════════════════════════════════════════
+   卡片容器 — 日系留白白卡
+   ══════════════════════════════════════════════════════════════ */
+.card-glass {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+.card-solid {
+  background: var(--bg-card-solid);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   表格
+   ══════════════════════════════════════════════════════════════ */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table thead th {
+  text-align: left; padding: 14px 16px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-sub);
+  border-bottom: 1.5px solid var(--border-color-solid); background: var(--bg-table-stripe);
+  white-space: nowrap;
+}
+.data-table tbody td {
+  padding: 14px 16px; border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+.data-table tbody tr { transition: background var(--duration-fast); }
+.data-table tbody tr:hover { background: #FDFBF7; }
+
+/* ══════════════════════════════════════════════════════════════
+   时间块高亮
+   ══════════════════════════════════════════════════════════════ */
+.time-block-highlight {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 14px; border-radius: var(--radius-pill);
+  background: #FEF7EF; color: var(--color-primary-dark);
+  font-weight: 600; font-family: var(--font-mono); font-size: 13px;
+  white-space: nowrap; letter-spacing: 0.5px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   日系白面板
+   ══════════════════════════════════════════════════════════════ */
+.glass-panel {
+  background: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  position: relative; overflow: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   呼吸灯动画
+   ══════════════════════════════════════════════════════════════ */
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 16px rgba(244,164,96,.08), 0 0 36px rgba(244,164,96,.03); }
+  50%      { box-shadow: 0 0 24px rgba(244,164,96,.16), 0 0 52px rgba(244,164,96,.07); }
+}
+.glass-panel.breathing {
+  animation: breathe 3.5s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   步骤指示器 — 日系暖杏
+   ══════════════════════════════════════════════════════════════ */
+.step-indicator {
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  padding: 16px 0; margin-bottom: 32px; user-select: none;
+}
+.step-dot {
+  width: 28px; height: 28px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
+  background: var(--color-disabled-bg); color: var(--text-placeholder);
+  transition: all var(--duration-normal) var(--ease-spring); flex-shrink: 0;
+}
+.step-dot.active {
+  background: var(--color-primary-gradient); color: #fff;
+  box-shadow: var(--shadow-glow); transform: scale(1.15);
+}
+.step-dot.done { background: var(--color-success); color: #fff; }
+.step-line {
+  flex: 1; height: 2.5px; min-width: 24px; background: #E8E5DF;
+  transition: background var(--duration-normal); border-radius: 2px;
+}
+.step-line.done { background: var(--color-primary); }
+.step-label {
+  font-size: 10px; color: var(--text-placeholder); margin-top: 4px; text-align: center; white-space: nowrap;
+}
+.step-label.active { color: var(--color-primary-dark); font-weight: 600; }
+
+/* ─── 响应式 ─── */
+@media (max-width: 768px) {
+  .data-table { display: none; }
+  .card-list { display: flex; flex-direction: column; gap: 10px; }
+}
+@media (min-width: 769px) {
+  .card-list { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   弹窗遮罩
+   ══════════════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.25);
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+}
+.modal-content {
+  background: #FFFFFF;
+  border-radius: var(--radius-xl);
+  padding: 24px; max-width: 420px; width: 90%;
+  box-shadow: var(--shadow-xl);
+  border: none;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   动画工具类
+   ══════════════════════════════════════════════════════════════ */
+.fade-enter-active, .fade-leave-active { transition: opacity var(--duration-normal) var(--ease-out); }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up {
+  animation: fadeInUp 0.6s var(--ease-spring) both;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   滚动条
+   ══════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(212,137,62,.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(212,137,62,.28); }

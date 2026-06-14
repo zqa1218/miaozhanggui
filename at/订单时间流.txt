@@ -1,0 +1,44 @@
+【商家端：资产配置与规则发布】
+Window_B_Step1 (收集城市/可选日期) ──► Window_B_Step2 (录入不间断工作区间 [base_start, base_end] 
+                                                        + N个固定休息段 rest_slots[] 
+                                                        + 间隔休息转场分钟)
+                                                        │
+Window_B_Step3 (定义服务耗时/新人加时/绑定独立样式SKU) ◄─┘
+       │
+       ▼
+【用户端：高精度动态精算与下单阻断】
+C端加载 ──► 客户选择SKU(单张/套餐) + 日期 + 新人/老手 
+               │
+               ▼
+用户点选唯一起始时间点 `bookingStartTime` (如 "14:00")
+               │
+               ├─► 前端引擎自动计算：TotalDuration = 样式/套餐标准耗时 + 新人加时 + 商家间隔休息
+               ├─► 自动推算绝对终点：bookingEndTime = bookingStartTime + TotalDuration
+               │
+               ▼
+调用 `/api/booked-times-v2` 进行并发碰撞交叉面积比对：
+  - 判定 A：是否重叠已有订单 `slot_bookings` (无论 pre_lock 还是 hard_lock)？
+  - 判定 B：是否侵入商家固定的不接单休息段 `studio_rest_slots`？
+               │
+        ┌──────┴──────┐
+        ▼             ▼
+  【存在重合交集】 【完全可用放行】
+  红字高亮警告时段冲突  绿标通过，毛玻璃看板高亮渲染公式：
+  强行置灰 [下一步] 按钮 “预计拍摄区间：14:00 至 15:15”
+                      │
+                      ▼
+               客户跳转步骤 2 ──► 输入强约束必填项 `roleName` (二次元角色名)
+                                    │
+                                    ▼
+【全栈数据链：双重锁定防抢单护航】
+顾客点击 [提交预约并付定金] ──► 触发 `/api/pay-deposit` 
+                                  │
+                                  ▼
+【第一重锁：定金软锁 (pre_lock)】：后端开启事务行锁，在 `slot_bookings` 强行写入此闭合区间，
+                                 标记 `lock_type = 'pre_lock'`。
+                                 C 端视图针对所有其他人该时段瞬时变色置灰，防并发抢单。
+                                  │
+                                  ▼
+【第二重锁：摄影确认硬锁 (hard_lock)】：B 端摄影师审查角色名及精确时段，手动点击 [确认接单] ──► 
+                                     触发 `/api/order/confirm-lock` ──► 
+                                     时间轴标志位升级为彻底锁死的 `hard_lock`，写入正式排期表。
