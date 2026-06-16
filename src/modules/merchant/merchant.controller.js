@@ -1,6 +1,16 @@
 const service = require('./merchant.service');
 const logger = require('../../shared/logger');
 
+/** GET /merchants-public — 返回所有有项目的商家 */
+async function listPublic(req, res) {
+  try {
+    const result = await service.listPublicMerchants();
+    res.rh.success(result);
+  } catch (err) {
+    res.rh.error('获取商家列表失败');
+  }
+}
+
 /** POST /register */
 async function register(req, res) {
   try {
@@ -61,4 +71,4 @@ async function updateProfile(req, res) {
   }
 }
 
-module.exports = { register, login, changePassword, getProfile, updateProfile };
+module.exports = { listPublic, register, login, changePassword, getProfile, updateProfile };

@@ -56,11 +56,16 @@ function logout() {
   router.push('/admin/login')
 }
 
+const isAdminUser = ref(false)
 const token = storage.get('mzg_admin_token', '')
 if (token) {
   isLoggedIn.value = true
   shopName.value = storage.get('mzg_admin_shopname', '')
   mId.value = storage.get('mzg_admin_mid', '')
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    isAdminUser.value = !!payload.isAdmin
+  } catch {}
   const pathToTab = {
     '/admin/orders': 'orders', '/admin/studios': 'studios',
     '/admin/studio/create/step1': 'create', '/admin/studio/create/step2': 'create',
@@ -78,7 +83,12 @@ const refreshBus = useRefreshBus()
 provide('refreshBus', refreshBus)
 
 const copyBtnText = ref('复制下单链接')
+const isCopying = ref(false)
+
 async function handleCopyLink() {
+  if (isCopying.value) return
+  isCopying.value = true
+
   const link = customerOrderLink.value
   try {
     await navigator.clipboard.writeText(link)
@@ -93,7 +103,10 @@ async function handleCopyLink() {
   }
   copyBtnText.value = '已复制'
   ElMessage.success('下单链接已复制')
-  setTimeout(() => { copyBtnText.value = '复制下单链接' }, 2000)
+  setTimeout(() => {
+    copyBtnText.value = '复制下单链接'
+    isCopying.value = false
+  }, 2000)
 }
 
 onMounted(async () => {
@@ -135,6 +148,7 @@ onMounted(async () => {
             :cooldown="3000"
             :timeout="15000"
           />
+          <button v-if="isAdminUser" class="btn-admin-dash" @click="router.push('/admin/dashboard')">⚙️ 超管</button>
           <button class="btn-secondary btn-logout" @click="logout">退出</button>
         </div>
       </div>
@@ -207,6 +221,8 @@ onMounted(async () => {
 .header-mid { font-size: 12px; color: var(--sub); margin-top: 2px; }
 .header-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .btn-logout { padding: 8px 18px; font-size: 13px; white-space: nowrap; }
+.btn-admin-dash { padding:8px 18px; font-size:13px; white-space:nowrap; border:1px solid #E8E5DF; border-radius:20px; background:#fff; cursor:pointer; color:#D4893E; font-weight:600; }
+.btn-admin-dash:hover { background:#FEF7EF; border-color:#F4A460; }
 
 /* 汉堡按钮 */
 .hamburger {

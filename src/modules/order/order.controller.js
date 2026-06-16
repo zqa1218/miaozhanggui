@@ -21,7 +21,10 @@ async function createOrder(req, res) {
 /** POST /create-order-v2 (显式 V2) */
 async function createOrderV2(req, res) {
   try {
-    const result = await service.createOrderV2(req.body);
+    const payload = { ...req.body };
+    if (req.user && req.user.userId) payload.userId = req.user.userId;
+
+    const result = await service.createOrderV2(payload);
     res.rh.success(result, '订单创建成功');
   } catch (err) {
     if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
@@ -50,10 +53,19 @@ async function getOrders(req, res) {
   }
 }
 
-/** GET /my-orders */
+/** GET /my-orders — 支持 JWT 用户隔离 与 旧版 deviceId 兼容 */
 async function getMyOrders(req, res) {
   try {
     const { mId, userDeviceId } = req.query;
+
+    // ★ 新鉴权：已登录用户 → userId + mId 双重隔离
+    if (req.user && req.user.userId) {
+      if (!mId) return res.rh.fail('缺少商家ID', 400);
+      const list = await service.getMyOrdersByUser(mId, req.user.userId);
+      return res.rh.success(list);
+    }
+
+    // 旧版兼容：deviceId 查询
     const list = await service.getMyOrders(mId, userDeviceId);
     res.rh.success(list);
   } catch (err) {
@@ -321,6 +333,18 @@ async function importOrders(req, res) {
   }
 }
 
+// 管理端：确认未结清尾款回收
+async function confirmSettled(req, res) {
+  try {
+    const result = await service.confirmSettled(req.body.orderNo, req.user.mId);
+    res.rh.success(result, '尾款已结清，订单已完成');
+  } catch (err) {
+    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
+    logger.error('confirmSettled error', err);
+    res.rh.error('结清失败: ' + (err.message || '未知错误'));
+  }
+}
+
 // 管理端：恢复已取消订单
 async function restoreOrder(req, res) {
   try {
@@ -334,15 +358,40 @@ async function restoreOrder(req, res) {
   }
 }
 
+// 管理端：永久删除已取消订单
+async function deleteOrder(req, res) {
+  try {
+    await service.deleteOrder(req.body.orderNo, req.user.mId);
+    res.rh.success(null, '订单已永久删除');
+  } catch (err) {
+    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
+    logger.error('deleteOrder error', err);
+    res.rh.error('删除失败: ' + (err.message || '未知错误'));
+  }
+}
+
+// 管理端：批量清除已完成订单
+async function clearCompleted(req, res) {
+  try {
+    const result = await service.clearCompletedOrders(req.user.mId);
+    res.rh.success(result, `已清除 ${result.deleted} 条已完成订单`);
+  } catch (err) {
+    logger.error('clearCompleted error', err);
+    res.rh.error('清除失败: ' + (err.message || '未知错误'));
+  }
+}
+
 module.exports = {
   createOrder, createOrderV2,
   getOrders, getMyOrders, updateStatus, archiveOrder,
   getTodayStats, getOrderDetail,
   payDeposit, payFinal, confirmLock,
   getBookedTimesV2,
-  confirmDepositPaid, confirmCompleted, markFulfilled,
+  confirmDepositPaid, confirmCompleted, confirmSettled, markFulfilled,
   requestReschedule, approveReschedule, rejectReschedule,
   requestCancel, approveCancel, rejectCancel,
   restoreOrder,
+  deleteOrder,
+  clearCompleted,
   downloadImportTemplate, exportOrders, importOrders,
 };

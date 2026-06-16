@@ -13,6 +13,10 @@ const registerSchema = Joi.object({
     'any.required': '  请输入店铺名称  ',
   }),
   isStudioOwner: Joi.boolean().default(false),
+  invitationCode: Joi.string().min(8).max(16).required().messages({
+    'any.required': '  请输入邀请码  ',
+    'string.min': '  邀请码格式不正确  ',
+  }),
 });
 
 const loginSchema = Joi.object({

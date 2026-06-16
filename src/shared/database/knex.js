@@ -18,9 +18,4 @@ const knex = require('knex')({
   debug: config.env === 'development',
 });
 
-//   测试连接
-knex.raw('SELECT 1')
-  .then(() => console.log('[MySQL]  连接成功'))
-  .catch((err) => console.error('[MySQL]  连接失败:', err.message));
-
 module.exports = knex;

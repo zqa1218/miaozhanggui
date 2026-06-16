@@ -1,15 +1,30 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { storage } from '@/utils/storage'
 
 const router = useRouter()
-const loginTab = ref('login')
+const route = useRoute()
+
+// ★ 带邀请码访问 → 自动切换到注册面板
+const loginTab = ref(route.query.code ? 'register' : 'login')
 const loginLoading = ref(false)
 const regLoading = ref(false)
 
 const loginForm = ref({ username: '', password: '' })
-const regForm = ref({ username: '', password: '', shopName: '', isStudioOwner: false })
+const regForm = ref({ username: '', password: '', shopName: '', isStudioOwner: false, invitationCode: '' })
+const inviteCodeFromUrl = ref(false)
+
+// ★ 自动回填邀请码
+function initInviteCode() {
+  const params = new URLSearchParams(window.location.search)
+  const code = params.get('code') || params.get('invitationCode')
+  if (code) {
+    regForm.value.invitationCode = code
+    inviteCodeFromUrl.value = true
+  }
+}
+initInviteCode()
 const errorMsg = ref('')
 const successMsg = ref('')
 
@@ -86,6 +101,8 @@ async function doRegister() {
                 style="margin-bottom:12px;" clearable />
       <el-input v-model="regForm.password" type="password" placeholder="密码(6-64字符)" show-password
                 style="margin-bottom:12px;" />
+      <el-input v-model="regForm.invitationCode" placeholder="邀请码（必填）"
+                style="margin-bottom:12px;" :disabled="inviteCodeFromUrl" clearable />
       <div class="studio-owner-toggle">
         <span>棚主注册</span>
         <el-switch v-model="regForm.isStudioOwner" />

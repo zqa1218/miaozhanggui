@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, reactive, inject } from 'vue'
 import { storage } from '@/utils/storage'
+import { ElMessage } from 'element-plus'
 
 function getToken() { return storage.get('mzg_admin_token', '') }
 
@@ -45,7 +46,7 @@ const STATUS_TABS = [
   { key: '', label: '全部' },
   { key: '待支付', label: '待支付' },
   { key: '已付定金', label: '已付定金' },
-  { key: '已确认锁定', label: '已确认' },
+  { key: '未结清', label: '未结清' },
   { key: '改期待批', label: '改期待批', app: 'RESCHEDULE_REQUESTED' },
   { key: '取消待批', label: '取消待批', app: 'CANCEL_REQUESTED' },
   { key: '已完成拍摄', label: '已完成' },
@@ -53,10 +54,12 @@ const STATUS_TABS = [
 ]
 const STATUS_MAP = {
   '待支付':     { label: '待支付',   cls: 'badge-pending' },
+  '定金待确认': { label: '定金待确认', cls: 'badge-deposit-pending' },
   '已付定金':   { label: '已付定金', cls: 'badge-prepaid' },
   '已确认锁定': { label: '已确认',   cls: 'badge-confirmed' },
   '尾款待确认': { label: '尾款待确认', cls: 'badge-confirmed' },
   '已结清':     { label: '已结清',   cls: 'badge-paid' },
+  '未结清':     { label: '未结清',   cls: 'badge-unsettled' },
   '已完成拍摄': { label: '已完成',   cls: 'badge-completed' },
   '已取消':     { label: '已取消',   cls: 'badge-cancelled' },
   '已退款取消': { label: '已退款取消', cls: 'badge-cancelled' },
@@ -75,6 +78,7 @@ const searchFilter = ref('')
 const showDateOnly = ref(false)
 const todayRevenue = ref(0)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
+const pendingDepositCount = computed(() => orders.value.filter(o => o.status === '定金待确认').length)
 
 function getMonthRange() {
   const y = calYear.value, m = calMonth.value
@@ -282,11 +286,20 @@ function switchTab(key) {
   page.value = 1
   // 审批类 tab：拉全量，前端过滤
   if (key === '改期待批' || key === '取消待批') {
+    dateFilter.value = ''
+    calSelectedDate.value = ''
     const saved = activeTab.value
     activeTab.value = ''
     fetchOrders().then(() => { activeTab.value = saved })
+  } else if (key === '未结清') {
+    // 跨日期拉取所有未结清订单
+    dateFilter.value = ''
+    calSelectedDate.value = ''
+    fetchOrders()
   } else if (key === '已取消') {
     // 使用后端 CANCELLED_ANY 过滤器（覆盖新旧两种取消路径）
+    dateFilter.value = ''
+    calSelectedDate.value = ''
     const saved = activeTab.value
     activeTab.value = 'CANCELLED_ANY'
     fetchOrders().then(() => { activeTab.value = saved })
@@ -380,8 +393,10 @@ async function archiveOrder(o, type) {
     method: 'POST',
     body: JSON.stringify({ orderNo: o.orderNo, type }),
   })
-  if (res.success || res.code === 0) { fetchOrders(); loadCalendarDates(); loadTimeline() }
-  else alert(res.message || '归档失败')
+  if (res.success || res.code === 0) {
+    if (type === '已取消' || type === '已退款取消') ElMessage.success('操作成功，已自动释放对应时间轴排期')
+    fetchOrders(); loadCalendarDates(); loadTimeline()
+  } else ElMessage.error(res.message || '归档失败')
 }
 async function approveRefund(o) {
   if (!confirm('确定同意退款？将释放该订单占用的时段。')) return
@@ -390,7 +405,7 @@ async function approveRefund(o) {
     body: JSON.stringify({ orderNo: o.orderNo }),
   })
   if (res.success || res.code === 0) { fetchOrders(); loadCalendarDates(); loadTimeline() }
-  else alert(res.message || '操作失败')
+  else ElMessage.error(res.message || '操作失败')
 }
 async function rejectRefund(o) {
   let reason = prompt('拒绝原因（选填）:')
@@ -409,7 +424,7 @@ async function adminConfirmDeposit(o) {
     body: JSON.stringify({ orderNo: o.orderNo }),
   })
   if (res.success || res.code === 0) { fetchOrders(); loadCalendarDates(); loadTimeline() }
-  else alert(res.message || '操作失败')
+  else ElMessage.error(res.message || '操作失败')
 }
 async function adminConfirmCompleted(o) {
   if (!confirm(`确认「${o.studioTitle || o.orderNo}」已结清尾款？`)) return
@@ -418,7 +433,17 @@ async function adminConfirmCompleted(o) {
     body: JSON.stringify({ orderNo: o.orderNo }),
   })
   if (res.success || res.code === 0) { fetchOrders(); loadCalendarDates(); loadTimeline() }
-  else alert(res.message || '操作失败')
+  else ElMessage.error(res.message || '操作失败')
+}
+
+async function markFulfilledApi(o) {
+  if (!confirm(`确定「${o.studioTitle || o.orderNo}」服务已完成？\n系统将根据尾款状态自动分流为"已完成"或"未结清"。`)) return
+  const res = await apiFetch('/api/order/mark-fulfilled', {
+    method: 'POST',
+    body: JSON.stringify({ orderNo: o.orderNo }),
+  })
+  if (res.success || res.code === 0) { fetchOrders(); loadCalendarDates(); loadTimeline() }
+  else ElMessage.error(res.message || '操作失败')
 }
 
 async function adminApproveReschedule(o) {
@@ -429,7 +454,7 @@ async function adminApproveReschedule(o) {
     body: JSON.stringify({ orderNo: o.orderNo }),
   })
   if (res.success || res.code === 0) { fetchOrders(); loadCalendarDates(); loadTimeline() }
-  else alert(res.message || '操作失败')
+  else ElMessage.error(res.message || '操作失败')
 }
 
 async function adminRejectReschedule(o) {
@@ -439,7 +464,7 @@ async function adminRejectReschedule(o) {
     body: JSON.stringify({ orderNo: o.orderNo }),
   })
   if (res.success || res.code === 0) { fetchOrders(); loadCalendarDates(); loadTimeline() }
-  else alert(res.message || '操作失败')
+  else ElMessage.error(res.message || '操作失败')
 }
 
 async function adminApproveCancel(o) {
@@ -449,7 +474,7 @@ async function adminApproveCancel(o) {
     body: JSON.stringify({ orderNo: o.orderNo }),
   })
   if (res.success || res.code === 0) { fetchOrders(); loadCalendarDates(); loadTimeline() }
-  else alert(res.message || '操作失败')
+  else ElMessage.error(res.message || '操作失败')
 }
 
 async function adminRejectCancel(o) {
@@ -459,7 +484,7 @@ async function adminRejectCancel(o) {
     body: JSON.stringify({ orderNo: o.orderNo }),
   })
   if (res.success || res.code === 0) { fetchOrders(); loadCalendarDates(); loadTimeline() }
-  else alert(res.message || '操作失败')
+  else ElMessage.error(res.message || '操作失败')
 }
 
 async function exportOrders() {
@@ -482,7 +507,7 @@ async function exportOrders() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  } catch { alert('导出失败') }
+  } catch { ElMessage.error('导出失败') }
 }
 
 const importFileInput = ref(null)
@@ -493,7 +518,7 @@ function triggerImport() { importFileInput.value?.click() }
 async function handleImportFile(e) {
   const file = e.target.files[0]
   if (!file) return
-  if (!/\.xlsx?$/i.test(file.name)) { alert('仅支持 .xlsx 或 .xls 格式'); return }
+  if (!/\.xlsx?$/i.test(file.name)) { ElMessage.warning('仅支持 .xlsx 或 .xls 格式'); return }
   if (!confirm(`确认导入「${file.name}」？系统将逐行校验并批量创建订单。`)) { e.target.value = ''; return }
   importing.value = true
   try {
@@ -502,12 +527,12 @@ async function handleImportFile(e) {
     fd.append('file', file)
     const res = await fetch('/api/order/import', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd }).then(r => r.json())
     if (res.success || res.code === 0) {
-      alert(res.message || '导入成功')
+      ElMessage.success(res.message || '导入成功')
       fetchOrders(); loadCalendarDates(); loadTimeline()
     } else {
-      alert(res.message || '导入失败')
+      ElMessage.error(res.message || '导入失败')
     }
-  } catch { alert('网络错误，导入失败') }
+  } catch { ElMessage.error('网络错误，导入失败') }
   importing.value = false
   e.target.value = ''
 }
@@ -529,7 +554,7 @@ async function downloadTemplate() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  } catch { alert('模板下载失败') }
+  } catch { ElMessage.error('模板下载失败') }
 }
 
 // 判断是否需要显示新状态机按钮
@@ -547,7 +572,7 @@ function isCancelledOrder(o) {
 
 async function restoreOrder(o) {
   if (!confirm(`确认恢复订单「${o.orderNo}」？\n系统将重新锁定原时间段 ${o.bookingStartTime || ''}—${o.bookingEndTime || ''}。\n如果该时段已被他人预约，恢复将失败。`)) return
-  
+
   const res = await apiFetch('/api/order/restore', {
     method: 'POST',
     body: JSON.stringify({ orderNo: o.orderNo }),
@@ -555,7 +580,50 @@ async function restoreOrder(o) {
   if (res.success || res.code === 0) {
     fetchOrders(); loadCalendarDates(); loadTimeline()
   } else {
-    alert(res.message || '恢复失败')
+    ElMessage.error(res.message || '恢复失败')
+  }
+}
+
+async function confirmSettled(o) {
+  if (!confirm(`确认「${o.studioTitle || o.orderNo}」已收到尾款并结清？\n订单将从「未结清」变为「已完成」。`)) return
+
+  const res = await apiFetch('/api/order/confirm-settled', {
+    method: 'POST',
+    body: JSON.stringify({ orderNo: o.orderNo }),
+  })
+  if (res.success || res.code === 0) {
+    fetchOrders(); loadCalendarDates(); loadTimeline()
+  } else {
+    ElMessage.error(res.message || '结清失败')
+  }
+}
+
+async function clearCompletedOrders() {
+  if (!confirm('确定要清除所有已完成订单吗？\n\n此操作不可撤销，将永久删除当前商家的所有已完成订单。')) return
+  if (!confirm('再次确认：此操作不可恢复！\n\n确定要继续吗？')) return
+  const res = await apiFetch('/api/order/clear-completed', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  if (res.success || res.code === 0) {
+    ElMessage.success(res.message || '清除完成')
+    fetchOrders(); loadCalendarDates(); loadTimeline()
+  } else {
+    ElMessage.error(res.message || '清除失败')
+  }
+}
+
+async function deleteOrder(o) {
+  if (!confirm(`确定永久删除订单「${o.orderNo}」？\n此操作不可撤销，订单数据将彻底清除。`)) return
+
+  const res = await apiFetch('/api/order/delete', {
+    method: 'POST',
+    body: JSON.stringify({ orderNo: o.orderNo }),
+  })
+  if (res.success || res.code === 0) {
+    fetchOrders(); loadCalendarDates(); loadTimeline()
+  } else {
+    ElMessage.success('订单已永久删除，已自动释放对应时间轴排期')
   }
 }
 
@@ -576,7 +644,7 @@ function lockLabel(o) {
   return ''
 }
 
-const ACTIVE_STATUSES = ['待支付', '已付定金', '已确认锁定', '尾款待确认', '已结清']
+const ACTIVE_STATUSES = ['待支付', '定金待确认', '已付定金', '已确认锁定', '尾款待确认', '已结清', '未结清']
 function isActiveStatus(s) { return ACTIVE_STATUSES.includes(s) }
 
 // ─── 生命周期 ───
@@ -675,6 +743,8 @@ watch(() => refreshBus?.tick, async (newTick) => {
       <input v-model="searchFilter" placeholder="搜索角色名/联系方式" class="input-field" @keyup.enter="doSearch" />
       <el-button size="small" @click="doSearch">查询</el-button>
       <el-button size="small" @click="dateFilter='';calSelectedDate='';searchFilter='';showDateOnly=false;page=1;showCurrentMonth()">清除</el-button>
+      <span v-if="pendingDepositCount > 0" class="pending-alert-badge">有新定金待确认 ×{{ pendingDepositCount }}</span>
+      <el-button size="small" type="danger" plain v-if="activeTab==='已完成拍摄'" @click="clearCompletedOrders">清除已完成</el-button>
     </div>
 
     <div v-if="loading" class="empty">加载中...</div>
@@ -727,21 +797,25 @@ watch(() => refreshBus?.tick, async (newTick) => {
                 </td>
                 <td @click.stop>
                   <div class="btn-group">
-                    <!-- 旧版状态操作 -->
-                    <el-button size="small" type="primary" v-if="o.status==='待支付'" @click="updateStatus(o.orderNo,'已付定金')">确认定金</el-button>
-                    <el-button size="small" type="primary" v-if="o.status==='已付定金'" @click="updateStatus(o.orderNo,'已确认锁定')">确认锁定</el-button>
+                    <!-- ★ 待支付 → 确认收到定金 -->
+                    <el-button size="small" type="primary" v-if="o.status==='待支付' || o.status==='定金待确认'" @click="adminConfirmDeposit(o)" :type="o.status==='定金待确认' ? 'warning' : 'primary'">{{ o.status==='定金待确认' ? '核对流水并确认定金' : '确认收到定金' }}</el-button>
+                    <!-- ★ 已付定金 / 已确认 → 确定服务完成（隐藏取消按钮） -->
+                    <el-button size="small" type="success" v-if="o.status==='已付定金' || o.status==='已确认锁定'" @click="markFulfilledApi(o)">确定服务完成</el-button>
+                    <!-- ★ 尾款待确认 → 确认结清 -->
                     <el-button size="small" type="primary" v-if="o.status==='尾款待确认'" @click="updateStatus(o.orderNo,'已结清')">确认结清</el-button>
+                    <!-- ★ 已结清 → 完成拍摄 -->
                     <el-button size="small" type="success" v-if="o.status==='已结清'" @click="archiveOrder(o,'已完成拍摄')">完成拍摄</el-button>
+                    <!-- ★ 未结清 → 确认结清（高亮） -->
+                    <el-button size="small" type="warning" v-if="o.status==='未结清'" @click="confirmSettled(o)">确认结清</el-button>
+                    <!-- ★ 退款审核 -->
                     <el-button size="small" type="success" v-if="o.status==='退款审核中'" @click="approveRefund(o)">同意退款</el-button>
                     <el-button size="small" type="warning" v-if="o.status==='退款审核中'" @click="rejectRefund(o)">拒绝</el-button>
-                    <el-button size="small" type="danger" plain v-if="isActiveStatus(o.status) && o.status!=='退款审核中'" @click="archiveOrder(o,'已取消')">取消</el-button>
+                    <!-- ★ 取消：仅待支付/尾款待确认/已结清/未付款状态可见，已确认状态隐藏 -->
+                    <el-button size="small" type="danger" plain v-if="(o.status==='待支付' || o.status==='定金待确认' || o.status==='尾款待确认' || o.status==='已结清') && o.status!=='退款审核中'" @click="archiveOrder(o,'已取消')">取消</el-button>
 
-                    <!-- ★ 恢复已取消订单 -->
+                    <!-- ★ 已取消：恢复 + 删除 -->
                     <el-button size="small" type="warning" plain v-if="isCancelledOrder(o)" @click="restoreOrder(o)">恢复</el-button>
-
-                    <!-- ★ 新状态机：收款确认 -->
-                    <el-button size="small" type="primary" v-if="(o.paymentStatus||o.payment_status)==='PENDING_DEPOSIT'" @click="adminConfirmDeposit(o)">确认定金</el-button>
-                    <el-button size="small" type="primary" v-if="(o.paymentStatus||o.payment_status)==='DEPOSIT_PAID'" @click="adminConfirmCompleted(o)">确认结清</el-button>
+                    <el-button size="small" type="danger" plain v-if="isCancelledOrder(o)" @click="deleteOrder(o)">删除</el-button>
 
                     <!-- ★ 新状态机：改期审批 -->
                     <template v-if="hasApplication(o, 'RESCHEDULE_REQUESTED')">
@@ -805,18 +879,26 @@ watch(() => refreshBus?.tick, async (newTick) => {
         <div class="card-title">{{ o.studioTitle || o.studio_name || '—' }}<span v-if="o.roleName || o.role_name" class="card-role"> · {{ o.roleName || o.role_name }}</span></div>
         <div v-if="o.requestedNewTime || o.requested_new_time" class="card-resched-hint">申请改期至 {{ o.requestedNewTime || o.requested_new_time }}</div>
         <div class="btn-group" style="margin-top:8px;">
-          <el-button size="small" type="primary" v-if="o.status==='待支付'" @click="updateStatus(o.orderNo,'已付定金')">确认定金</el-button>
-          <el-button size="small" type="primary" v-if="o.status==='已付定金'" @click="updateStatus(o.orderNo,'已确认锁定')">确认锁定</el-button>
+          <!-- ★ 待支付 → 确认收到定金 -->
+          <el-button size="small" type="primary" v-if="o.status==='待支付' || o.status==='定金待确认'" @click="adminConfirmDeposit(o)" :type="o.status==='定金待确认' ? 'warning' : 'primary'">{{ o.status==='定金待确认' ? '核对流水并确认定金' : '确认收到定金' }}</el-button>
+          <!-- ★ 已付定金 / 已确认 → 确定服务完成 -->
+          <el-button size="small" type="success" v-if="o.status==='已付定金' || o.status==='已确认锁定'" @click="markFulfilledApi(o)">确定服务完成</el-button>
+          <!-- ★ 尾款待确认 → 确认结清 -->
           <el-button size="small" type="primary" v-if="o.status==='尾款待确认'" @click="updateStatus(o.orderNo,'已结清')">确认结清</el-button>
+          <!-- ★ 已结清 → 完成 -->
           <el-button size="small" type="success" v-if="o.status==='已结清'" @click="archiveOrder(o,'已完成拍摄')">完成</el-button>
+          <!-- ★ 未结清 → 确认结清（高亮） -->
+          <el-button size="small" type="warning" v-if="o.status==='未结清'" @click="confirmSettled(o)">确认结清</el-button>
+          <!-- ★ 退款审核 -->
           <el-button size="small" type="success" v-if="o.status==='退款审核中'" @click="approveRefund(o)">同意退款</el-button>
           <el-button size="small" type="warning" v-if="o.status==='退款审核中'" @click="rejectRefund(o)">拒绝</el-button>
-          <el-button size="small" type="danger" plain v-if="isActiveStatus(o.status) && o.status!=='退款审核中'" @click="archiveOrder(o,'已取消')">取消</el-button>
+          <!-- ★ 取消：已确认状态隐藏 -->
+          <el-button size="small" type="danger" plain v-if="(o.status==='待支付' || o.status==='定金待确认' || o.status==='尾款待确认' || o.status==='已结清') && o.status!=='退款审核中'" @click="archiveOrder(o,'已取消')">取消</el-button>
+          <!-- ★ 已取消 -->
           <el-button size="small" type="warning" plain v-if="isCancelledOrder(o)" @click="restoreOrder(o)">恢复</el-button>
+                    <el-button size="small" type="danger" plain v-if="isCancelledOrder(o)" @click="deleteOrder(o)">删除</el-button>
 
-          <!-- ★ 新状态机 -->
-          <el-button size="small" type="primary" v-if="(o.paymentStatus||o.payment_status)==='PENDING_DEPOSIT'" @click="adminConfirmDeposit(o)">确认定金</el-button>
-          <el-button size="small" type="primary" v-if="(o.paymentStatus||o.payment_status)==='DEPOSIT_PAID'" @click="adminConfirmCompleted(o)">确认结清</el-button>
+          <!-- ★ 新状态机：改期/取消审批 -->
           <template v-if="hasApplication(o, 'RESCHEDULE_REQUESTED')">
             <el-button size="small" type="success" @click="adminApproveReschedule(o)">同意改期</el-button>
             <el-button size="small" type="warning" @click="adminRejectReschedule(o)">拒绝</el-button>
@@ -918,25 +1000,32 @@ watch(() => refreshBus?.tick, async (newTick) => {
   color: rgba(180,120,50,0.55);
 }
 
-/* 预锁：冷灰条纹 */
+/* 预锁：定金待审 — 半透明斜线斑马纹 */
 .tl-seg.pre_lock, .tl-seg.pre-lock {
-  background: rgba(190,190,200,0.40);
-  backdrop-filter: blur(8px);
-  color: rgba(0,0,0,0.42);
+  background: rgba(255,180,100,0.28);
+  backdrop-filter: blur(6px);
+  color: rgba(180,100,30,0.65);
   background-image: repeating-linear-gradient(
-    -40deg, transparent, transparent 4px,
-    rgba(0,0,0,0.03) 4px, rgba(0,0,0,0.03) 8px
+    -40deg, transparent, transparent 5px,
+    rgba(255,255,255,0.25) 5px, rgba(255,255,255,0.25) 10px
   );
+  position: relative;
+}
+.tl-seg.pre_lock .tl-seg-label::after,
+.tl-seg.pre-lock .tl-seg-label::after {
+  content: ' 定金待审';
+  font-size: 9px;
+  opacity: 0.7;
 }
 
-/* 硬锁：深灰条纹 */
+/* 硬锁：已确认 — 实心毛玻璃 */
 .tl-seg.hard_lock, .tl-seg.hard-lock {
-  background: rgba(170,175,185,0.50);
-  backdrop-filter: blur(8px);
-  color: rgba(0,0,0,0.48);
+  background: rgba(130,170,150,0.55);
+  backdrop-filter: blur(12px);
+  color: rgba(0,0,0,0.52);
   background-image: repeating-linear-gradient(
-    -40deg, transparent, transparent 4px,
-    rgba(0,0,0,0.04) 4px, rgba(0,0,0,0.04) 8px
+    -40deg, transparent, transparent 6px,
+    rgba(255,255,255,0.18) 6px, rgba(255,255,255,0.18) 12px
   );
 }
 /* 拍摄后的自动休息段：琥珀虚线 */
@@ -992,12 +1081,25 @@ watch(() => refreshBus?.tick, async (newTick) => {
 .cell-deposit { font-size: 10px; color: var(--text-sub); }
 .badge-cell { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
 .badge-pending { background: rgba(249,224,160,0.20); color: #B8933E; }
+.badge-deposit-pending { background: rgba(255,200,120,0.25); color: #D4782E; }
 .badge-prepaid { background: rgba(169,193,217,0.20); color: #5A7A9A; }
 .badge-confirmed { background: rgba(244,164,96,0.15); color: #D4893E; }
 .badge-paid { background: rgba(168,216,185,0.20); color: #5A8A6A; }
+.badge-unsettled { background: rgba(244,164,96,0.22); color: #C77A2E; }
 .badge-completed { background: rgba(168,216,185,0.15); color: #5A8A6A; }
 .badge-cancelled { background: rgba(180,180,190,0.12); color: #888; }
 .badge-refunding { background: rgba(239,168,168,0.18); color: #C87878; }
+.pending-alert-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 12px; border-radius: 14px;
+  background: rgba(255,140,60,0.18); color: #D46820;
+  font-size: 12px; font-weight: 700;
+  animation: pendingPulse 1.8s ease-in-out infinite;
+}
+@keyframes pendingPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.04); }
+}
 .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ─── 展开行 ─── */

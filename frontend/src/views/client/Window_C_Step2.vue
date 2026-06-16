@@ -145,7 +145,7 @@ async function confirmPaymentAndSubmit() {
 
     if (payRes.success || payRes.code === 0) {
       wizardC.setLockStatus('pre_lock')
-      orderResult.value = { ...createRes.data, orderNo, status: '已付定金' }
+      orderResult.value = { ...createRes.data, orderNo, status: '定金待确认' }
       wizardC.setOrderResult(orderResult.value)
     } else {
       errorMsg.value = payRes.message || '支付确认失败，订单已创建但定金未锁定'
@@ -167,16 +167,17 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
   <div class="c-step2 fade-in-up" style="max-width:520px;margin:0 auto;padding:0 0 30px;">
     <h1 style="font-size:18px;padding:12px 14px;color:var(--text-primary,#333);">确认信息与支付定金</h1>
 
-    <!-- ★ 支付成功 -->
+    <!-- ★ 支付成功 — 等待商家核账 -->
     <div v-if="orderResult" class="success-panel">
-      <h2>预约已确认</h2>
+      <h2>定金已提交，等待商家核账中...</h2>
       <div class="order-no-box">
         <span class="order-no-label">订单号</span>
         <strong>{{ orderResult.orderNo }}</strong>
       </div>
       <div class="lock-badges">
-        <span class="badge badge-blue">{{ orderResult.status }}</span>
-        <span v-if="wizardC.lockStatus==='pre_lock'" class="badge badge-lock">🔒 时段已预锁</span>
+        <span v-if="orderResult.status === '定金待确认'" class="badge badge-warn">待商家核账</span>
+        <span v-else class="badge badge-blue">{{ orderResult.status }}</span>
+        <span v-if="wizardC.lockStatus==='pre_lock'" class="badge badge-lock">时段已预锁</span>
       </div>
       <div class="time-confirm">
         <strong>{{ wizardC.startTime }} — {{ wizardC.computedEndTime }}</strong>
@@ -205,7 +206,7 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
         <p class="qr-save-hint">长按或保存图片 → 打开支付 App 扫码付款</p>
       </div>
 
-      <p class="lock-notice">摄影师确认后时段将正式锁定</p>
+      <p class="lock-notice">时段已预锁 · 摄影师核对流水后将正式确认</p>
       <button class="btn-primary" @click="goHome" style="margin-top:12px;">返回首页</button>
     </div>
 
@@ -385,6 +386,7 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
   font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600;
 }
 .badge-blue { background: #edf2f6; color: #5a7a96; }
+.badge-warn { background: #fff3e0; color: #e67a2e; animation: badgePulse 2s ease-in-out infinite; }
 .badge-lock { background: #f5f0e8; color: #8a7040; }
 .time-confirm { margin: 10px 0; font-size: 16px; }
 .time-confirm-sub { font-size: 12px; color: var(--sub); margin-top: 4px; }
@@ -457,4 +459,8 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
 .no-qr { padding: 24px; color: var(--sub, #8e8e93); font-size: 13px; }
 .qr-hint { font-size: 11px; color: var(--sub, #8e8e93); margin: 8px 0; }
 .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+@keyframes badgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
 </style>

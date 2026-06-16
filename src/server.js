@@ -4,17 +4,23 @@ const config = require('./config');
 const logger = require('./shared/logger');
 const { init: initWebSocket } = require('./shared/websocket');
 
-//   启动时预热 Redis（可选）
 const redis = require('./shared/redis/client');
+const knex = require('./shared/database/knex');
 
 async function start() {
   try {
-    //   尝试连接 Redis（非阻塞，失败也不影响）
-    await redis.connect().catch(() => {
-      logger.warn('[Redis]  未连接，将使用纯 MySQL 模式');
-    });
+    //  DB 连接必须成功，否则不启动
+    await knex.raw('SELECT 1');
+    logger.info('[MySQL]  连接成功');
 
-    // 使用 http.createServer 以支持 WebSocket
+    // Redis 可选
+    try {
+      await redis.connect();
+      logger.info('[Redis]  连接成功');
+    } catch (_) {
+      logger.warn('[Redis]  未连接，将使用纯 MySQL 模式');
+    }
+
     const server = http.createServer(app);
     initWebSocket(server);
 
@@ -25,6 +31,11 @@ async function start() {
       logger.info(`   环境: ${config.env}`);
       logger.info(`   WebSocket: ws://${config.host}:${config.port}/ws`);
       logger.info(`========================================`);
+
+      // 通知 PM2 进程已就绪
+      if (typeof process.send === 'function') {
+        process.send('ready');
+      }
     });
   } catch (err) {
     logger.error('服务器启动失败:', err);
@@ -32,7 +43,6 @@ async function start() {
   }
 }
 
-//   优雅关闭
 process.on('SIGTERM', async () => {
   logger.info('收到 SIGTERM，正在关闭...');
   await redis.quit().catch(() => {});

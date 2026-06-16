@@ -1,6 +1,8 @@
 const router = require('express').Router();
 
 //   引入所有模块路由
+const clientAuthRoutes = require('../modules/client-auth/auth.routes');
+const adminRoutes = require('../modules/admin/admin.routes');
 const merchantRoutes = require('../modules/merchant/merchant.routes');
 const studioRoutes = require('../modules/studio/studio.routes');
 const orderRoutes = require('../modules/order/order.routes');
@@ -19,6 +21,8 @@ router.get('/health', (_req, res) => {
 });
 
 //   注册各模块路由（均挂载到 /api 下，兼容前端现有调用）
+router.use('/', clientAuthRoutes);
+router.use('/', adminRoutes);
 router.use('/', merchantRoutes);
 router.use('/', studioRoutes);
 router.use('/', orderRoutes);

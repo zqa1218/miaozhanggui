@@ -2,11 +2,14 @@
 import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/order'
+import { useClientAuthStore } from '@/stores/clientAuth'
 import { storage, getQueryParam } from '@/utils/storage'
+import { ElMessage } from 'element-plus'
 import FlexibleTimelinePicker from '@/components/client/FlexibleTimelinePicker.vue'
 
 const router = useRouter()
 const store = useOrderStore()
+const auth = useClientAuthStore()
 
 // 辅助：HH:mm → minutes
 function toMin(t) {
@@ -25,6 +28,7 @@ const statusConfig = {
   COMPLETED:       { label: '已结清',   cls: 's-done' },
   REFUNDED:        { label: '已退款',   cls: 's-cancel' },
   UPCOMING:        { label: '待服务',   cls: 's-pending' },
+  UNSETTLED:       { label: '未结清',   cls: 's-warn' },
   FULFILLED:       { label: '已完成',   cls: 's-done' },
   CANCELLED:       { label: '已取消',   cls: 's-cancel' },
   RESCHEDULE_REQUESTED: { label: '改期审核中', cls: 's-warn' },
@@ -32,6 +36,17 @@ const statusConfig = {
 }
 
 function statusBadge(order) {
+  // 旧 status 字段优先映射
+  if (order.status === '定金待确认') return { label: '定金待确认', cls: 's-warn' }
+  if (order.status === '未结清') return statusConfig.UNSETTLED
+  if (order.status === '待支付') return statusConfig.PENDING_DEPOSIT
+  if (order.status === '已付定金') return statusConfig.DEPOSIT_PAID
+  if (order.status === '已确认锁定') return { label: '已确认', cls: 's-active' }
+  if (order.status === '已完成拍摄') return statusConfig.FULFILLED
+  if (order.status === '已取消') return statusConfig.CANCELLED
+  if (order.status === '已退款取消') return statusConfig.REFUNDED
+  if (order.status === '退款审核中') return { label: '退款审核中', cls: 's-warn' }
+
   if (order.serviceStatus === 'CANCELLED') return statusConfig.CANCELLED
   if (order.paymentStatus === 'REFUNDED') return statusConfig.REFUNDED
   if (order.applicationStatus && order.applicationStatus !== 'NONE') {
@@ -59,13 +74,13 @@ function hasActiveApplication(order) {
 
 // ── 分离有效订单与已取消订单 ──
 const activeOrders = computed(() =>
-  store.myOrders.filter(o =>
+  myOrders.value.filter(o =>
     o.status !== '已取消' && o.status !== '已退款取消' &&
     o.serviceStatus !== 'CANCELLED' && o.paymentStatus !== 'REFUNDED'
   )
 )
 const cancelledOrders = computed(() =>
-  store.myOrders.filter(o =>
+  myOrders.value.filter(o =>
     o.status === '已取消' || o.status === '已退款取消' ||
     o.serviceStatus === 'CANCELLED' || o.paymentStatus === 'REFUNDED'
   )
@@ -73,13 +88,34 @@ const cancelledOrders = computed(() =>
 
 // ── 数据加载 ──
 async function refreshOrders() {
-  if (mId.value && deviceId.value) await store.fetchMyOrders(mId.value, deviceId.value)
+  if (!mId.value) return
+
+  // ★ 已登录：使用 JWT API（userId + mId 双重隔离）
+  if (auth.isLoggedIn) {
+    try {
+      const res = await fetch(`/api/my-orders?mId=${mId.value}`, {
+        headers: auth.getAuthHeaders(),
+      }).then(r => r.json())
+      if (res.success || res.code === 0) {
+        myOrders.value = res.data || []
+      }
+    } catch {}
+    return
+  }
+
+  // 未登录：旧版 deviceId 兼容
+  if (deviceId.value) {
+    await store.fetchMyOrders(mId.value, deviceId.value)
+    myOrders.value = store.myOrders || []
+  }
 }
+
+const myOrders = ref([])
+const loading = ref(false)
 
 onMounted(async () => {
   if (mId.value && deviceId.value) {
     storage.set('mzg_device_id', deviceId.value)
-    // 加载商家设置（获取收款码）
     try {
       const res = await fetch(`/api/settings?mId=${mId.value}`).then(r => r.json())
       if (res.success || res.code === 0) merchantSettings.value = res.data || {}
@@ -198,7 +234,7 @@ function goBooking() {
 <template>
   <div class="my-orders fade-in-up" style="max-width:520px;margin:0 auto;padding:0 0 20px;">
     <!-- 加载中 -->
-    <div v-if="store.loading" class="loading-state">加载中...</div>
+    <div v-if="loading" class="loading-state">加载中...</div>
 
     <!-- 有效订单列表 -->
     <template v-else-if="activeOrders.length > 0 || cancelledOrders.length > 0">

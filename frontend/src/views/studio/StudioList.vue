@@ -10,7 +10,7 @@ const store = useStudioStore()
 const isAdmin = ref(route.path.startsWith('/admin'))
 const mId = ref('')
 
-onMounted(() => {
+onMounted(async () => {
   mId.value = getQueryParam('mId')
     || route.query.mId
     || storage.get('mzg_client_mid', '')
@@ -22,6 +22,17 @@ onMounted(() => {
     } else {
       store.fetchLiteList({ mId: mId.value })
     }
+  } else if (!isAdmin.value) {
+    // ★ 无 mId → 自动获取第一个有项目的商家
+    try {
+      const res = await fetch('/api/merchants-public').then(r => r.json())
+      const merchants = (res.data || res) || []
+      if (merchants.length > 0) {
+        mId.value = merchants[0].m_id
+        storage.set('mzg_client_mid', mId.value)
+        store.fetchLiteList({ mId: mId.value })
+      }
+    } catch {}
   }
 })
 

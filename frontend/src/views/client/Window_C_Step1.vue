@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, inject } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWizardCStore } from '@/stores/wizardC'
 import { storage, getQueryParam } from '@/utils/storage'
@@ -286,12 +286,25 @@ async function fetchAvailability() {
   startTime.value = ''
 }
 
+// ★ 轮询时间轴：每 10s 自动刷新，确保商家取消/删除订单后客户端实时释放时段
+let pollTimer = null
+
 onMounted(async () => {
   if (!mId.value) { errorMsg.value = '缺少商家ID，请从正确的下单链接进入'; loading.value = false; return }
   try {
     await fetchStudioData()
   } catch { errorMsg.value = '加载失败' }
   loading.value = false
+  // 启动 10s 轮询
+  pollTimer = setInterval(() => {
+    if (selectedDate.value && document.visibilityState !== 'hidden') {
+      fetchAvailability().catch(() => {})
+    }
+  }, 10000)
+})
+
+onUnmounted(() => {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
 })
 
 watch(selectedDate, async (d) => {

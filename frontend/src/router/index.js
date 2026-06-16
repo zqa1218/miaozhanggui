@@ -1,8 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { storage } from '@/utils/storage'
 
-function getToken() {
+function getAdminToken() {
   return storage.get('mzg_admin_token', '')
+}
+
+function getClientToken() {
+  return storage.get('mzg_client_token', '')
 }
 
 const routes = [
@@ -15,11 +19,22 @@ const routes = [
       { path: 'studios', name: 'StudioList', component: () => import('@/views/studio/StudioList.vue') },
       { path: 'studios/:id', name: 'StudioDetail', component: () => import('@/views/studio/StudioDetail.vue') },
       { path: 'styles', name: 'StyleList', component: () => import('@/views/style/StyleList.vue') },
-      { path: 'booking/:studioId', name: 'Window_C_Step1', component: () => import('@/views/client/Window_C_Step1.vue') },
-      { path: 'booking/:studioId/step2', name: 'Window_C_Step2', component: () => import('@/views/client/Window_C_Step2.vue') },
-      { path: 'my-orders', name: 'MyOrders', component: () => import('@/views/client/MyOrdersView.vue') },
-      { path: 'my-orders/:id', name: 'OrderDetail', component: () => import('@/views/client/OrderDetailView.vue') },
+      { path: 'booking/:studioId', name: 'Window_C_Step1', component: () => import('@/views/client/Window_C_Step1.vue'), meta: { requiresClientAuth: true } },
+      { path: 'booking/:studioId/step2', name: 'Window_C_Step2', component: () => import('@/views/client/Window_C_Step2.vue'), meta: { requiresClientAuth: true } },
+      { path: 'my-orders', name: 'MyOrders', component: () => import('@/views/client/MyOrdersView.vue'), meta: { requiresClientAuth: true } },
+      { path: 'my-orders/:id', name: 'OrderDetail', component: () => import('@/views/client/OrderDetailView.vue'), meta: { requiresClientAuth: true } },
     ],
+  },
+  // 客户端登录页（独立布局，无底部导航）
+  {
+    path: '/login',
+    name: 'ClientLogin',
+    component: () => import('@/views/client/LoginView.vue'),
+  },
+  // 注册邀请链接 → 重定向到商家注册页并携带邀请码
+  {
+    path: '/register',
+    redirect: to => ({ path: '/admin/login', query: to.query }),
   },
 
   // ==================== B端后台（AdminLayout 包裹） ====================
@@ -29,6 +44,7 @@ const routes = [
     children: [
       { path: '', redirect: '/admin/orders' },
       { path: 'login', name: 'AdminLogin', component: () => import('@/views/admin/LoginView.vue') },
+      { path: 'dashboard', name: 'SuperAdmin', component: () => import('@/views/admin/SuperAdminDashboard.vue'), meta: { requiresAuth: true } },
 
       // 订单管理 ★
       { path: 'orders', name: 'AdminOrders', component: () => import('@/views/admin/OrderManagement.vue'), meta: { requiresAuth: true } },
@@ -59,17 +75,34 @@ const router = createRouter({
 
 // ==================== 全局前置导航守卫 ====================
 router.beforeEach((to, _from, next) => {
-  const token = getToken()
+  const adminToken = getAdminToken()
+  const clientToken = getClientToken()
 
-  // 已登录用户访问登录页 → 直接跳后台首页
-  if (token && to.path === '/admin/login') {
+  // 已登录 B 端用户访问登录页 → 直接跳后台首页
+  if (adminToken && to.path === '/admin/login') {
     return next('/admin/orders')
   }
 
   // 需要鉴权的 B 端路由，无 Token → 拦截到登录页
-  const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
-  if (requiresAuth && !token) {
+  const requiresAdminAuth = to.matched.some(r => r.meta?.requiresAuth)
+  if (requiresAdminAuth && !adminToken) {
     return next('/admin/login')
+  }
+
+  // ★ 客户端路由守护：需要登录的页面，无 Token → 拦截到客户端登录页
+  const requiresClientAuth = to.matched.some(r => r.meta?.requiresClientAuth)
+  if (requiresClientAuth && !clientToken) {
+    const mId = to.query.mId || _from.query.mId || ''
+    const redirect = to.fullPath
+    const query = new URLSearchParams()
+    if (mId) query.set('mId', mId)
+    query.set('redirect', redirect)
+    return next('/login?' + query.toString())
+  }
+
+  // 已登录客户端用户访问登录页且有 redirect → 直接跳回
+  if (clientToken && to.path === '/login' && to.query.redirect) {
+    return next(to.query.redirect)
   }
 
   next()

@@ -29,13 +29,9 @@ function findByMerchant(mId, filters = {}) {
 function findByMerchantPaginated(mId, filters = {}, page = 1, pageSize = 20) {
   let base = knex(TABLE).where('m_id', mId);
 
-  console.log('====== [BUG DIAGNOSIS] findByMerchantPaginated 入口 ======');
-  console.log('  mId:', mId, 'filters:', JSON.stringify(filters));
-
   // 状态过滤：兼容新旧字段 + NULL 安全
   const cancelStatuses = ['已取消', '已退款取消'];
   if (filters.status) {
-    console.log('  filters.status:', filters.status);
     if (filters.status === 'CANCELLED_ANY') {
       base = base.where(function () {
         this.whereIn('status', cancelStatuses)
@@ -52,14 +48,7 @@ function findByMerchantPaginated(mId, filters = {}, page = 1, pageSize = 20) {
           });
       }
     }
-  } else {
-    // "全部"tab：不限制订单状态，展示所有订单（包括已取消/已退款）
-    console.log('  filters.status: 空 → 走 "全部" 逻辑 (不限制状态)');
   }
-
-  // ★ 打印最终 SQL
-  console.log('====== [BUG DIAGNOSIS] 最终 COUNT SQL:', base.clone().count('* as total').toSQL().sql);
-  console.log('====== [BUG DIAGNOSIS] 最终 COUNT bindings:', JSON.stringify(base.clone().count('* as total').toSQL().bindings));
 
   if (filters.startDate && filters.endDate) {
     base = base.where('order_date', '>=', filters.startDate)
@@ -96,14 +85,22 @@ function findByDevice(mId, deviceId) {
     .orderBy('created_at', 'desc');
 }
 
+/** JWT 用户查订单 — userId + mId 双重隔离 */
+function findByUser(mId, userId) {
+  return knex(TABLE)
+    .where({ m_id: mId, user_id: userId })
+    .orderBy('created_at', 'desc');
+}
+
 function getStatsByMerchant(mId) {
   return knex(TABLE)
     .where('m_id', mId)
     .select('status')
     .then((rows) => {
-      const active = rows.filter(r => !['已完成拍摄', '已取消', '已退款取消', '退款审核中'].includes(r.status)).length;
+      const ended = ['已完成拍摄', '已取消', '已退款取消'];
+      const active = rows.filter(r => !ended.includes(r.status) && r.status !== '退款审核中').length;
       const refunding = rows.filter(r => r.status === '退款审核中').length;
-      const completed = rows.filter(r => ['已完成拍摄', '已取消', '已退款取消'].includes(r.status)).length;
+      const completed = rows.filter(r => ended.includes(r.status)).length;
       return { active, refunding, completed };
     });
 }
@@ -151,8 +148,20 @@ function updateRejectReason(orderNo, reason) {
     .update({ reject_reason: reason, updated_at: knex.fn.now() });
 }
 
+function deleteByOrderNo(trx, orderNo) {
+  const q = knex(TABLE).where('order_no', orderNo);
+  return trx ? q.transacting(trx).del() : q.del();
+}
+
+function clearCompletedByMerchant(mId) {
+  return knex(TABLE)
+    .where({ m_id: mId, status: '已完成拍摄' })
+    .del();
+}
+
 module.exports = {
-  create, findByOrderNo, findByMerchant, findByDevice,
+  create, findByOrderNo, findByMerchant, findByDevice, findByUser,
   updateStatus, updateStatusSimple, updateDateTimes, updateRefundInfo, rejectRefund,
   findByMerchantPaginated, getStatsByMerchant, getTodayStats, updateRejectReason,
+  deleteByOrderNo, clearCompletedByMerchant,
 };

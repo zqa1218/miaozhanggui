@@ -1,23 +1,35 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const knex = require('../../shared/database/knex');
 const config = require('../../config');
 const ERROR_CODES = require('../../shared/errors/errorCodes');
 const AppError = require('../../shared/errors/AppError');
 const repo = require('./merchant.repository');
+const invitationService = require('../admin/admin.service');
 
-/**  注册 */
-async function register({ username, password, shopName, isStudioOwner }) {
+/**  注册（须邀请码） */
+async function register({ username, password, shopName, isStudioOwner, invitationCode }) {
+  if (!invitationCode) {
+    throw new AppError(ERROR_CODES.PARAM_INVALID, 400, '  缺少邀请码，请联系管理员获取  ');
+  }
+
   const exists = await repo.findByUsername(username);
   if (exists) throw new AppError(ERROR_CODES.PARAM_INVALID, 400, '  该账号已被注册  ');
 
   const mId = `shop_${Date.now()}`;
   const passwordHash = await bcrypt.hash(password, 10);
-  await repo.create({
-    m_id: mId,
-    username,
-    password_hash: passwordHash,
-    shop_name: shopName,
-    is_studio_owner: isStudioOwner || false,
+
+  // ★ 原子化：事务中核销邀请码 + 创建商家
+  await knex.transaction(async (trx) => {
+    await invitationService.claimCode(trx, invitationCode, mId);
+
+    await repo.create({
+      m_id: mId,
+      username,
+      password_hash: passwordHash,
+      shop_name: shopName,
+      is_studio_owner: isStudioOwner || false,
+    }, trx);
   });
 
   const token = generateToken(mId, username);
@@ -39,13 +51,14 @@ async function login({ username, password }) {
   const valid = await bcrypt.compare(password, merchant.password_hash);
   if (!valid) throw new AppError(ERROR_CODES.LOGIN_FAILED, 401, '  账号或密码错误  ');
 
-  const token = generateToken(merchant.m_id, merchant.username);
+  const token = generateToken(merchant.m_id, merchant.username, merchant.is_admin);
   return {
     mId: merchant.m_id,
     username: merchant.username,
     shopName: merchant.shop_name,
     shopMode: merchant.shop_mode,
     isStudioOwner: !!merchant.is_studio_owner,
+    isAdmin: !!merchant.is_admin,
     token,
   };
 }
@@ -92,8 +105,18 @@ async function updateProfile(mId, data) {
 }
 
 /**  生成 JWT */
-function generateToken(mId, username) {
-  return jwt.sign({ mId, username }, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
+function generateToken(mId, username, isAdmin) {
+  return jwt.sign({ mId, username, isAdmin: !!isAdmin }, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
 }
 
-module.exports = { register, login, changePassword, getProfile, updateProfile };
+/** 获取所有有活跃项目的商家（公开接口） */
+async function listPublicMerchants() {
+  const rows = await knex('studios')
+    .join('merchants', 'studios.m_id', 'merchants.m_id')
+    .where('studios.is_deleted', false)
+    .distinct('merchants.m_id', 'merchants.shop_name')
+    .orderBy('merchants.created_at', 'desc');
+  return rows;
+}
+
+module.exports = { register, login, changePassword, getProfile, updateProfile, listPublicMerchants };

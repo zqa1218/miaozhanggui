@@ -5,6 +5,7 @@ const validate = require('../../middlewares/validator');
 const { registerSchema, loginSchema, changePasswordSchema } = require('./merchant.validator');
 
 //   公开接口
+router.get('/merchants-public', ctrl.listPublic);
 router.post('/register', validate(registerSchema), ctrl.register);
 router.post('/login', validate(loginSchema), ctrl.login);
 

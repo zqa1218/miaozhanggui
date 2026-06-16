@@ -43,9 +43,11 @@ app.use(responseMiddleware);
 // ─── 路由 ───
 app.use('/api', routes);
 
-// ─── 404 处理 ───
-app.use((_req, res) => {
-  res.status(404).json({ success: false, data: null, message: '接口不存在' });
+// ─── 前端 SPA 静态资源 ───
+const spaDir = path.join(__dirname, '..', 'frontend', 'dist');
+app.use(express.static(spaDir));
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(spaDir, 'index.html'));
 });
 
 // ─── 全局错误处理（必须放在最后） ───
