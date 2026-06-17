@@ -90,12 +90,12 @@ const store = useStudioCreateStore()
 .step-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
 }
 .step-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-color, #F0EDE8);
+  background: var(--bg-table-stripe, #FDFBF7);
   border-radius: 12px 12px 0 0;
 }
 .step-card :deep(.el-card__body) {
@@ -105,7 +105,7 @@ const store = useStudioCreateStore()
 .card-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
 }
 
 /* 休息时段行 */
@@ -125,7 +125,7 @@ const store = useStudioCreateStore()
 .unit-suffix {
   margin-left: 8px;
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-secondary, #8E8E8E);
 }
 
 /* 统一 el-form-item 间距 */
@@ -134,7 +134,7 @@ const store = useStudioCreateStore()
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
 }
 
 /* 底部操作栏 */

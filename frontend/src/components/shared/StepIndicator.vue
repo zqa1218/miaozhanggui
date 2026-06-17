@@ -44,7 +44,7 @@ defineProps({
   font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
-  background: #F4F2EE;
+  background: var(--color-disabled-bg, #F4F2EE);
   color: #B0B0B0;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 2;

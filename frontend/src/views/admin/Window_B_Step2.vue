@@ -180,7 +180,7 @@ function goBack() {
 .step-title {
   font-size: 20px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   margin-bottom: 20px;
 }
 
@@ -188,12 +188,12 @@ function goBack() {
 .step-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
 }
 .step-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-color, #F0EDE8);
+  background: var(--bg-table-stripe, #FDFBF7);
   border-radius: 12px 12px 0 0;
 }
 .step-card :deep(.el-card__body) {
@@ -202,7 +202,7 @@ function goBack() {
 .card-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
 }
 
 /* 表单项 */
@@ -213,14 +213,14 @@ function goBack() {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   min-width: 110px;
 }
 
 .unit-suffix {
   margin-left: 8px;
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-secondary, #8E8E8E);
 }
 
 /* 时间行 */
@@ -232,7 +232,7 @@ function goBack() {
 }
 .time-label {
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-secondary, #8E8E8E);
   flex-shrink: 0;
 }
 .time-sep {
@@ -263,11 +263,11 @@ function goBack() {
 }
 .rest-select {
   padding: 6px 10px;
-  border: 1px solid #E8E5DF;
+  border: 1px solid var(--border-color, #E8E5DF);
   border-radius: 8px;
   font-size: 13px;
-  background: #fff;
-  color: #4A4A4A;
+  background: var(--bg-card, #fff);
+  color: var(--text-primary, #4A4A4A);
   outline: none;
 }
 

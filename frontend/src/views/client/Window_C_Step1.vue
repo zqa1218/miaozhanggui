@@ -610,8 +610,8 @@ function goNext() {
   padding: 0 14px; margin-top: 10px; margin-bottom: 4px;
 }
 .input-field {
-  padding: 10px 14px; border: 1px solid #E8E5DF; border-radius: 12px;
-  font-size: 14px; outline: none; background: #fff;
+  padding: 10px 14px; border: 1px solid var(--border-color, #E8E5DF); border-radius: 12px;
+  font-size: 14px; outline: none; background: var(--bg-card, #fff);
 }
 .input-field:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(244,164,96,.12); }
 
@@ -696,20 +696,20 @@ function goNext() {
 }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
 .btn-secondary {
-  background: #fff; border: 1px solid #E8E5DF; border-radius: 28px;
-  padding: 12px 24px; font-size: 15px; cursor: pointer; color: #4A4A4A;
+  background: var(--bg-card, #fff); border: 1px solid var(--border-color, #E8E5DF); border-radius: 28px;
+  padding: 12px 24px; font-size: 15px; cursor: pointer; color: var(--text-primary, #4A4A4A);
 }
 
 /* ─── 日期范围提示 ─── */
 .hint-warn {
   margin-top: 6px; font-size: 12px; color: #D4893E;
-  padding: 6px 10px; background: #FEF7EF; border-radius: 8px;
+  padding: 6px 10px; background: var(--color-peach-light, #FEF7EF); border-radius: 8px;
 }
 
 /* ─── 套餐卡片 ─── */
 .section-badge {
   font-size: 10px; font-weight: 600; color: #D4893E;
-  background: #FEF7EF; padding: 2px 8px; border-radius: 10px;
+  background: var(--color-peach-light, #FEF7EF); padding: 2px 8px; border-radius: 10px;
   margin-left: 8px; vertical-align: middle;
 }
 .pkg-scroll {
@@ -724,11 +724,11 @@ function goNext() {
   flex: 0 0 auto; width: 160px; scroll-snap-align: start;
   display: flex; flex-direction: column; gap: 4px;
   padding: 14px 12px; border-radius: 14px; cursor: pointer;
-  border: 2px solid #E8E5DF; background: #fff;
+  border: 2px solid var(--border-color, #E8E5DF); background: var(--bg-card, #fff);
   transition: all 0.2s; font-family: inherit; text-align: left;
   -webkit-tap-highlight-color: transparent;
 }
-.pkg-card:hover:not(.active) { border-color: #F4A460; background: #FFFCF7; }
+.pkg-card:hover:not(.active) { border-color: #F4A460; background: var(--color-peach-light, #FFFCF7); }
 .pkg-card.active {
   border-color: #F4A460;
   background: linear-gradient(160deg, #FFF5E8 0%, #FEF7EF 100%);
@@ -736,7 +736,7 @@ function goNext() {
   transform: translateY(-2px);
 }
 .pkg-card.pkg-single {
-  border-style: dashed; border-color: #D0D0D0; background: #FAFAFA;
+  border-style: dashed; border-color: #D0D0D0; background: var(--bg-table-stripe, #FAFAFA);
 }
 .pkg-card.pkg-single.active {
   border-style: solid; border-color: #7A9A86;
@@ -759,20 +759,20 @@ function goNext() {
   line-height: 1.2; margin: 2px 0;
 }
 .pkg-card.pkg-single .pkg-card-price { color: #5A8A6A; }
-.pkg-per { font-size: 12px; font-weight: 500; color: #8E8E8E; }
+.pkg-per { font-size: 12px; font-weight: 500; color: var(--text-secondary, #8E8E8E); }
 
-.pkg-card-meta { font-size: 11px; color: #8E8E8E; }
+.pkg-card-meta { font-size: 11px; color: var(--text-secondary, #8E8E8E); }
 .pkg-card-sep { margin: 0 3px; color: #D0D0D0; }
 .pkg-card-desc { font-size: 10px; color: #B0B0B0; line-height: 1.4; margin-top: 2px; }
 
 .pkg-locked-badge {
   display: inline-block; font-size: 10px; font-weight: 600;
   padding: 2px 8px; border-radius: 10px;
-  background: #FEF7EF; color: #D4893E;
+  background: var(--color-peach-light, #FEF7EF); color: #D4893E;
   margin-left: 6px; vertical-align: middle;
 }
 .input-field.locked {
-  background: #F4F2EE; color: #B0B0B0; cursor: not-allowed;
+  background: var(--color-disabled-bg, #F4F2EE); color: #B0B0B0; cursor: not-allowed;
 }
 
 /* ─── 日期卡片网格 ─── */
@@ -784,12 +784,12 @@ function goNext() {
 .date-card {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 10px 6px; border-radius: 14px; cursor: pointer;
-  border: 1.5px solid #E8E5DF; background: #fff;
+  border: 1.5px solid var(--border-color, #E8E5DF); background: var(--bg-card, #fff);
   transition: all 0.15s; font-family: inherit;
   -webkit-tap-highlight-color: transparent;
 }
 .date-card:hover:not(:disabled):not(.active) {
-  border-color: #F4A460; background: #FEF7EF;
+  border-color: #F4A460; background: var(--color-peach-light, #FEF7EF);
 }
 .date-card:disabled { cursor: not-allowed; opacity: .38; }
 .date-card.past { opacity: .38; cursor: not-allowed; }
@@ -801,7 +801,7 @@ function goNext() {
 .date-card.active .date-weekday,
 .date-card.active .date-month { color: rgba(255,255,255,0.8); }
 .date-card.active .date-day { color: #fff; }
-.date-weekday { font-size: 11px; color: #8E8E8E; font-weight: 500; }
+.date-weekday { font-size: 11px; color: var(--text-secondary, #8E8E8E); font-weight: 500; }
 .date-day { font-size: 20px; font-weight: 800; color: #3A3A4A; line-height: 1; }
 .date-month { font-size: 10px; color: #B0B0B0; font-weight: 500; }
 </style>

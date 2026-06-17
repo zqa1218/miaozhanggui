@@ -113,9 +113,9 @@ async function handleDelete(id) {
    卡片
    ═══════════════════════════════════════════ */
 .studio-card {
-  background: #fff;
+  background: var(--bg-card, #fff);
   border-radius: 20px; overflow: hidden;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
   box-shadow: 0 2px 8px rgba(0,0,0,.03);
   display: flex; flex-direction: column;
   transition: box-shadow 0.2s, transform 0.2s;

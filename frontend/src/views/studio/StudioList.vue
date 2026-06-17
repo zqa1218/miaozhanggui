@@ -124,12 +124,12 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
 }
 .page-title { font-size: 22px; flex: 1; color: var(--text-primary, #4A4A4A); }
 .btn-back {
-  flex-shrink: 0; background: #FFFFFF; border: 1px solid #E8E5DF;
+  flex-shrink: 0; background: var(--bg-card, #FFFFFF); border: 1px solid var(--border-color, #E8E5DF);
   padding: 8px 18px; border-radius: 28px; font-size: 13px;
   cursor: pointer; color: var(--text-primary, #4A4A4A); font-weight: 600;
   transition: all 0.2s ease;
 }
-.btn-back:hover { background: #FEF7EF; border-color: var(--color-primary, #F4A460); }
+.btn-back:hover { background: var(--color-peach-light, #FEF7EF); border-color: var(--color-primary, #F4A460); }
 .btn-add {
   flex-shrink: 0;
   background: linear-gradient(135deg, #F4A460, #F7C57C);
@@ -164,7 +164,7 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
    C端白卡 — 封面图宫格
    ═══════════════════════════════════════════ */
 .glass-card {
-  background: #FFFFFF;
+  background: var(--bg-card, #FFFFFF);
   border-radius: 24px; overflow: hidden;
   border: none;
   box-shadow: 0 2px 8px rgba(0,0,0,.03);
@@ -182,7 +182,7 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
    B端管理卡片
    ═══════════════════════════════════════════ */
 .card-admin {
-  background: #FFFFFF;
+  background: var(--bg-card, #FFFFFF);
   border-radius: 24px; overflow: hidden;
   border: none;
   box-shadow: 0 2px 8px rgba(0,0,0,.03);
@@ -301,7 +301,7 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
 }
 .btn-del {
   flex: 1;
-  background: #FFFFFF;
+  background: var(--bg-card, #FFFFFF);
   color: #EFA8A8;
   border: 1px solid rgba(239,168,168,0.25);
   padding: 10px 0; border-radius: 28px;

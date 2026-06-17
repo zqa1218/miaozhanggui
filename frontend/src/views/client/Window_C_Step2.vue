@@ -340,8 +340,8 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
 .input-row { margin-bottom: 10px; }
 .input-row label { display: block; font-size: 12px; color: var(--sub, #999); margin-bottom: 4px; }
 .input-field {
-  padding: 8px 12px; border: 1px solid #ddd; border-radius: 10px;
-  font-size: 14px; outline: none; background: #fff;
+  padding: 8px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 10px;
+  font-size: 14px; outline: none; background: var(--bg-card, #fff);
 }
 .input-field:focus { border-color: var(--purple, #5a7a65); }
 
@@ -350,9 +350,9 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
 }
 .contact-type-card {
-  padding: 10px 6px; border: 1.5px solid #E8E5DF; border-radius: 12px;
-  background: #fff; font-size: 12px; font-weight: 600; cursor: pointer;
-  text-align: center; color: #8E8E8E; transition: all .15s;
+  padding: 10px 6px; border: 1.5px solid var(--border-color, #E8E5DF); border-radius: 12px;
+  background: var(--bg-card, #fff); font-size: 12px; font-weight: 600; cursor: pointer;
+  text-align: center; color: var(--text-secondary, #8E8E8E); transition: all .15s;
   font-family: inherit;
 }
 .contact-type-card:hover { border-color: #D4893E; color: #D4893E; }
@@ -385,9 +385,9 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
 .badge {
   font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600;
 }
-.badge-blue { background: #edf2f6; color: #5a7a96; }
-.badge-warn { background: #fff3e0; color: #e67a2e; animation: badgePulse 2s ease-in-out infinite; }
-.badge-lock { background: #f5f0e8; color: #8a7040; }
+.badge-blue { background: var(--color-info-bg, #edf2f6); color: #5a7a96; }
+.badge-warn { background: var(--color-warning-bg, #fff3e0); color: #e67a2e; animation: badgePulse 2s ease-in-out infinite; }
+.badge-lock { background: var(--color-disabled-bg, #f5f0e8); color: #8a7040; }
 .time-confirm { margin: 10px 0; font-size: 16px; }
 .time-confirm-sub { font-size: 12px; color: var(--sub); margin-top: 4px; }
 .lock-notice { font-size: 12px; color: var(--sub); }
@@ -395,11 +395,11 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
 /* ─── 收款码展示（成功面板）─── */
 .qr-section {
   margin: 16px 0 10px; padding: 14px;
-  background: #FAFAF8; border-radius: 14px;
+  background: var(--bg-table-stripe, #FAFAF8); border-radius: 14px;
   border: 1px solid rgba(180,185,182,0.15);
 }
 .qr-section-title {
-  font-size: 13px; font-weight: 600; color: #4A4A4A; margin-bottom: 10px;
+  font-size: 13px; font-weight: 600; color: var(--text-primary, #4A4A4A); margin-bottom: 10px;
 }
 .qr-preview {
   width: 100%; max-width: 200px; border-radius: 12px;
@@ -412,7 +412,7 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
 .qr-tag.alipay { color: #1677ff; }
 .qr-tag.wechat { color: #07c160; }
 .qr-save-hint {
-  font-size: 11px; color: #8E8E8E; margin-top: 8px; margin-bottom: 0;
+  font-size: 11px; color: var(--text-secondary, #8E8E8E); margin-top: 8px; margin-bottom: 0;
 }
 
 /* ─── 按钮 ─── */
@@ -424,13 +424,13 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
 }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
 .btn-secondary {
-  background: #fff; border: 1px solid #E8E5DF; border-radius: 28px;
-  padding: 12px 24px; font-size: 15px; cursor: pointer; color: #4A4A4A;
+  background: var(--bg-card, #fff); border: 1px solid var(--border-color, #E8E5DF); border-radius: 28px;
+  padding: 12px 24px; font-size: 15px; cursor: pointer; color: var(--text-primary, #4A4A4A);
 }
 .lock-hint { text-align: center; font-size: 11px; color: var(--sub); }
 .error-bar {
   margin: 0 14px; padding: 10px 14px; border-radius: 10px;
-  background: #FDF2F2; color: #C87878; font-size: 13px;
+  background: var(--color-danger-bg, #FDF2F2); color: #C87878; font-size: 13px;
 }
 
 /* ─── 弹窗 ─── */
@@ -440,7 +440,7 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
   display: flex; align-items: center; justify-content: center;
 }
 .modal-box {
-  background: #fff; border-radius: 20px; padding: 28px 24px;
+  background: var(--bg-card, #fff); border-radius: 20px; padding: 28px 24px;
   max-width: 380px; width: 90%; text-align: center; max-height: 90vh; overflow-y: auto;
 }
 .modal-amount {

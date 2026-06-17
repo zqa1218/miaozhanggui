@@ -227,7 +227,7 @@ async function handleSubmit() {
         <div v-if="detailUploadMsg==='success'" style="color:#67c23a;font-size:12px;">✓ 上传成功</div>
         <div v-else-if="detailUploadMsg" style="color:#f56c6c;font-size:12px;">✗ {{ detailUploadMsg }}</div>
         <div v-if="detailImgUrls.length" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-          <img v-for="(u,i) in detailImgUrls" :key="i" :src="u" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid #F0EDE8;" />
+          <img v-for="(u,i) in detailImgUrls" :key="i" :src="u" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid var(--border-color, #F0EDE8);" />
         </div>
       </fieldset>
 
@@ -306,7 +306,7 @@ async function handleSubmit() {
 
         <!-- 附加项目（非预设模式下可用） -->
         <template v-if="!isStyleEnabled">
-          <hr style="border:none;border-top:1px solid #F0EDE8;margin:16px 0;" />
+          <hr style="border:none;border-top:1px solid var(--border-color, #F0EDE8);margin:16px 0;" />
           <ExtraItemsEditor v-model="extraItems" />
         </template>
       </fieldset>
@@ -324,22 +324,22 @@ async function handleSubmit() {
 <style scoped>
 .edit-studio { min-height: 100vh; }
 fieldset {
-  border: 1px solid #F0EDE8; border-radius: 14px; padding: 18px; margin-bottom: 16px;
+  border: 1px solid var(--border-color, #F0EDE8); border-radius: 14px; padding: 18px; margin-bottom: 16px;
 }
-legend { font-size: 15px; font-weight: 700; padding: 0 8px; color: #4A4A4A; }
-label { display: block; margin-bottom: 8px; font-size: 13px; color: #4A4A4A; }
+legend { font-size: 15px; font-weight: 700; padding: 0 8px; color: var(--text-primary, #4A4A4A); }
+label { display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-primary, #4A4A4A); }
 .input-field {
-  padding: 8px 12px; border: 1px solid #E8E5DF; border-radius: 10px;
-  font-size: 13px; outline: none; margin-top: 2px; background: #fff;
+  padding: 8px 12px; border: 1px solid var(--border-color, #E8E5DF); border-radius: 10px;
+  font-size: 13px; outline: none; margin-top: 2px; background: var(--bg-card, #fff);
 }
 .input-field:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(244,164,96,.12); }
 .btn-primary { background: linear-gradient(135deg, #F4A460, #F7C57C); color: #fff; border: none; border-radius: 28px; padding: 10px 20px; cursor: pointer; font-weight: 600; }
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-.btn-secondary { background: #fff; border: 1px solid #E8E5DF; border-radius: 28px; padding: 10px 20px; cursor: pointer; color: #4A4A4A; }
+.btn-secondary { background: var(--bg-card, #fff); border: 1px solid var(--border-color, #E8E5DF); border-radius: 28px; padding: 10px 20px; cursor: pointer; color: var(--text-primary, #4A4A4A); }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
 .date-tag {
   display: inline-flex; align-items: center; gap: 2px;
-  padding: 4px 10px; background: #FEF7EF; border-radius: 14px;
+  padding: 4px 10px; background: var(--color-peach-light, #FEF7EF); border-radius: 14px;
   font-size: 12px; color: #D4893E; font-weight: 500;
 }
 .switch-label { display: flex; align-items: center; gap: 6px; cursor: pointer; }

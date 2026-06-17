@@ -24,8 +24,8 @@ function handleLogout() {
 
 <style scoped>
 .section-box {
-  max-width: 600px; background: #fff; border-radius: 16px; padding: 20px;
-  border: 1px solid #F0EDE8; box-shadow: 0 2px 8px rgba(0,0,0,.03);
+  max-width: 600px; background: var(--bg-card, #fff); border-radius: 16px; padding: 20px;
+  border: 1px solid var(--border-color, #F0EDE8); box-shadow: 0 2px 8px rgba(0,0,0,.03);
 }
 .section-box h3 { margin: 0 0 16px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .section-box p { margin-bottom: 12px; font-size: 14px; }

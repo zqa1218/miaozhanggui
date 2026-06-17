@@ -1,3 +1,5 @@
+/* Element Plus SCSS 变量覆盖 — 主题由 runtime CSS 自定义属性控制 */
+/* 此处仅设置编译时默认值，实际配色由 theme store 的 applyTheme() 在运行时注入 */
 @forward 'element-plus/theme-chalk/src/common/var.scss' with (
   $colors: (
     'primary': (

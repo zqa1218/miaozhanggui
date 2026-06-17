@@ -62,6 +62,8 @@ Desktop.ini
 .pm2/
 
 # ========== Misc ==========
+运行环境/
+localhost.sql
 *.bak
 *.tmp
 *.temp

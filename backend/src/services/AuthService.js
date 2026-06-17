@@ -8,9 +8,9 @@ const AuthService = {
     if (!password || password.length < 6) throw new AppError('密码至少6个字符', 400);
     const existing = await Merchant.findByUsername(username);
     if (existing) throw new AppError('账号已存在', 409);
-    const m = await Merchant.create({ username, password, shop_name: shopName, shop_mode: shopMode });
-    const token = signToken({ mId: m.m_id, username: m.username });
-    return { token, mId: m.m_id, shopName: m.shop_name, message: `注册成功！你的商家ID: ${m.m_id}` };
+    const m = await Merchant.create({ username, password, shop_name: shopName, shop_mode: shopMode || 'studio' });
+    const token = signToken({ mId: m.m_id, username: m.username, shopMode: m.shop_mode });
+    return { token, mId: m.m_id, shopName: m.shop_name, shopMode: m.shop_mode, message: `注册成功！你的商家ID: ${m.m_id}` };
   },
 
   async login({ username, password }) {
@@ -18,8 +18,8 @@ const AuthService = {
     if (!m) throw new AppError('账号或密码错误', 401);
     const ok = await Merchant.verifyPassword(m, password);
     if (!ok) throw new AppError('账号或密码错误', 401);
-    const token = signToken({ mId: m.m_id, username: m.username });
-    return { token, mId: m.m_id, shopName: m.shop_name };
+    const token = signToken({ mId: m.m_id, username: m.username, shopMode: m.shop_mode });
+    return { token, mId: m.m_id, shopName: m.shop_name, shopMode: m.shop_mode };
   },
 };
 

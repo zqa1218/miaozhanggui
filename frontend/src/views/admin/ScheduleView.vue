@@ -89,8 +89,8 @@ async function saveSlots() {
 
 <style scoped>
 .section-box {
-  background: #fff; border-radius: 16px; padding: 20px;
-  border: 1px solid #F0EDE8; box-shadow: 0 2px 8px rgba(0,0,0,.03);
+  background: var(--bg-card, #fff); border-radius: 16px; padding: 20px;
+  border: 1px solid var(--border-color, #F0EDE8); box-shadow: 0 2px 8px rgba(0,0,0,.03);
 }
 .section-box h3 { margin: 0 0 12px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .cal-nav {
@@ -98,18 +98,18 @@ async function saveSlots() {
   margin-bottom: 8px; font-weight: 700;
 }
 .cal-nav button {
-  background: #F4F2EE; border: none; padding: 6px 14px;
+  background: var(--color-disabled-bg, #F4F2EE); border: none; padding: 6px 14px;
   border-radius: 20px; cursor: pointer; font-size: 13px;
   color: #D4893E; font-weight: 600; transition: 0.2s;
 }
-.cal-nav button:hover { background: #FEF7EF; }
-.time-section { margin-top: 16px; border-top: 2px dashed #F0EDE8; padding-top: 16px; }
+.cal-nav button:hover { background: var(--color-peach-light, #FEF7EF); }
+.time-section { margin-top: 16px; border-top: 2px dashed var(--border-color, #F0EDE8); padding-top: 16px; }
 .time-section h4 { margin-bottom: 8px; font-size: 14px; }
 .time-grid-admin { display: flex; flex-wrap: wrap; gap: 8px; }
 .time-chip-admin {
   padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
-  border: 1.5px solid #E8E5DF; cursor: pointer; transition: all 0.2s;
-  background: #fff; color: #4A4A4A;
+  border: 1.5px solid var(--border-color, #E8E5DF); cursor: pointer; transition: all 0.2s;
+  background: var(--bg-card, #fff); color: var(--text-primary, #4A4A4A);
 }
 .time-chip-admin.disabled {
   background: #f5ecec; border-color: #dbb8b8; color: #a05050; font-weight: 600;

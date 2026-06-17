@@ -60,7 +60,7 @@ function selectDay(day) {
 </script>
 
 <style scoped>
-.cal-view { background: #fff; border-radius: 16px; padding: 12px; border: 1px solid #e5e5ea; }
+.cal-view { background: var(--bg-card, #fff); border-radius: 16px; padding: 12px; border: 1px solid var(--border-color, #e5e5ea); }
 .cal-wdays {
   display: grid; grid-template-columns: repeat(7, 1fr);
   text-align: center; font-size: 11px; color: #8e8e93; margin-bottom: 4px;

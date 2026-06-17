@@ -359,7 +359,7 @@ function goBooking() {
             原时间：{{ reschedModalOrder.date }} {{ reschedModalOrder.bookingStartTime }}—{{ reschedModalOrder.bookingEndTime }}
           </p>
 
-          <div v-if="reschedLoading" style="text-align:center;padding:20px;color:#8E8E8E;">加载时间轴...</div>
+          <div v-if="reschedLoading" style="text-align:center;padding:20px;color:var(--text-secondary, #8E8E8E);">加载时间轴...</div>
           <FlexibleTimelinePicker
             v-else
             :open-time="reschedBaseStart"
@@ -391,7 +391,7 @@ function goBooking() {
         <div class="modal-box">
           <h3>确认取消</h3>
           <p class="modal-sub">您确定要申请取消此订单吗？</p>
-          <p class="modal-sub" style="font-size:11px;color:#8E8E8E;">
+          <p class="modal-sub" style="font-size:11px;color:var(--text-secondary, #8E8E8E);">">
             {{ cancelModalOrder.studioTitle }} / {{ cancelModalOrder.date }}
           </p>
           <div class="modal-actions">
@@ -410,7 +410,7 @@ function goBooking() {
 .my-orders { min-height: 60vh; }
 
 /* ─── 加载 ─── */
-.loading-state { text-align: center; padding: 80px 0; color: #8E8E8E; font-size: 14px; }
+.loading-state { text-align: center; padding: 80px 0; color: var(--text-secondary, #8E8E8E); font-size: 14px; }
 
 /* ─── 订单卡片 ─── */
 .order-card {
@@ -431,15 +431,15 @@ function goBooking() {
   font-size: 10px; font-weight: 700; padding: 3px 10px;
   border-radius: 12px; white-space: nowrap; flex-shrink: 0;
 }
-.s-pending { background: #FFF3E0; color: #E67E22; }
-.s-active  { background: #E3F2FD; color: #1976D2; }
-.s-done    { background: #E8F5E9; color: #388E3C; }
-.s-cancel  { background: #F5F5F5; color: #999; }
-.s-warn    { background: #FFF8E1; color: #F9A825; }
+.s-pending { background: var(--color-warning-bg, #FFF3E0); color: #E67E22; }
+.s-active  { background: var(--color-info-bg, #E3F2FD); color: #1976D2; }
+.s-done    { background: var(--color-success-bg, #E8F5E9); color: #388E3C; }
+.s-cancel  { background: var(--color-disabled-bg, #F5F5F5); color: #999; }
+.s-warn    { background: var(--color-warning-bg, #FFF8E1); color: #F9A825; }
 
 .card-meta {
   display: flex; gap: 12px; flex-wrap: wrap;
-  font-size: 12px; color: #8E8E8E; margin-bottom: 8px;
+  font-size: 12px; color: var(--text-secondary, #8E8E8E); margin-bottom: 8px;
 }
 .card-time { color: #5a7a65; font-weight: 600; }
 
@@ -454,31 +454,31 @@ function goBooking() {
 
 .card-reschedule {
   margin-top: 6px; padding: 6px 10px; border-radius: 8px;
-  background: #FFF8E1; color: #F9A825; font-size: 11px; font-weight: 500;
+  background: var(--color-warning-bg, #FFF8E1); color: #F9A825; font-size: 11px; font-weight: 500;
 }
 .card-reviewing {
   margin-top: 6px; padding: 6px 10px; border-radius: 8px;
-  background: #F5F5F5; color: #999; font-size: 12px; text-align: center;
+  background: var(--color-disabled-bg, #F5F5F5); color: #999; font-size: 12px; text-align: center;
 }
 
 /* ─── 操作按钮 ─── */
 .card-actions {
   display: flex; gap: 8px; margin-top: 10px; padding-top: 10px;
-  border-top: 1px solid #F0EDE8;
+  border-top: 1px solid var(--border-color, #F0EDE8);
 }
 .act-btn {
-  flex: 1; padding: 8px 0; border-radius: 10px; border: 1px solid #E8E5DF;
+  flex: 1; padding: 8px 0; border-radius: 10px; border: 1px solid var(--border-color, #E8E5DF);
   font-size: 12px; font-weight: 600; cursor: pointer;
-  background: #fff; font-family: inherit;
+  background: var(--bg-card, #fff); font-family: inherit;
   transition: all 0.15s;
 }
 .act-btn:active { transform: scale(0.96); }
 .act-pay     { color: #D4893E; border-color: #F4A460; }
-.act-pay:hover:not(:disabled) { background: #FEF7EF; }
+.act-pay:hover:not(:disabled) { background: var(--color-peach-light, #FEF7EF); }
 .act-resched { color: #5a7a65; }
-.act-resched:hover:not(:disabled) { background: #e8f0eb; }
+.act-resched:hover:not(:disabled) { background: var(--color-success-bg, #e8f0eb); }
 .act-cancel  { color: #C87878; border-color: rgba(200,120,120,0.3); }
-.act-cancel:hover:not(:disabled) { background: #FDF2F2; }
+.act-cancel:hover:not(:disabled) { background: var(--color-danger-bg, #FDF2F2); }
 .act-btn:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ─── 已取消订单区域 ─── */
@@ -492,8 +492,8 @@ function goBooking() {
 /* ─── 空状态 ─── */
 .empty-state { text-align: center; padding: 80px 20px; }
 .empty-icon { font-size: 56px; margin-bottom: 12px; }
-.empty-title { font-size: 16px; font-weight: 700; color: #4A4A4A; margin-bottom: 4px; }
-.empty-sub { font-size: 13px; color: #8E8E8E; margin-bottom: 20px; }
+.empty-title { font-size: 16px; font-weight: 700; color: var(--text-primary, #4A4A4A); margin-bottom: 4px; }
+.empty-sub { font-size: 13px; color: var(--text-secondary, #8E8E8E); margin-bottom: 20px; }
 .empty-btn {
   padding: 10px 32px; border-radius: 24px; border: none;
   background: linear-gradient(135deg, #F4A460, #F7C57C);
@@ -507,38 +507,38 @@ function goBooking() {
   background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
 }
 .modal-box {
-  background: #fff; border-radius: 20px; padding: 28px 24px;
+  background: var(--bg-card, #fff); border-radius: 20px; padding: 28px 24px;
   max-width: 380px; width: 90%; max-height: 85vh; overflow-y: auto;
 }
 .modal-wide { max-width: 480px; }
 .modal-box h3 { font-size: 18px; margin-bottom: 8px; text-align: center; }
-.modal-sub { font-size: 13px; color: #8E8E8E; margin-bottom: 12px; text-align: center; }
+.modal-sub { font-size: 13px; color: var(--text-secondary, #8E8E8E); margin-bottom: 12px; text-align: center; }
 .modal-amount {
   font-size: 28px; font-weight: 800; text-align: center; margin: 10px 0;
   color: #D4893E;
 }
 
 .modal-qr { text-align: center; margin: 12px 0; }
-.qr-img { max-width: 200px; border-radius: 12px; border: 1px solid #F0EDE8; }
-.qr-img-sm { width: 110px; border-radius: 10px; border: 1px solid #F0EDE8; }
+.qr-img { max-width: 200px; border-radius: 12px; border: 1px solid var(--border-color, #F0EDE8); }
+.qr-img-sm { width: 110px; border-radius: 10px; border: 1px solid var(--border-color, #F0EDE8); }
 .qr-dual { display: flex; gap: 12px; justify-content: center; }
 .qr-tag { font-size: 11px; font-weight: 600; margin-top: 4px; }
 .qr-tag.alipay { color: #1677ff; }
 .qr-tag.wechat { color: #07c160; }
-.qr-hint { font-size: 11px; color: #8E8E8E; margin-top: 8px; }
-.modal-no-qr { text-align: center; padding: 24px; color: #8E8E8E; font-size: 13px; }
+.qr-hint { font-size: 11px; color: var(--text-secondary, #8E8E8E); margin-top: 8px; }
+.modal-no-qr { text-align: center; padding: 24px; color: var(--text-secondary, #8E8E8E); font-size: 13px; }
 
 .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
 .modal-actions .act-btn { flex: 1; padding: 12px; font-size: 14px; }
 
 .modal-close-btn {
   display: block; width: 100%; margin-top: 12px; padding: 10px;
-  border: 1px solid #E8E5DF; border-radius: 12px;
-  background: #fff; font-size: 14px; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--border-color, #E8E5DF); border-radius: 12px;
+  background: var(--bg-card, #fff); font-size: 14px; cursor: pointer; font-family: inherit;
 }
 
 .resched-err {
   margin-top: 8px; padding: 8px 12px; border-radius: 8px;
-  background: #FDF2F2; color: #C87878; font-size: 12px; text-align: center;
+  background: var(--color-danger-bg, #FDF2F2); color: #C87878; font-size: 12px; text-align: center;
 }
 </style>

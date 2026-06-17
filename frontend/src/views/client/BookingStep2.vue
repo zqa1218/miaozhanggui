@@ -180,16 +180,16 @@ async function handlePay() {
 <style scoped>
 .booking-step2 { max-width: 500px; }
 h4 { margin-bottom: 16px; }
-.order-summary { background: #fafafa; border-radius: 10px; padding: 14px; }
+.order-summary { background: var(--bg-table-stripe, #fafafa); border-radius: 10px; padding: 14px; }
 .summary-title { font-weight: 700; margin-bottom: 8px; }
 .summary-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; }
 .summary-row.price strong { color: #5a7a65; font-size: 16px; }
 .summary-row.deposit strong { color: #b8860b; }
 .lock-info { margin-top: 16px; }
-.lock-step { font-size: 13px; padding: 8px 12px; background: #F4F2EE; border-radius: 10px; margin-bottom: 6px; }
+.lock-step { font-size: 13px; padding: 8px 12px; background: var(--color-disabled-bg, #F4F2EE); border-radius: 10px; margin-bottom: 6px; }
 .lock-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-right: 6px; }
-.lock-badge.pre { background: #FEFBF6; color: #B8933E; }
-.lock-badge.hard { background: #EDF6F0; color: #5A8A6A; }
+.lock-badge.pre { background: var(--color-peach-light, #FEFBF6); color: #B8933E; }
+.lock-badge.hard { background: var(--color-success-bg, #EDF6F0); color: #5A8A6A; }
 .step-footer { display: flex; justify-content: space-between; margin-top: 24px; }
 .pay-content { text-align: center; padding: 10px 0; }
 </style>

@@ -464,22 +464,22 @@ async function handleDelete(id) {
 
 <style scoped>
 .styles-view { max-width: 900px; margin: 0 auto; }
-.section-box { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+.section-box { background: var(--bg-card, #fff); border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .section-header h3 { font-size: 16px; display: flex; align-items: center; gap: 6px; }
-.style-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; margin-bottom: 8px; border: 1px solid #F0EDE8; background: #fff; }
+.style-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; margin-bottom: 8px; border: 1px solid var(--border-color, #F0EDE8); background: var(--bg-card, #fff); }
 .style-cover { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
 .style-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .style-price { color: #5a7a65; font-weight: 600; font-size: 13px; }
 .style-package { color: #8a7040; font-size: 13px; }
 .style-actions { display: flex; gap: 6px; }
-.loading-wrap, .empty-state { text-align: center; padding: 40px; color: #8E8E8E; }
+.loading-wrap, .empty-state { text-align: center; padding: 40px; color: var(--text-secondary, #8E8E8E); }
 
 /* ── 全屏弹窗 ── */
 .dialog-body {
   display: flex;
   justify-content: center;
-  background: #F9F8F6;
+  background: var(--bg-page, #F9F8F6);
   min-height: 100%;
   padding: 24px;
 }
@@ -491,12 +491,12 @@ async function handleDelete(id) {
 .form-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
 }
 .form-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-color, #F0EDE8);
+  background: var(--bg-table-stripe, #FDFBF7);
   border-radius: 12px 12px 0 0;
 }
 .form-card :deep(.el-card__body) {
@@ -505,7 +505,7 @@ async function handleDelete(id) {
 .card-hd {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
 }
 
 :deep(.el-form-item) {
@@ -513,14 +513,14 @@ async function handleDelete(id) {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   min-width: 120px;
 }
 
 .unit {
   margin-left: 8px;
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-secondary, #8E8E8E);
 }
 
 /* 上传 */
@@ -532,7 +532,7 @@ async function handleDelete(id) {
 .cover-preview {
   max-width: 240px; max-height: 160px; display: block;
   margin-top: 8px; border-radius: 10px; object-fit: cover;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
 }
 
 /* ── 套餐配置区域 ── */
@@ -544,7 +544,7 @@ async function handleDelete(id) {
   margin-bottom: 12px;
 }
 .packages-section-title {
-  font-size: 14px; font-weight: 700; color: #4A4A4A;
+  font-size: 14px; font-weight: 700; color: var(--text-primary, #4A4A4A);
 }
 .packages-section-hint {
   font-size: 12px; color: #B0B0B0;
@@ -555,8 +555,8 @@ async function handleDelete(id) {
   display: flex; flex-direction: column; gap: 12px;
 }
 .pkg-card {
-  border: 1px solid #F0EDE8; border-radius: 12px;
-  background: #FAFAF8; overflow: hidden;
+  border: 1px solid var(--border-color, #F0EDE8); border-radius: 12px;
+  background: var(--bg-table-stripe, #FAFAF8); overflow: hidden;
   transition: all 0.3s ease;
 }
 .pkg-card:hover {
@@ -566,7 +566,7 @@ async function handleDelete(id) {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 16px;
   background: linear-gradient(135deg, #FDFBF7, #F9F5F0);
-  border-bottom: 1px solid #F0EDE8;
+  border-bottom: 1px solid var(--border-color, #F0EDE8);
 }
 .pkg-card-num {
   font-size: 12px; font-weight: 700; color: #8a7040;
@@ -583,7 +583,7 @@ async function handleDelete(id) {
   margin-bottom: 12px;
 }
 .pkg-card-body :deep(.el-form-item__label) {
-  font-size: 12px; color: #8E8E8E; font-weight: 600;
+  font-size: 12px; color: var(--text-secondary, #8E8E8E); font-weight: 600;
 }
 
 /* 添加按钮 */
@@ -598,8 +598,8 @@ async function handleDelete(id) {
 }
 .pkg-add-btn:hover {
   border-color: #D4893E !important;
-  background: #FEF7EF !important;
-  color: #D4893E !important;
+  background: var(--color-peach-light, #FEF7EF) !important;
+  color: var(--color-primary-dark, #D4893E) !important;
 }
 
 /* 卡片列表过渡动画 */

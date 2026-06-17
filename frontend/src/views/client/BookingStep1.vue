@@ -130,16 +130,16 @@ h4 { margin-bottom: 16px; }
 .sec-label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 14px; }
 .req { color: #e74c3c; }
 .style-opt { padding: 6px 0; }
-.panel { background: #e8f0eb; border-radius: 10px; padding: 14px; margin-top: 12px; }
+.panel { background: var(--color-success-bg, #e8f0eb); border-radius: 10px; padding: 14px; margin-top: 12px; }
 .panel-header { font-size: 13px; color: #5a7a65; margin-bottom: 4px; }
 .panel-time { font-size: 20px; font-weight: 700; color: #5a7a65; }
 .panel-detail { font-size: 13px; color: #666; margin-top: 4px; }
 .collision-checking { color: #999; font-size: 13px; margin-top: 8px; }
 .collision-errors { margin-top: 8px; }
-.err-item { color: #C87878; font-size: 13px; padding: 6px 10px; background: #FDF2F2; border-radius: 8px; margin-bottom: 4px; }
+.err-item { color: #C87878; font-size: 13px; padding: 6px 10px; background: var(--color-danger-bg, #FDF2F2); border-radius: 8px; margin-bottom: 4px; }
 .collision-ok { color: #5A8A6A; font-size: 13px; margin-top: 8px; }
 .available-gaps { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.gap-label { font-size: 12px; color: #8E8E8E; }
-.gap-tag { background: #EDF6F0; color: #5A8A6A; padding: 4px 10px; border-radius: 8px; font-size: 12px; }
+.gap-label { font-size: 12px; color: var(--text-secondary, #8E8E8E); }
+.gap-tag { background: var(--color-success-bg, #EDF6F0); color: #5A8A6A; padding: 4px 10px; border-radius: 8px; font-size: 12px; }
 .step-footer { display: flex; justify-content: flex-end; margin-top: 24px; }
 </style>

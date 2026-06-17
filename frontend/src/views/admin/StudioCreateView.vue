@@ -59,7 +59,7 @@ onUnmounted(() => store.reset())
 <style scoped>
 .wizard-view { max-width: 780px; margin: 0 auto; }
 .section-box {
-  background: #fff;
+  background: var(--bg-card, #fff);
   border-radius: 16px;
   padding: 28px 32px;
   box-shadow: 0 2px 12px rgba(0,0,0,.04);
@@ -68,7 +68,7 @@ onUnmounted(() => store.reset())
 .steps-indicator { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
 .step-dot {
   width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: #F4F2EE; color: #B0B0B0; font-weight: 700; font-size: 14px;
+  background: var(--color-disabled-bg, #F4F2EE); color: #B0B0B0; font-weight: 700; font-size: 14px;
   transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
 }
 .step-dot.active {

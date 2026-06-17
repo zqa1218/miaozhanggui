@@ -37,7 +37,47 @@ const routes = [
     redirect: to => ({ path: '/admin/login', query: to.query }),
   },
 
-  // ==================== B端后台（AdminLayout 包裹） ====================
+  // ==================== 妆娘后台（MakeupArtistLayout 包裹） ====================
+  {
+    path: '/makeup',
+    component: () => import('@/layouts/MakeupArtistLayout.vue'),
+    children: [
+      { path: '', redirect: '/makeup/orders' },
+      { path: 'login', name: 'MakeupLogin', component: () => import('@/views/admin/LoginView.vue') },
+      { path: 'orders', name: 'MakeupOrders', component: () => import('@/views/admin/OrderManagement.vue'), meta: { requiresAuth: true } },
+      { path: 'styles', name: 'MakeupStyles', component: () => import('@/views/admin/StylesView.vue'), meta: { requiresAuth: true } },
+      { path: 'studios', name: 'MakeupStudios', component: () => import('@/views/studio/StudioList.vue'), meta: { requiresAuth: true } },
+      { path: 'studio/create/step1', name: 'MakeupCreateStep1', component: () => import('@/views/admin/Window_B_Step1.vue'), meta: { requiresAuth: true } },
+      { path: 'studio/create/step2', name: 'MakeupCreateStep2', component: () => import('@/views/admin/Window_B_Step2.vue'), meta: { requiresAuth: true } },
+      { path: 'studio/create/step3', name: 'MakeupCreateStep3', component: () => import('@/views/admin/Window_B_Step3.vue'), meta: { requiresAuth: true } },
+      { path: 'studio/edit/:id', name: 'MakeupEditStudio', component: () => import('@/views/admin/EditStudio.vue'), meta: { requiresAuth: true } },
+      { path: 'settings', name: 'MakeupSettings', component: () => import('@/views/admin/SettingsView.vue'), meta: { requiresAuth: true } },
+      { path: 'notifications', name: 'MakeupNotifications', component: () => import('@/views/admin/NotificationsView.vue'), meta: { requiresAuth: true } },
+      { path: 'logs', name: 'MakeupLogs', component: () => import('@/views/admin/LogsView.vue'), meta: { requiresAuth: true } },
+    ],
+  },
+
+  // ==================== 摄影后台（PhotographerLayout 包裹） ====================
+  {
+    path: '/photo',
+    component: () => import('@/layouts/PhotographerLayout.vue'),
+    children: [
+      { path: '', redirect: '/photo/orders' },
+      { path: 'login', name: 'PhotoLogin', component: () => import('@/views/admin/LoginView.vue') },
+      { path: 'orders', name: 'PhotoOrders', component: () => import('@/views/admin/OrderManagement.vue'), meta: { requiresAuth: true } },
+      { path: 'styles', name: 'PhotoStyles', component: () => import('@/views/admin/StylesView.vue'), meta: { requiresAuth: true } },
+      { path: 'studios', name: 'PhotoStudios', component: () => import('@/views/studio/StudioList.vue'), meta: { requiresAuth: true } },
+      { path: 'studio/create/step1', name: 'PhotoCreateStep1', component: () => import('@/views/admin/Window_B_Step1.vue'), meta: { requiresAuth: true } },
+      { path: 'studio/create/step2', name: 'PhotoCreateStep2', component: () => import('@/views/admin/Window_B_Step2.vue'), meta: { requiresAuth: true } },
+      { path: 'studio/create/step3', name: 'PhotoCreateStep3', component: () => import('@/views/admin/Window_B_Step3.vue'), meta: { requiresAuth: true } },
+      { path: 'studio/edit/:id', name: 'PhotoEditStudio', component: () => import('@/views/admin/EditStudio.vue'), meta: { requiresAuth: true } },
+      { path: 'settings', name: 'PhotoSettings', component: () => import('@/views/admin/SettingsView.vue'), meta: { requiresAuth: true } },
+      { path: 'notifications', name: 'PhotoNotifications', component: () => import('@/views/admin/NotificationsView.vue'), meta: { requiresAuth: true } },
+      { path: 'logs', name: 'PhotoLogs', component: () => import('@/views/admin/LogsView.vue'), meta: { requiresAuth: true } },
+    ],
+  },
+
+  // ==================== B端后台（AdminLayout 包裹 — 棚主） ====================
   {
     path: '/admin',
     component: () => import('@/layouts/AdminLayout.vue'),

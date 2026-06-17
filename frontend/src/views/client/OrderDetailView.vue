@@ -67,20 +67,20 @@ const steps = computed(() => {
   border: 1px solid rgba(180,185,182,0.18);
 }
 .order-title { font-size: 18px; font-weight: 700; }
-.order-meta { margin-top: 8px; font-size: 13px; color: #8e8ea0; line-height: 1.8; }
+.order-meta { margin-top: 8px; font-size: 13px; color: var(--text-secondary, #8e8ea0); line-height: 1.8; }
 .order-status { margin-top: 10px; }
 .tag {
   font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600;
 }
-.tag-orange { background: #f5f0e8; color: #8a7040; }
-.tag-blue { background: #edf2f6; color: #5a7a96; }
-.tag-green { background: #eaf0eb; color: #4a6e52; }
-.tag-red { background: #f5ecec; color: #a05050; }
-.tag-gray { background: #f2f3f2; color: #888; }
+.tag-orange { background: var(--color-disabled-bg, #f5f0e8); color: #8a7040; }
+.tag-blue { background: var(--color-info-bg, #edf2f6); color: #5a7a96; }
+.tag-green { background: var(--color-success-bg, #eaf0eb); color: #4a6e52; }
+.tag-red { background: var(--color-danger-bg, #f5ecec); color: #a05050; }
+.tag-gray { background: var(--color-disabled-bg, #f2f3f2); color: #888; }
 .order-progress { display: flex; align-items: center; gap: 2px; margin-top: 12px; }
-.order-progress .dot { width: 8px; height: 8px; border-radius: 50%; background: #e0e0e0; }
+.order-progress .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color, #e0e0e0); }
 .order-progress .dot.done { background: #7ba882; }
 .order-progress .dot.current { background: #5a7a65; box-shadow: 0 0 6px rgba(125,158,138,0.4); }
-.order-progress .line { flex: 1; height: 2px; background: #e0e0e0; min-width: 12px; }
+.order-progress .line { flex: 1; height: 2px; background: var(--border-color, #e0e0e0); min-width: 12px; }
 .order-progress .line.done { background: #7ba882; }
 </style>

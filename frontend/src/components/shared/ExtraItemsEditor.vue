@@ -101,7 +101,7 @@ function updateField(idx, field, value) {
 .extra-editor-title {
   font-size: 14px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
 }
 
 .extra-editor-hint {
@@ -116,9 +116,9 @@ function updateField(idx, field, value) {
 }
 
 .extra-card {
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
   border-radius: 12px;
-  background: #FAFAF8;
+  background: var(--bg-table-stripe, #FAFAF8);
   overflow: hidden;
 }
 
@@ -128,7 +128,7 @@ function updateField(idx, field, value) {
   align-items: center;
   padding: 10px 16px;
   background: linear-gradient(135deg, #FDFBF7, #F9F5F0);
-  border-bottom: 1px solid #F0EDE8;
+  border-bottom: 1px solid var(--border-color, #F0EDE8);
 }
 
 .extra-card-num {
@@ -154,14 +154,14 @@ function updateField(idx, field, value) {
 
 .extra-card-body :deep(.el-form-item__label) {
   font-size: 12px;
-  color: #8E8E8E;
+  color: var(--text-secondary, #8E8E8E);
   font-weight: 600;
 }
 
 .unit {
   margin-left: 8px;
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-secondary, #8E8E8E);
 }
 
 .extra-add-btn {
@@ -179,8 +179,8 @@ function updateField(idx, field, value) {
 
 .extra-add-btn:hover {
   border-color: #D4893E !important;
-  background: #FEF7EF !important;
-  color: #D4893E !important;
+  background: var(--color-peach-light, #FEF7EF) !important;
+  color: var(--color-primary-dark, #D4893E) !important;
 }
 
 /* 动画 */

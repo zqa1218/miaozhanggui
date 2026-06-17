@@ -145,7 +145,7 @@ onBeforeUnmount(() => {
 }
 
 .declaration-box {
-  background: #fff;
+  background: var(--bg-card, #fff);
   border-radius: 20px;
   padding: 28px 24px 20px;
   max-width: 420px;
@@ -164,19 +164,19 @@ onBeforeUnmount(() => {
   background: none;
   border: none;
   font-size: 22px;
-  color: #8E8E8E;
+  color: var(--text-secondary, #8E8E8E);
   cursor: pointer;
   padding: 4px 8px;
   line-height: 1;
   border-radius: 6px;
   transition: color .15s;
 }
-.declaration-close:hover { color: #4A4A4A; }
+.declaration-close:hover { color: var(--text-primary, #4A4A4A); }
 
 .declaration-title {
   font-size: 17px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   margin: 0 0 16px;
   text-align: center;
 }
@@ -192,10 +192,10 @@ onBeforeUnmount(() => {
 .declaration-line {
   font-size: 14px;
   line-height: 1.8;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   margin: 0 0 6px;
   padding: 6px 10px;
-  background: #FAFAF8;
+  background: var(--bg-table-stripe, #FAFAF8);
   border-radius: 8px;
   text-align: left;
 }

@@ -94,7 +94,7 @@ async function handleOAuthLogin(provider) {
   background:
     radial-gradient(ellipse at 20% 50%, rgba(244,164,96,.08) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 20%, rgba(18,183,245,.06) 0%, transparent 50%),
-    #F9F8F6;
+    var(--bg-page, #F9F8F6);
   position: relative; overflow: hidden;
 }
 .client-login-page::before {

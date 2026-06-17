@@ -943,12 +943,12 @@ watch(() => refreshBus?.tick, async (newTick) => {
 
 /* ─── 统计 ─── */
 .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 14px; }
-.stat-card { text-align: center; padding: 14px; border-radius: 14px; background: #fff; border: 1px solid var(--border-color-solid); }
+.stat-card { text-align: center; padding: 14px; border-radius: 14px; background: var(--bg-card, #fff); border: 1px solid var(--border-color-solid); }
 .stat-card .num { font-size: 26px; font-weight: 800; }
 .stat-card .lbl { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
 
 /* ─── 日历 ─── */
-.cal-view { background: #fff; border-radius: 16px; padding: 14px; margin-bottom: 14px; border: 1px solid var(--border-color-solid); box-shadow: 0 2px 12px rgba(120,130,125,.04); }
+.cal-view { background: var(--bg-card, #fff); border-radius: 16px; padding: 14px; margin-bottom: 14px; border: 1px solid var(--border-color-solid); box-shadow: 0 2px 12px rgba(120,130,125,.04); }
 .cal-nav { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 700; font-size: 15px; }
 .cal-nav button { background: #eef1ee; border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; color: var(--color-primary); font-weight: 600; transition: .2s; }
 .cal-nav button:hover { background: var(--color-primary-light); }
@@ -1054,20 +1054,20 @@ watch(() => refreshBus?.tick, async (newTick) => {
 }
 
 /* ─── Tab ─── */
-.tabs { display: flex; gap: 2px; margin-bottom: 14px; background: #F4F2EE; border-radius: 16px; padding: 4px; flex-wrap: wrap; border: none; }
+.tabs { display: flex; gap: 2px; margin-bottom: 14px; background: var(--color-disabled-bg, #F4F2EE); border-radius: 16px; padding: 4px; flex-wrap: wrap; border: none; }
 .tab-item { flex: 1; min-width: 60px; text-align: center; padding: 10px 6px; border-radius: 14px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; color: var(--text-sub); }
-.tab-item.active { background: #fff; color: var(--color-primary); box-shadow: 0 2px 10px rgba(244,164,96,.08); }
+.tab-item.active { background: var(--bg-card, #fff); color: var(--color-primary); box-shadow: 0 2px 10px rgba(244,164,96,.08); }
 
 /* ─── 搜索 ─── */
 .search-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
-.input-field { flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid #E8E5DF; border-radius: 10px; font-size: 13px; outline: none; background: #fff; }
+.input-field { flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid var(--border-color, #E8E5DF); border-radius: 10px; font-size: 13px; outline: none; background: var(--bg-card, #fff); }
 .date-only-switch { flex-shrink: 0; }
 
 /* ─── 表格 ─── */
 .table-wrap { overflow-x: auto; border-radius: 16px; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.data-table th { background: #FDFBF7; padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-sub); border-bottom: 2px solid #F0EDE8; }
-.data-table td { padding: 10px 12px; border-bottom: 1px solid #F0EDE8; vertical-align: middle; }
+.data-table th { background: var(--bg-table-stripe, #FDFBF7); padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-sub); border-bottom: 2px solid #F0EDE8; }
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-color, #F0EDE8); vertical-align: middle; }
 .clickable-row { cursor: pointer; transition: background .1s; }
 .clickable-row:hover { background: rgba(125,158,138,0.03); }
 .row-待支付 { background: rgba(201,184,150,.03); }
@@ -1103,15 +1103,15 @@ watch(() => refreshBus?.tick, async (newTick) => {
 .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ─── 展开行 ─── */
-.expand-row td { background: #FDFBF7; border-bottom: 2px solid #F0EDE8; padding: 0; }
+.expand-row td { background: var(--bg-table-stripe, #FDFBF7); border-bottom: 2px solid #F0EDE8; padding: 0; }
 .expand-content { padding: 12px 16px; }
 .expand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 16px; font-size: 12px; line-height: 1.8; }
-.expand-grid code { font-size: 10px; background: #F4F2EE; padding: 2px 6px; border-radius: 6px; }
-.refund-thumb { max-width: 120px; border-radius: 10px; margin-top: 4px; border: 1px solid #F0EDE8; }
+.expand-grid code { font-size: 10px; background: var(--color-disabled-bg, #F4F2EE); padding: 2px 6px; border-radius: 6px; }
+.refund-thumb { max-width: 120px; border-radius: 10px; margin-top: 4px; border: 1px solid var(--border-color, #F0EDE8); }
 
 /* ─── 移动端卡片 ─── */
 .card-list { display: none; }
-.order-card { padding: 14px; margin-bottom: 8px; background: #fff; border-radius: 16px; border: 1px solid #F0EDE8; border-left: 4px solid; }
+.order-card { padding: 14px; margin-bottom: 8px; background: var(--bg-card, #fff); border-radius: 16px; border: 1px solid var(--border-color, #F0EDE8); border-left: 4px solid; }
 .card-time { font-size: 18px; font-weight: 800; color: var(--color-primary-dark); font-family: 'SF Mono', monospace; margin-bottom: 6px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .card-price { font-weight: 700; }
@@ -1119,11 +1119,11 @@ watch(() => refreshBus?.tick, async (newTick) => {
 .card-role { color: var(--color-sakura); }
 .card-resched-hint {
   font-size: 11px; color: #F9A825; margin-top: 4px;
-  padding: 4px 8px; background: #FFF8E1; border-radius: 6px;
+  padding: 4px 8px; background: var(--color-warning-bg, #FFF8E1); border-radius: 6px;
 }
-.s-warn { background: #FFF8E1; color: #F9A825; }
+.s-warn { background: var(--color-warning-bg, #FFF8E1); color: #F9A825; }
 .collapse-detail { font-size: 12px; line-height: 2; }
-.collapse-detail code { font-size: 10px; background: #F4F2EE; padding: 2px 6px; border-radius: 6px; }
+.collapse-detail code { font-size: 10px; background: var(--color-disabled-bg, #F4F2EE); padding: 2px 6px; border-radius: 6px; }
 
 /* ─── 分页 ─── */
 .pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; }
@@ -1139,7 +1139,7 @@ watch(() => refreshBus?.tick, async (newTick) => {
   border-left: 4px solid var(--color-primary);
   border-radius: 8px;
 }
-.date-group-label { font-size: 14px; font-weight: 700; color: #4A4A4A; }
+.date-group-label { font-size: 14px; font-weight: 700; color: var(--text-primary, #4A4A4A); }
 .date-group-count { font-size: 11px; color: var(--text-sub); background: #F0EDE8; padding: 2px 8px; border-radius: 8px; }
 
 /* ─── 日期列 ─── */
@@ -1147,7 +1147,7 @@ watch(() => refreshBus?.tick, async (newTick) => {
 
 /* ─── 移动端日期头部 ─── */
 .card-date-header {
-  font-size: 13px; font-weight: 700; color: #4A4A4A; padding: 8px 12px;
+  font-size: 13px; font-weight: 700; color: var(--text-primary, #4A4A4A); padding: 8px 12px;
   background: linear-gradient(135deg, #FDFBF7, #F9F6F0);
   border-left: 4px solid var(--color-primary); border-radius: 8px;
   margin-bottom: 6px; margin-top: 12px;

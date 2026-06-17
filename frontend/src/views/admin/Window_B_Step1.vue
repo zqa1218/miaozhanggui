@@ -278,7 +278,7 @@ function goBack() {
 .step-title {
   font-size: 20px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   margin-bottom: 20px;
 }
 
@@ -286,12 +286,12 @@ function goBack() {
 .step-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
 }
 .step-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-color, #F0EDE8);
+  background: var(--bg-table-stripe, #FDFBF7);
   border-radius: 12px 12px 0 0;
 }
 .step-card :deep(.el-card__body) {
@@ -300,7 +300,7 @@ function goBack() {
 .card-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
 }
 
 /* 表单项 */
@@ -311,7 +311,7 @@ function goBack() {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   min-width: 110px;
 }
 
@@ -327,7 +327,7 @@ function goBack() {
   justify-content: center;
   width: 18px; height: 18px;
   border-radius: 50%;
-  background: #F4F2EE;
+  background: var(--color-disabled-bg, #F4F2EE);
   color: #B0B0B0;
   font-size: 11px;
   font-weight: 700;
@@ -338,7 +338,7 @@ function goBack() {
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
-  background: #EDF6F0;
+  background: var(--color-success-bg, #EDF6F0);
   border: 1px solid rgba(168,216,185,0.30);
   border-radius: 10px;
   color: #5A8A6A;
@@ -402,10 +402,8 @@ function goBack() {
   display: block;
   margin-top: 10px;
   border-radius: 10px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
 }
-
-/* 详情图网格 */
 .detail-grid {
   display: flex;
   gap: 10px;
@@ -421,7 +419,7 @@ function goBack() {
   height: 80px;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
 }
 .detail-del {
   position: absolute;
@@ -444,8 +442,8 @@ function goBack() {
 .detail-arrows button {
   font-size: 10px;
   padding: 1px 5px;
-  border: 1px solid #E8E5DF;
-  background: #fff;
+  border: 1px solid var(--border-color, #E8E5DF);
+  background: var(--bg-card, #fff);
   border-radius: 4px;
   cursor: pointer;
 }

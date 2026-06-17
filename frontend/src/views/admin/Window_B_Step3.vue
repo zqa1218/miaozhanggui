@@ -305,7 +305,7 @@ function goBack() {
 .step-title {
   font-size: 20px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   margin-bottom: 20px;
 }
 
@@ -324,12 +324,12 @@ function goBack() {
 .step-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-color, #F0EDE8);
 }
 .step-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-color, #F0EDE8);
+  background: var(--bg-table-stripe, #FDFBF7);
   border-radius: 12px 12px 0 0;
 }
 .step-card :deep(.el-card__body) {
@@ -338,7 +338,7 @@ function goBack() {
 .card-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
 }
 
 /* 表单项 */
@@ -349,14 +349,14 @@ function goBack() {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   min-width: 130px;
 }
 
 .unit-suffix {
   margin-left: 8px;
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-secondary, #8E8E8E);
 }
 
 /* 样式网格 */
@@ -368,19 +368,17 @@ function goBack() {
 }
 .style-card {
   position: relative;
-  border: 2px solid #F0EDE8;
+  border: 2px solid var(--border-color, #F0EDE8);
   border-radius: 12px;
   padding: 12px;
   cursor: pointer;
   transition: all .2s;
-  background: #fff;
-}
-.style-card:hover {
+  background: var(--bg-card, #fff);
   border-color: #F4A460;
 }
 .style-card.selected {
   border-color: #F4A460;
-  background: #FEF7EF;
+  background: var(--color-peach-light, #FEF7EF);
 }
 .style-cover {
   width: 100%;
@@ -388,14 +386,14 @@ function goBack() {
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 8px;
-  background: #F9F8F6;
+  background: var(--bg-page, #F9F8F6);
 }
 .style-check {
   position: absolute;
   top: 8px; right: 8px;
   width: 24px; height: 24px;
   border-radius: 50%;
-  background: #F4F2EE;
+  background: var(--color-disabled-bg, #F4F2EE);
   color: #F4A460;
   display: flex;
   align-items: center;
@@ -411,7 +409,7 @@ function goBack() {
 .style-name {
   font-size: 14px;
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   margin-bottom: 2px;
 }
 .style-price {

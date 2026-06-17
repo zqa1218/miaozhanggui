@@ -2,12 +2,19 @@
 import { ref, onMounted, provide, computed } from 'vue'
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import { storage, getQueryParam } from '@/utils/storage'
+import { useThemeStore } from '@/stores/theme'
 import { useRefreshBus } from '@/composables/useRefreshBus'
 import RefreshButton from '@/components/shared/RefreshButton.vue'
+
 const router = useRouter()
 const route = useRoute()
+const themeStore = useThemeStore()
+
 const announcement = ref('')
 const loading = ref(true)
+
+const layoutMode = computed(() => themeStore.currentLayout)
+const sidebar = computed(() => themeStore.currentSidebar)
 
 // ── 刷新总线 ──
 const refreshBus = useRefreshBus()
@@ -48,7 +55,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="client-layout">
+  <div class="client-layout" :class="'layout-' + layoutMode">
     <div class="nav-bar">
       <span class="nav-title">喵喵预约</span>
       <RefreshButton
@@ -68,7 +75,7 @@ onMounted(async () => {
         </transition>
       </RouterView>
     </main>
-    <!-- ★ 底部导航栏 -->
+    <!-- 底部导航栏 -->
     <nav class="tab-bar">
       <button
         :class="['tab-item', { active: currentTab === 'home' }]"
@@ -91,16 +98,18 @@ onMounted(async () => {
 <style scoped>
 .client-layout {
   min-height: 100vh; padding-bottom: 70px;
-  background: #F9F8F6; position: relative; z-index: 1;
+  background: var(--bg-page, #F9F8F6); position: relative; z-index: 1;
 }
 
 .nav-bar {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 24px; background: #fff;
-  border-bottom: 1px solid #F0EDE8;
+  padding: 16px 24px;
+  background: var(--theme-nav-bg, #fff);
+  box-shadow: var(--theme-nav-shadow, 0 2px 16px rgba(0,0,0,0.04));
+  border-bottom: none;
 }
 .nav-title {
-  font-size: 16px; font-weight: 700; color: #4A4A4A;
+  font-size: 16px; font-weight: 700; color: var(--text-primary, #4A4A4A);
 }
 
 .client-main {
@@ -112,7 +121,8 @@ onMounted(async () => {
 /* ─── 底部导航 ─── */
 .tab-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-  display: flex; background: #fff; border-top: 1px solid #F0EDE8;
+  display: flex; background: var(--bg-card, #fff);
+  border-top: 1px solid var(--border-color, #F0EDE8);
   padding: 6px 0 env(safe-area-inset-bottom, 8px);
   box-shadow: 0 -2px 12px rgba(0,0,0,.03);
 }
@@ -123,8 +133,8 @@ onMounted(async () => {
   -webkit-tap-highlight-color: transparent;
 }
 .tab-icon { font-size: 20px; }
-.tab-label { font-size: 10px; font-weight: 600; color: #B0B0B0; }
-.tab-item.active .tab-label { color: #D4893E; }
+.tab-label { font-size: 10px; font-weight: 600; color: var(--text-placeholder, #B0B0B0); }
+.tab-item.active .tab-label { color: var(--color-primary-dark, #D4893E); }
 
 /* 页面过渡 */
 .fade-enter-active, .fade-leave-active {
@@ -132,4 +142,39 @@ onMounted(async () => {
 }
 .fade-enter-from { opacity: 0; transform: translateY(12px); }
 .fade-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* 暗色主题适配 */
+.layout-sidebar .notice-wrap {
+  background: var(--color-peach-light, #FEFBF6);
+}
+
+/* ─── 手机端适配 ─── */
+@media (max-width: 767px) {
+  .nav-bar {
+    padding: 12px 16px;
+  }
+  .nav-title { font-size: 14px; }
+
+  .client-main {
+    padding: 16px 10px 24px;
+    min-height: calc(100vh - 160px);
+  }
+
+  .tab-bar {
+    padding: 4px 0 env(safe-area-inset-bottom, 6px);
+  }
+  .tab-icon { font-size: 18px; }
+  .tab-label { font-size: 9px; }
+
+  .notice-wrap {
+    margin: 10px 16px; padding: 10px 14px; font-size: 11px;
+  }
+}
+
+/* ─── 平板端适配 ─── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .client-main {
+    padding: 20px 20px 16px;
+  }
+}
 </style>

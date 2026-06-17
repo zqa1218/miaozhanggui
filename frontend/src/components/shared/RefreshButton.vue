@@ -99,8 +99,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .refresh-btn {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 14px; border-radius: 20px; border: 1.5px solid #E8E5DF;
-  background: #fff; cursor: pointer; font-size: 13px; font-weight: 600;
+  padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border-color, #E8E5DF);
+  background: var(--bg-card, #fff); cursor: pointer; font-size: 13px; font-weight: 600;
   color: #5a7a65; transition: all 0.2s;
   white-space: nowrap; user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -112,10 +112,10 @@ onBeforeUnmount(() => {
   opacity: 0.55; cursor: not-allowed;
 }
 .refresh-btn.loading {
-  border-color: #F4A460; color: #D4893E; background: #FEF7EF;
+  border-color: #F4A460; color: #D4893E; background: var(--color-peach-light, #FEF7EF);
 }
 .refresh-btn.success {
-  border-color: #5A8A6A; color: #5A8A6A; background: #EDF6F0;
+  border-color: #5A8A6A; color: #5A8A6A; background: var(--color-success-bg, #EDF6F0);
 }
 
 .refresh-icon {

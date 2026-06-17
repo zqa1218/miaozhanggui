@@ -528,7 +528,7 @@ function adjustTime(delta) {
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(14px) saturate(160%);
   -webkit-backdrop-filter: blur(14px) saturate(160%);
-  color: #4A4A4A; font-size: 12px; font-weight: 700;
+  color: var(--text-primary, #4A4A4A); font-size: 12px; font-weight: 700;
   padding: 4px 14px; border-radius: 16px; white-space: nowrap;
   font-family: 'SF Mono', 'Cascadia Code', monospace;
   border: 1px solid rgba(0,0,0,0.08);

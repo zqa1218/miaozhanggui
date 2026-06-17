@@ -1201,7 +1201,7 @@ function stepUp(refKey, step = 0.01) {
   top: 3px; left: 3px;
   width: 24px; height: 24px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--bg-card, #fff);
   box-shadow: 0 2px 6px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.02);
   transition: transform 0.4s var(--ease-spring);
   display: flex;

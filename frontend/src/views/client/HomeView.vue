@@ -121,7 +121,7 @@ function goDetail(id) {
    日系白卡
    ═══════════════════════════════════════════ */
 .glass-card {
-  background: #FFFFFF;
+  background: var(--bg-card, #FFFFFF);
   border-radius: 24px;
   overflow: hidden;
   border: none;
@@ -195,7 +195,7 @@ function goDetail(id) {
 
 .card-title {
   font-size: 16px; font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-primary, #4A4A4A);
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -204,7 +204,7 @@ function goDetail(id) {
 }
 
 .card-desc {
-  font-size: 13px; color: #8E8E8E;
+  font-size: 13px; color: var(--text-secondary, #8E8E8E);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -216,7 +216,7 @@ function goDetail(id) {
 /* 信息行 */
 .card-row {
   display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: #8E8E8E;
+  font-size: 12px; color: var(--text-secondary, #8E8E8E);
 }
 .row-icon {
   font-size: 12px; color: #D4893E;

@@ -128,7 +128,7 @@ function removeDate(date) {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #F4F2EE;
+  background: var(--color-disabled-bg, #F4F2EE);
   color: #B0B0B0;
   font-size: 11px;
   font-weight: 700;
@@ -141,7 +141,7 @@ function removeDate(date) {
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
-  background: #EDF6F0;
+  background: var(--color-success-bg, #EDF6F0);
   border: 1px solid rgba(168,216,185,0.30);
   border-radius: 10px;
   color: #5A8A6A;

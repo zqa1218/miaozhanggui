@@ -2,6 +2,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import { adminApi } from '@/api/adminApi'
 import { validateImageFile } from '@/utils/validateFile'
+import { useThemeStore } from '@/stores/theme'
+
+const themeStore = useThemeStore()
 
 const form = ref({ shopName: '', announcement: '', qrCodeUrl: '', alipayQrUrl: '', wechatQrUrl: '', paymentQrCode: '', declarationEnabled: false, declarationContent: '' })
 const saving = ref(false)
@@ -268,6 +271,35 @@ async function save() {
       <button v-if="form.paymentQrCode" class="btn-link" @click="form.paymentQrCode = ''" style="margin-top:4px;">删除</button>
     </div>
 
+    <!-- ── UI 主题风格切换 ── -->
+    <div class="section">
+      <div class="section-title">UI 主题风格</div>
+      <p class="theme-hint">选择界面配色与布局风格，切换即时生效</p>
+      <div class="theme-cards">
+        <div
+          v-for="t in themeStore.allThemes"
+          :key="t.key"
+          class="theme-card"
+          :class="{ active: t.active, disabled: themeStore.isTransitioning }"
+          @click="themeStore.switchTo(t.key)"
+          :style="themeStore.isTransitioning ? { pointerEvents: 'none', opacity: 0.6 } : {}"
+        >
+          <div class="theme-preview" :class="'preview-' + t.key">
+            <span class="preview-dot" v-if="t.key === 'soft-cute'">🌸</span>
+            <span class="preview-dot" v-else-if="t.key === 'classic'">📋</span>
+            <span class="preview-dot" v-else>⚡</span>
+          </div>
+          <div class="theme-info">
+            <div class="theme-name">
+              {{ t.label }}
+              <span v-if="t.active" class="theme-check">✓</span>
+            </div>
+            <div class="theme-desc">{{ t.description }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div style="padding:10px 14px;">
       <button class="btn-primary" @click="save" :disabled="saving">{{ saving ? '保存中...' : '保存设置' }}</button>
     </div>
@@ -277,25 +309,25 @@ async function save() {
 <style scoped>
 .success { color: #5A8A6A; font-size: 13px; margin-bottom: 8px; }
 .section {
-  background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px;
-  border: 1px solid #F0EDE8; box-shadow: 0 1px 4px rgba(0,0,0,.02);
+  background: var(--bg-card, #fff); border-radius: 14px; padding: 16px; margin-bottom: 12px;
+  border: 1px solid var(--border-color, #F0EDE8); box-shadow: var(--shadow-xs, 0 1px 4px rgba(0,0,0,.02));
 }
-.section-title { font-size: 14px; font-weight: 700; color: #4A4A4A; margin-bottom: 10px; }
+.section-title { font-size: 14px; font-weight: 700; color: var(--text-primary, #4A4A4A); margin-bottom: 10px; }
 .input-row { margin-bottom: 10px; }
-.input-row label { display: block; font-size: 12px; color: #8E8E8E; font-weight: 600; margin-bottom: 4px; }
+.input-row label { display: block; font-size: 12px; color: var(--text-secondary, #8E8E8E); font-weight: 600; margin-bottom: 4px; }
 input[type="text"], input[type="url"], textarea {
-  width: 100%; padding: 8px 12px; border: 1px solid #E8E5DF; border-radius: 10px;
-  font-size: 13px; outline: none; background: #fff;
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border-color, #E8E5DF); border-radius: 10px;
+  font-size: 13px; outline: none; background: var(--bg-input, #fff); color: var(--text-primary, #4A4A4A);
 }
-input:focus, textarea:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(244,164,96,.08); }
+input:focus, textarea:focus { border-color: var(--color-primary, #F4A460); box-shadow: 0 0 0 3px rgba(244,164,96,.08); }
 .flex-1 { flex: 1; min-width: 0; }
 
 /* ── 上传行 ── */
 .qr-upload-row { display: flex; gap: 8px; align-items: center; }
 .file-input { font-size: 12px; max-width: 160px; }
 .file-input::file-selector-button {
-  padding: 4px 10px; border-radius: 8px; border: 1px solid #E8E5DF;
-  background: #F9F8F6; cursor: pointer; font-size: 12px; font-family: inherit;
+  padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border-color, #E8E5DF);
+  background: var(--bg-page, #F9F8F6); cursor: pointer; font-size: 12px; font-family: inherit;
 }
 .btn-upload {
   padding: 6px 16px; border-radius: 10px; border: none;
@@ -324,35 +356,35 @@ input:focus, textarea:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(
 
 /* ── 弹窗声明 ── */
 .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.toggle-label { font-size: 14px; font-weight: 600; color: #4A4A4A; }
-.toggle-hint { font-size: 11px; color: #8E8E8E; margin: 0 0 12px; }
+.toggle-label { font-size: 14px; font-weight: 600; color: var(--text-primary, #4A4A4A); }
+.toggle-hint { font-size: 11px; color: var(--text-secondary, #8E8E8E); margin: 0 0 12px; }
 
 .toggle-switch { position: relative; display: inline-block; width: 48px; height: 26px; cursor: pointer; }
 .toggle-switch input { display: none; }
 .toggle-track {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: #D8D5CF; border-radius: 26px; transition: all .25s;
+  background: var(--color-disabled, #D8D5CF); border-radius: 26px; transition: all .25s;
 }
 .toggle-track::after {
   content: ''; position: absolute; top: 3px; left: 3px;
-  width: 20px; height: 20px; background: #fff;
+  width: 20px; height: 20px; background: var(--bg-card, #fff);
   border-radius: 50%; transition: all .25s; box-shadow: 0 1px 3px rgba(0,0,0,.15);
 }
 .toggle-switch input:checked + .toggle-track { background: linear-gradient(135deg, #F4A460, #F7C57C); }
 .toggle-switch input:checked + .toggle-track::after { transform: translateX(22px); }
 
 /* ── 声明编辑器 ── */
-.declaration-editor { margin-top: 14px; padding-top: 14px; border-top: 1px solid #F0EDE8; }
-.editor-label { display: block; font-size: 12px; color: #8E8E8E; font-weight: 600; margin-bottom: 10px; }
+.declaration-editor { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color, #F0EDE8); }
+.editor-label { display: block; font-size: 12px; color: var(--text-secondary, #8E8E8E); font-weight: 600; margin-bottom: 10px; }
 .editor-row {
-  background: #FAFAF8; border: 1px solid #F0EDE8; border-radius: 12px;
+  background: var(--bg-table-stripe, #FAFAF8); border: 1px solid var(--border-color, #F0EDE8); border-radius: 12px;
   padding: 12px 14px; margin-bottom: 10px;
 }
 .editor-row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .editor-num { font-size: 13px; font-weight: 700; color: #B8933E; min-width: 22px; text-align: right; flex-shrink: 0; }
 .editor-input {
-  flex: 1; padding: 8px 12px; border: 1px solid #E8E5DF; border-radius: 10px;
-  font-size: 13px; outline: none; background: #fff; font-family: inherit; min-width: 0;
+  flex: 1; padding: 8px 12px; border: 1px solid var(--border-color, #E8E5DF); border-radius: 10px;
+  font-size: 13px; outline: none; background: var(--bg-card, #fff); font-family: inherit; min-width: 0;
 }
 .editor-input:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(244,164,96,.08); }
 .btn-row-remove {
@@ -363,23 +395,80 @@ input:focus, textarea:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(
 
 /* 项目选择器行 */
 .editor-row-bottom { display: flex; align-items: center; gap: 8px; }
-.project-label { font-size: 12px; color: #8E8E8E; white-space: nowrap; flex-shrink: 0; }
+.project-label { font-size: 12px; color: var(--text-secondary, #8E8E8E); white-space: nowrap; flex-shrink: 0; }
 .project-selector-area { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .project-select { flex: 1; min-width: 140px; }
 .project-hint {
-  font-size: 12px; color: #5A8A6A; background: #EDF6F0; padding: 2px 8px;
+  font-size: 12px; color: #5A8A6A; background: var(--color-success-bg, #EDF6F0); padding: 2px 8px;
   border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;
 }
-.project-hint.dim { color: #8E8E8E; background: #F4F2EE; }
+.project-hint.dim { color: var(--text-secondary, #8E8E8E); background: var(--color-disabled-bg, #F4F2EE); }
 
 .editor-actions { display: flex; gap: 8px; margin-top: 6px; }
 .btn-editor-add {
-  padding: 6px 14px; border-radius: 10px; border: 1px solid #E8E5DF;
-  background: #fff; font-size: 12px; cursor: pointer; color: #4A4A4A;
+  padding: 6px 14px; border-radius: 10px; border: 1px solid var(--border-color, #E8E5DF);
+  background: var(--bg-card, #fff); font-size: 12px; cursor: pointer; color: var(--text-primary, #4A4A4A);
   transition: all .15s; font-family: inherit;
 }
 .btn-editor-add:hover:not(:disabled) { border-color: #F4A460; color: #F4A460; }
 .btn-editor-add:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── UI 主题切换 ── */
+.theme-hint { font-size: 12px; color: var(--text-secondary, #8E8E8E); margin: 0 0 14px; }
+.theme-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+.theme-card {
+  flex: 1; min-width: 160px; display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 14px;
+  border: 2px solid var(--border-color, #E8E5DF);
+  background: var(--bg-card, #fff);
+  cursor: pointer; transition: all 0.25s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+  user-select: none;
+}
+.theme-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,.03));
+}
+.theme-card.active {
+  border-color: var(--color-primary, #F4A460);
+  box-shadow: 0 0 0 3px rgba(244,164,96,.10);
+  background: var(--color-peach-light, #FEF7EF);
+}
+
+/* 主题色块预览 */
+.theme-preview {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-size: 22px;
+}
+.preview-soft-cute {
+  background: linear-gradient(135deg, #F4A460 0%, #F7C57C 100%);
+}
+.preview-classic {
+  background: linear-gradient(135deg, #B8860B 0%, #DAA520 100%);
+}
+.preview-futuristic {
+  background: linear-gradient(135deg, #0D1117 0%, #4DA8DA 100%);
+}
+.preview-dot { line-height: 1; }
+
+.theme-info { flex: 1; min-width: 0; }
+.theme-name {
+  font-size: 14px; font-weight: 700; color: var(--text-primary, #4A4A4A);
+  display: flex; align-items: center; gap: 6px; margin-bottom: 3px;
+}
+.theme-check {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--color-primary, #F4A460); color: #fff; font-size: 12px; font-weight: 700;
+}
+.theme-desc {
+  font-size: 11px; color: var(--text-secondary, #8E8E8E); line-height: 1.4;
+}
+
+@media (max-width: 767px) {
+  .theme-cards { flex-direction: column; }
+  .theme-card { min-width: 0; }
+}
 
 /* ── 移动端适配 ── */
 @media (max-width: 767px) {
