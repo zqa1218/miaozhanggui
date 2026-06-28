@@ -289,6 +289,8 @@ async function createOrderV2(payload) {
       status: '待支付',
       user_device_id: payload.userDeviceId,
       user_id: payload.userId || null,
+      address: payload.address || null,
+      address_valid: null,
     });
 
     // 异步通知
@@ -1003,6 +1005,8 @@ function mapDTO(row) {
     applicationStatus: row.application_status || 'NONE',
     requestedNewTime: row.requested_new_time || '',
     userDeviceId: row.user_device_id,
+    address: row.address || '',
+    addressValid: row.address_valid,
     refundText: row.refund_text,
     refundImgUrl: row.refund_img_url,
     rejectReason: row.reject_reason,
@@ -1302,6 +1306,17 @@ async function importOrders(filePath, originalName, mId) {
   });
 }
 
+/** 验证地址正确性 */
+async function verifyAddress(orderNo, valid) {
+  const order = await knex('orders').where('order_no', orderNo).first();
+  if (!order) throw new AppError(ERROR_CODES.ORDER_NOT_FOUND, 404);
+  await knex('orders').where('order_no', orderNo).update({
+    address_valid: valid,
+    updated_at: knex.fn.now(),
+  });
+  return { success: true };
+}
+
 module.exports = {
   createOrder, createOrderV2,
   payDeposit, payFinal,
@@ -1315,6 +1330,7 @@ module.exports = {
   requestCancel, approveCancel, rejectCancel,
   restoreOrder,
   deleteOrder,
+  verifyAddress,
   clearCompletedOrders,
   importOrders,
 };

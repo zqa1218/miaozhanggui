@@ -9,6 +9,10 @@ function getClientToken() {
   return storage.get('mzg_client_token', '')
 }
 
+function getMerchantRole() {
+  return storage.get('mzg_admin_merchant_role', 'photographer')
+}
+
 const routes = [
   // ==================== C端前台（ClientLayout 包裹） ====================
   {
@@ -19,18 +23,20 @@ const routes = [
       { path: 'studios', name: 'StudioList', component: () => import('@/views/studio/StudioList.vue') },
       { path: 'studios/:id', name: 'StudioDetail', component: () => import('@/views/studio/StudioDetail.vue') },
       { path: 'styles', name: 'StyleList', component: () => import('@/views/style/StyleList.vue') },
-      { path: 'booking/:studioId', name: 'Window_C_Step1', component: () => import('@/views/client/Window_C_Step1.vue'), meta: { requiresClientAuth: true } },
-      { path: 'booking/:studioId/step2', name: 'Window_C_Step2', component: () => import('@/views/client/Window_C_Step2.vue'), meta: { requiresClientAuth: true } },
-      { path: 'my-orders', name: 'MyOrders', component: () => import('@/views/client/MyOrdersView.vue'), meta: { requiresClientAuth: true } },
-      { path: 'my-orders/:id', name: 'OrderDetail', component: () => import('@/views/client/OrderDetailView.vue'), meta: { requiresClientAuth: true } },
+      { path: 'booking/:studioId', name: 'Window_C_Step1', component: () => import('@/views/client/Window_C_Step1.vue') },
+      { path: 'booking/:studioId/step2', name: 'Window_C_Step2', component: () => import('@/views/client/Window_C_Step2.vue') },
+      { path: 'my-orders', name: 'MyOrders', component: () => import('@/views/client/MyOrdersView.vue') },
+      { path: 'my-orders/:id', name: 'OrderDetail', component: () => import('@/views/client/OrderDetailView.vue') },
     ],
   },
+
   // 客户端登录页（独立布局，无底部导航）
   {
     path: '/login',
     name: 'ClientLogin',
-    component: () => import('@/views/client/LoginView.vue'),
+    component: () => import('@/views/client/photographer/LoginView.vue'),
   },
+
   // 注册邀请链接 → 重定向到商家注册页并携带邀请码
   {
     path: '/register',
@@ -82,30 +88,39 @@ const routes = [
     path: '/admin',
     component: () => import('@/layouts/AdminLayout.vue'),
     children: [
-      { path: '', redirect: '/admin/orders' },
+      // 登录/注册（公用，未登录时渲染）
       { path: 'login', name: 'AdminLogin', component: () => import('@/views/admin/LoginView.vue') },
+
+      // 超管面板
       { path: 'dashboard', name: 'SuperAdmin', component: () => import('@/views/admin/SuperAdminDashboard.vue'), meta: { requiresAuth: true } },
 
-      // 订单管理 ★
+      // ▸ 核心功能页面 — 三种角色共用
       { path: 'orders', name: 'AdminOrders', component: () => import('@/views/admin/OrderManagement.vue'), meta: { requiresAuth: true } },
-
-      // 预设管理
       { path: 'styles', name: 'AdminStyles', component: () => import('@/views/admin/StylesView.vue'), meta: { requiresAuth: true } },
       { path: 'styles/create', redirect: '/admin/styles' },
-
-      // 项目管理
       { path: 'studios', name: 'AdminStudios', component: () => import('@/views/studio/StudioList.vue'), meta: { requiresAuth: true } },
       { path: 'studio/create/step1', name: 'Window_B_Step1', component: () => import('@/views/admin/Window_B_Step1.vue'), meta: { requiresAuth: true } },
       { path: 'studio/create/step2', name: 'Window_B_Step2', component: () => import('@/views/admin/Window_B_Step2.vue'), meta: { requiresAuth: true } },
       { path: 'studio/create/step3', name: 'Window_B_Step3', component: () => import('@/views/admin/Window_B_Step3.vue'), meta: { requiresAuth: true } },
       { path: 'studio/edit/:id', name: 'EditStudio', component: () => import('@/views/admin/EditStudio.vue'), meta: { requiresAuth: true } },
-
-      // 辅助功能
       { path: 'settings', name: 'AdminSettings', component: () => import('@/views/admin/SettingsView.vue'), meta: { requiresAuth: true } },
       { path: 'notifications', name: 'AdminNotifications', component: () => import('@/views/admin/NotificationsView.vue'), meta: { requiresAuth: true } },
       { path: 'logs', name: 'AdminLogs', component: () => import('@/views/admin/LogsView.vue'), meta: { requiresAuth: true } },
+
+      // ▸ 默认路由 — 按角色跳转到不同首页
+      { path: '', name: 'AdminHome', redirect: to => {
+        const role = getMerchantRole()
+        return '/admin/orders'
+      }},
     ],
   },
+
+  // 旧路由重定向（兼容书签/历史记录）
+  { path: '/admin/makeup', redirect: '/admin/orders' },
+  { path: '/admin/studio-owner', redirect: '/admin/orders' },
+
+  // 404
+  { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 const router = createRouter({
@@ -137,7 +152,9 @@ router.beforeEach((to, _from, next) => {
     const query = new URLSearchParams()
     if (mId) query.set('mId', mId)
     query.set('redirect', redirect)
-    return next('/login?' + query.toString())
+    // 根据当前路径前缀确定登录页默认跳回路径
+    const loginPath = to.path.startsWith('/m/') ? `/login?${query.toString()}` : to.path.startsWith('/s/') ? `/login?${query.toString()}` : `/login?${query.toString()}`
+    return next(loginPath)
   }
 
   // 已登录客户端用户访问登录页且有 redirect → 直接跳回

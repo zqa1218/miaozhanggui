@@ -15,6 +15,10 @@ const router = useRouter()
 const id = Number(route.params.id)
 const mId = ref(storage.get('mzg_admin_mid', ''))
 
+// ── 角色判断 ──
+const merchantRole = ref(storage.get('mzg_admin_merchant_role', 'photographer'))
+const isMakeupArtist = computed(() => merchantRole.value === 'makeup_artist')
+
 const loading = ref(true)
 const saving = ref(false)
 const errorMsg = ref('')
@@ -97,6 +101,7 @@ function removeRestSlot(idx) { restSlots.value.splice(idx, 1) }
 // ── 计价模式 ──
 const isStyleEnabled = ref(false)
 const isExperienceEnabled = ref(false)
+const addressRequired = ref(false)
 const noviceSingleAddTime = ref(0)
 const pricingModel = ref('single')  // 'single' | 'package' | 'both'
 const singlePrice = ref(0)
@@ -133,6 +138,7 @@ onMounted(async () => {
         restSlots.value = (found.restSlots && Array.isArray(found.restSlots)) ? [...found.restSlots] : []
         isStyleEnabled.value = !!found.isStyleEnabled
         isExperienceEnabled.value = !!found.isExperienceEnabled
+        addressRequired.value = !!found.addressRequired
         noviceSingleAddTime.value = found.noviceSingleAddTime || 0
         const foundHasPkg = !!found.hasPackage
         const foundSingle = Number(found.singlePrice) || 0
@@ -176,13 +182,16 @@ async function handleSubmit() {
       restSlots: (restSlots.value || []).filter(s => s.start_time && s.end_time),
       isStyleEnabled: isStyleEnabled.value, isExperienceEnabled: isExperienceEnabled.value,
       noviceSingleAddTime: noviceSingleAddTime.value,
-      pricingModel: pricingModel.value,
+      pricingModel: isMakeupArtist.value ? 'single' : pricingModel.value,
+      singlePrice: singlePrice.value,
       depositRatio: depositRatio.value,
-      singleShotTime: singleShotTime.value, packageTime: packageTime.value,
-      packageSessionCount: packageSessionCount.value,
+      singleShotTime: singleShotTime.value,
+      packageTime: isMakeupArtist.value ? undefined : packageTime.value,
+      packageSessionCount: isMakeupArtist.value ? undefined : packageSessionCount.value,
       selectedStyleIds: selectedStyleIds.value,
-      singlePrice: pricingModel.value === 'package' ? null : singlePrice.value,
-      packagePrice: hasPackage.value ? packagePrice.value : null,
+      addressRequired: addressRequired.value,
+      hasPackage: isMakeupArtist.value ? false : hasPackage.value,
+      packagePrice: (!isMakeupArtist.value && hasPackage.value) ? packagePrice.value : null,
       extraItems: normalizeExtraItemsForSubmit(extraItems.value),
     }
     await studioApi.update(id, payload)
@@ -278,16 +287,22 @@ async function handleSubmit() {
         </template>
 
         <template v-else>
-          <label>定价模式
-            <select v-model="pricingModel" class="input-field" style="width:160px">
-              <option value="single">仅单张</option>
-              <option value="package">仅套餐</option>
-              <option value="both">单张 + 套餐</option>
-            </select>
-          </label>
-          <label v-if="pricingModel === 'single' || pricingModel === 'both'">单张价格 (元) <input type="number" v-model.number="singlePrice" min="0" step="0.01" class="input-field" style="width:160px" /></label>
-          <label v-if="pricingModel === 'package' || pricingModel === 'both'">套餐价格 (元) <input type="number" v-model.number="packagePrice" min="0" step="0.01" class="input-field" style="width:160px" /></label>
-          <label v-if="pricingModel === 'package' || pricingModel === 'both'">套餐包含次数 <input type="number" v-model.number="packageSessionCount" min="1" class="input-field" style="width:100px" /></label>
+          <!-- 妆娘模式：只显示单次价格，不显示定价下拉/套餐 -->
+          <template v-if="isMakeupArtist">
+            <label>单次价格 (元) <input type="number" v-model.number="singlePrice" min="0" step="0.01" class="input-field" style="width:160px" /></label>
+          </template>
+          <template v-else>
+            <label>定价模式
+              <select v-model="pricingModel" class="input-field" style="width:160px">
+                <option value="single">仅单张</option>
+                <option value="package">仅套餐</option>
+                <option value="both">单张 + 套餐</option>
+              </select>
+            </label>
+            <label v-if="pricingModel === 'single' || pricingModel === 'both'">单张价格 (元) <input type="number" v-model.number="singlePrice" min="0" step="0.01" class="input-field" style="width:160px" /></label>
+            <label v-if="pricingModel === 'package' || pricingModel === 'both'">套餐价格 (元) <input type="number" v-model.number="packagePrice" min="0" step="0.01" class="input-field" style="width:160px" /></label>
+            <label v-if="pricingModel === 'package' || pricingModel === 'both'">套餐包含次数 <input type="number" v-model.number="packageSessionCount" min="1" class="input-field" style="width:100px" /></label>
+          </template>
         </template>
 
         <label class="switch-label" style="display:block;margin:10px 0;">
@@ -295,13 +310,17 @@ async function handleSubmit() {
         </label>
         <label v-if="isExperienceEnabled">新人额外加时 (分钟) <input type="number" v-model.number="noviceSingleAddTime" min="0" max="120" class="input-field" style="width:100px" /></label>
 
-        <label>单张拍摄耗时 (分钟) <input type="number" v-model.number="singleShotTime" min="1" class="input-field" style="width:100px" /></label>
-        <label v-if="hasPackage">套餐拍摄耗时 (分钟) <input type="number" v-model.number="packageTime" min="1" class="input-field" style="width:100px" /></label>
+        <label>单次服务耗时 (分钟) <input type="number" v-model.number="singleShotTime" min="1" class="input-field" style="width:100px" /></label>
+        <label v-if="!isMakeupArtist && hasPackage">套餐服务耗时 (分钟) <input type="number" v-model.number="packageTime" min="1" class="input-field" style="width:100px" /></label>
 
         <label>定金比例
           <select v-model.number="depositRatio" class="input-field" style="width:140px">
             <option :value="0">0%</option><option :value="5">5%</option><option :value="10">10%</option><option :value="15">15%</option><option :value="20">20%</option><option :value="25">25%</option><option :value="30">30%</option><option :value="35">35%</option><option :value="40">40%</option><option :value="45">45%</option><option :value="50">50%</option>
           </select>
+        </label>
+
+        <label class="switch-label" style="display:block;margin:10px 0;">
+          <input type="checkbox" v-model="addressRequired" /> 需要用户提供拍摄地址
         </label>
 
         <!-- 附加项目（非预设模式下可用） -->

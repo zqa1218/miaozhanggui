@@ -14,7 +14,12 @@ function findByMId(mId) {
 
 /** 创建商户 */
 function create(data, trx) {
-  const q = knex(TABLE).insert(data);
+  // 确保 merchant_role 有默认值
+  const insertData = { ...data };
+  if (!insertData.merchant_role) {
+    insertData.merchant_role = 'photographer';
+  }
+  const q = knex(TABLE).insert(insertData);
   return trx ? q.transacting(trx) : q;
 }
 

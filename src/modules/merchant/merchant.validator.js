@@ -13,6 +13,9 @@ const registerSchema = Joi.object({
     'any.required': '  请输入店铺名称  ',
   }),
   isStudioOwner: Joi.boolean().default(false),
+  merchantRole: Joi.string().valid('photographer', 'makeup_artist', 'studio_owner').default('photographer').messages({
+    'any.only': '  身份类型无效，可选：摄影 / 妆娘 / 棚主  ',
+  }),
   invitationCode: Joi.string().min(8).max(16).required().messages({
     'any.required': '  请输入邀请码  ',
     'string.min': '  邀请码格式不正确  ',

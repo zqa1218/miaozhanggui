@@ -110,6 +110,9 @@ function addAdditionalItem() {
     name: '',
     price: 0,
     unit: 'per_time',
+    negotiable: false,
+    priceRangeMin: 0,
+    priceRangeMax: 0,
   })
 }
 
@@ -126,7 +129,7 @@ async function submit() {
     return
   }
   if (!form.value.singlePrice || form.value.singlePrice <= 0) {
-    errorMsg.value = '单张价格必填'
+    errorMsg.value = '单次价格必填'
     return
   }
   loading.value = true
@@ -214,7 +217,7 @@ function stepUp(refKey, step = 0.01) {
           </svg>
         </div>
         <h1 class="hero-title">创建样式资产</h1>
-        <p class="hero-desc">定义一个新的拍摄风格模板，设置定价与套餐方案</p>
+        <p class="hero-desc">定义一个新的服务风格模板，设置定价与套餐方案</p>
       </div>
     </header>
 
@@ -344,9 +347,21 @@ function stepUp(refKey, step = 0.01) {
                     <label class="field-label">计费单位</label>
                     <select v-model="item.unit" class="input-glass" style="padding:12px 14px;">
                       <option value="per_time">元 / 次</option>
-                      <option value="per_photo">元 / 张</option>
                       <option value="per_item">元 / 个</option>
                     </select>
+                  </div>
+                </div>
+                <!-- 现场面议 -->
+                <div class="field" style="margin-top:8px;">
+                  <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;color:#8E8E8E;cursor:pointer;">
+                    <input type="checkbox" v-model="item.negotiable" style="accent-color:#F4A460;" />
+                    现场面议
+                  </label>
+                  <div v-if="item.negotiable" style="display:flex;gap:8px;align-items:center;">
+                    <input type="number" v-model.number="item.priceRangeMin" min="0" step="0.01" placeholder="最低" class="input-glass" style="flex:1;padding:8px 12px;" />
+                    <span style="color:#B0B0B0;">~</span>
+                    <input type="number" v-model.number="item.priceRangeMax" min="0" step="0.01" placeholder="最高" class="input-glass" style="flex:1;padding:8px 12px;" />
+                    <span style="font-size:11px;color:#8E8E8E;">元</span>
                   </div>
                 </div>
               </div>
@@ -387,12 +402,12 @@ function stepUp(refKey, step = 0.01) {
           <div class="panel-shine"></div>
           <div class="panel-topbar">
             <span class="panel-dot" style="--dot-color: #c9a0a0"></span>
-            <h2 class="panel-heading">定价与时长</h2>
+            <h2 class="panel-heading">计价模式</h2>
           </div>
 
           <!-- 单张价格 -->
           <div class="field">
-            <label class="field-label">单张收费 <span class="field-star">*</span></label>
+            <label class="field-label">单次价格 <span class="field-star">*</span></label>
             <div class="stepper-group">
               <button type="button" class="stepper-btn" @click="stepDown('singlePrice', 0.01, 0)" aria-label="减少">−</button>
               <div class="stepper-value-wrap">
@@ -404,7 +419,7 @@ function stepUp(refKey, step = 0.01) {
                   placeholder="0.00"
                   class="stepper-input"
                 />
-                <span class="stepper-unit">元 / 张</span>
+                <span class="stepper-unit">元</span>
               </div>
               <button type="button" class="stepper-btn" @click="stepUp('singlePrice', 0.01)" aria-label="增加">+</button>
             </div>
@@ -412,7 +427,7 @@ function stepUp(refKey, step = 0.01) {
 
           <!-- 基础时长 -->
           <div class="field">
-            <label class="field-label">基础拍摄时长</label>
+            <label class="field-label">单次耗时</label>
             <div class="stepper-group">
               <button type="button" class="stepper-btn" @click="stepDown('base_duration', 5, 5)" aria-label="减少">−</button>
               <div class="stepper-value-wrap">
@@ -448,19 +463,19 @@ function stepUp(refKey, step = 0.01) {
                 </div>
                 <div class="field">
                   <label class="field-label">套餐名称</label>
-                  <input v-model="pkg.name" placeholder="如: 10张精修套餐" maxlength="64" class="input-glass" />
+                  <input v-model="pkg.name" placeholder="如: 10次精修套餐" maxlength="64" class="input-glass" />
                 </div>
                 <div class="field" style="display:flex;gap:12px;">
                   <div style="flex:1">
-                    <label class="field-label">包含张数</label>
+                    <label class="field-label">包含次数</label>
                     <div class="stepper-group">
                       <button type="button" class="stepper-btn" @click="pkg.photoCount = Math.max(1, pkg.photoCount - 1)">−</button>
-                      <div class="stepper-value-wrap"><input type="number" v-model.number="pkg.photoCount" min="1" class="stepper-input" /><span class="stepper-unit">张</span></div>
+                      <div class="stepper-value-wrap"><input type="number" v-model.number="pkg.photoCount" min="1" class="stepper-input" /><span class="stepper-unit">次</span></div>
                       <button type="button" class="stepper-btn" @click="pkg.photoCount = (pkg.photoCount || 1) + 1">+</button>
                     </div>
                   </div>
                   <div style="flex:1">
-                    <label class="field-label">固定总价</label>
+                    <label class="field-label">套餐价格</label>
                     <div class="stepper-group">
                       <button type="button" class="stepper-btn" @click="pkg.totalPrice = Math.max(0, (pkg.totalPrice || 0) - 0.01)">−</button>
                       <div class="stepper-value-wrap"><input type="number" v-model.number="pkg.totalPrice" min="0" step="0.01" class="stepper-input" /><span class="stepper-unit">元</span></div>
@@ -469,7 +484,7 @@ function stepUp(refKey, step = 0.01) {
                   </div>
                 </div>
                 <div class="field" style="margin-bottom:0">
-                  <label class="field-label">固定耗时</label>
+                  <label class="field-label">套餐耗时</label>
                   <div class="stepper-group">
                     <button type="button" class="stepper-btn" @click="pkg.fixedDuration = Math.max(5, pkg.fixedDuration - 5)">−</button>
                     <div class="stepper-value-wrap"><input type="number" v-model.number="pkg.fixedDuration" min="5" step="5" class="stepper-input" /><span class="stepper-unit">分钟</span></div>
@@ -1256,13 +1271,13 @@ function stepUp(refKey, step = 0.01) {
 }
 .pkg-remove-btn {
   height: 28px; border-radius: 14px; padding: 0 14px;
-  border: 1px solid rgba(201,160,160,.25);
-  background: none; cursor: pointer;
-  font-size: 12px; color: #c9a0a0;
+  border: 1px solid rgba(239,168,168,.35);
+  background: #FDF2F2; cursor: pointer;
+  font-size: 12px; color: #C87878;
   display: flex; align-items: center; gap: 4px;
   transition: all 0.15s; font-family: inherit;
 }
-.pkg-remove-btn:hover { background: rgba(201,160,160,.08); border-color: rgba(201,160,160,.40); }
+.pkg-remove-btn:hover { background: #EFA8A8; border-color: #EFA8A8; color: #fff; }
 
 /* 添加套餐按钮（玻璃风格） */
 .pkg-add-glass {

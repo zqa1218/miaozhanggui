@@ -388,10 +388,12 @@ input:focus, textarea:focus { border-color: var(--color-primary, #F4A460); box-s
 }
 .editor-input:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(244,164,96,.08); }
 .btn-row-remove {
-  background: none; border: none; color: #C0C0C0; font-size: 18px; cursor: pointer;
-  padding: 0 4px; line-height: 1; flex-shrink: 0; transition: color .15s;
+  background: #FDF2F2; border: 1px solid rgba(200,120,120,0.25);
+  border-radius: 50%; color: #C87878; font-size: 18px; cursor: pointer;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  padding: 0; line-height: 1; flex-shrink: 0; transition: all .15s;
 }
-.btn-row-remove:hover { color: #C87878; }
+.btn-row-remove:hover { background: #EFA8A8; color: #fff; border-color: #EFA8A8; }
 
 /* 项目选择器行 */
 .editor-row-bottom { display: flex; align-items: center; gap: 8px; }

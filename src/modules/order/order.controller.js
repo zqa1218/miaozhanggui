@@ -370,6 +370,18 @@ async function deleteOrder(req, res) {
   }
 }
 
+/** POST /order/verify-address */
+async function verifyAddress(req, res) {
+  try {
+    const result = await service.verifyAddress(req.body.orderNo, req.body.valid);
+    res.rh.success(result, req.body.valid ? '已标记地址正确' : '已标记地址不正确');
+  } catch (err) {
+    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
+    logger.error('verifyAddress error', err);
+    res.rh.error('验证失败');
+  }
+}
+
 // 管理端：批量清除已完成订单
 async function clearCompleted(req, res) {
   try {
@@ -392,6 +404,7 @@ module.exports = {
   requestCancel, approveCancel, rejectCancel,
   restoreOrder,
   deleteOrder,
+  verifyAddress,
   clearCompleted,
   downloadImportTemplate, exportOrders, importOrders,
 };

@@ -4,8 +4,11 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const extraItemSchema = Joi.object({
   name: Joi.string().min(1).max(64).required().messages({ 'any.required': '附加项目名称必填' }),
-  price: Joi.number().min(0).required().messages({ 'any.required': '附加项目价格必填' }),
+  price: Joi.number().min(0).default(0),
   unit: Joi.string().valid('per_time', 'per_photo', 'per_item').default('per_time'),
+  negotiable: Joi.boolean().default(false),
+  priceRangeMin: Joi.number().min(0).default(0),
+  priceRangeMax: Joi.number().min(0).default(0),
 });
 
 const createStudioSchema = Joi.object({
@@ -42,6 +45,8 @@ const createStudioSchema = Joi.object({
   restSlots: Joi.array().items(Joi.object({
     start_time: Joi.string().pattern(TIME_PATTERN).allow('').optional(),
     end_time: Joi.string().pattern(TIME_PATTERN).allow('').optional(),
+    day_of_week: Joi.number().integer().min(0).max(6).allow(null).optional(),
+    reason: Joi.string().max(128).allow('').optional(),
   })).optional().default([]),
   isReplicated: Joi.boolean().default(true),
 
@@ -79,12 +84,13 @@ const createStudioSchema = Joi.object({
 
   // 通用服务时间配置
   singleShotTime: Joi.number().integer().min(1).required().messages({ 'any.required': '单张拍摄时间必填' }),
-  packageTime: Joi.number().integer().min(1).optional(),
+  packageTime: Joi.number().integer().min(1).optional().allow(null, 0),
   packageSessionCount: Joi.number().integer().min(1).default(1),
   isExperienceEnabled: Joi.boolean().default(false),
   noviceSingleAddTime: Joi.number().integer().min(0).default(0),
   novicePackageAddTime: Joi.number().integer().min(0).default(0),
   depositRatio: Joi.number().valid(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50).default(30),
+  addressRequired: Joi.boolean().default(false),
   extraItems: Joi.array().items(extraItemSchema).optional().default([]),
 }).options({ stripUnknown: true });
 
@@ -104,6 +110,8 @@ const updateStudioSchema = Joi.object({
   restSlots: Joi.array().items(Joi.object({
     start_time: Joi.string().pattern(TIME_PATTERN).allow('').optional(),
     end_time: Joi.string().pattern(TIME_PATTERN).allow('').optional(),
+    day_of_week: Joi.number().integer().min(0).max(6).allow(null).optional(),
+    reason: Joi.string().max(128).allow('').optional(),
   })).optional().default([]),
   isReplicated: Joi.boolean().optional(),
   isStyleEnabled: Joi.boolean().optional(),
@@ -112,13 +120,15 @@ const updateStudioSchema = Joi.object({
   singlePrice: Joi.number().min(0).optional().allow(null),
   hasPackage: Joi.boolean().optional(),
   packagePrice: Joi.number().min(0).optional().allow(null),
+  // 通用服务时间配置 — 更新时全字段可选
   singleShotTime: Joi.number().integer().min(1).optional(),
-  packageTime: Joi.number().integer().min(1).optional(),
+  packageTime: Joi.number().integer().min(1).optional().allow(null, 0),
   packageSessionCount: Joi.number().integer().min(1).optional(),
   isExperienceEnabled: Joi.boolean().optional(),
   noviceSingleAddTime: Joi.number().integer().min(0).optional(),
   novicePackageAddTime: Joi.number().integer().min(0).optional(),
   depositRatio: Joi.number().valid(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50).optional(),
+  addressRequired: Joi.boolean().optional(),
   extraItems: Joi.array().items(extraItemSchema).optional(),
 }).options({ stripUnknown: true });
 

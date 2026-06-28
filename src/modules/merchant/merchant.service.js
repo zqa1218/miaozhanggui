@@ -8,7 +8,7 @@ const repo = require('./merchant.repository');
 const invitationService = require('../admin/admin.service');
 
 /**  注册（须邀请码） */
-async function register({ username, password, shopName, isStudioOwner, invitationCode }) {
+async function register({ username, password, shopName, isStudioOwner, merchantRole, invitationCode }) {
   if (!invitationCode) {
     throw new AppError(ERROR_CODES.PARAM_INVALID, 400, '  缺少邀请码，请联系管理员获取  ');
   }
@@ -29,6 +29,7 @@ async function register({ username, password, shopName, isStudioOwner, invitatio
       password_hash: passwordHash,
       shop_name: shopName,
       is_studio_owner: isStudioOwner || false,
+      merchant_role: merchantRole || 'photographer',
     }, trx);
   });
 
@@ -38,6 +39,7 @@ async function register({ username, password, shopName, isStudioOwner, invitatio
     username,
     shopName,
     isStudioOwner: isStudioOwner || false,
+    merchantRole: merchantRole || 'photographer',
     token,
     message: '  注册成功！这是你的商家ID: ' + mId + '，请妥善保存  ',
   };
@@ -58,6 +60,7 @@ async function login({ username, password }) {
     shopName: merchant.shop_name,
     shopMode: merchant.shop_mode,
     isStudioOwner: !!merchant.is_studio_owner,
+    merchantRole: merchant.merchant_role || 'photographer',
     isAdmin: !!merchant.is_admin,
     token,
   };
@@ -86,6 +89,7 @@ async function getProfile(mId) {
     shopName: merchant.shop_name,
     shopMode: merchant.shop_mode,
     isStudioOwner: !!merchant.is_studio_owner,
+    merchantRole: merchant.merchant_role || 'photographer',
     qrCodeUrl: merchant.qr_code_url,
     announcement: merchant.announcement,
     createdAt: merchant.created_at,
@@ -98,6 +102,7 @@ async function updateProfile(mId, data) {
   if (data.shopName !== undefined) updates.shop_name = data.shopName;
   if (data.shopMode !== undefined) updates.shop_mode = data.shopMode;
   if (data.isStudioOwner !== undefined) updates.is_studio_owner = data.isStudioOwner;
+  if (data.merchantRole !== undefined) updates.merchant_role = data.merchantRole;
   if (data.qrCodeUrl !== undefined) updates.qr_code_url = data.qrCodeUrl;
   if (data.announcement !== undefined) updates.announcement = data.announcement;
   await repo.updateByMId(mId, updates);

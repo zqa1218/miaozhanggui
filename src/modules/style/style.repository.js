@@ -66,6 +66,9 @@ function replaceAdditionalItems(trx, styleId, items) {
             name: item.name,
             price: item.price,
             unit: item.unit || 'per_session',
+            negotiable: !!(item.negotiable || false),
+            price_range_min: Number(item.priceRangeMin || 0),
+            price_range_max: Number(item.priceRangeMax || 0),
           }))
         );
       }

@@ -12,7 +12,7 @@
           <img v-if="item.styleCoverUrl" :src="item.styleCoverUrl" class="style-cover" />
           <div class="style-info">
             <strong>{{ item.styleName }}</strong>
-            <span class="style-price">单张 ¥{{ item.singlePrice }}</span>
+            <span class="style-price">单次 ¥{{ item.singlePrice }}</span>
             <span v-if="item.hasPackage" class="style-package">套餐 ¥{{ item.packagePrice }}</span>
           </div>
           <div class="style-actions">
@@ -94,18 +94,18 @@
             </el-form-item>
           </el-card>
 
-          <!-- 卡片：定价与时长 -->
+          <!-- 卡片：计价模式 -->
           <el-card shadow="never" class="form-card">
             <template #header>
-              <span class="card-hd">定价与时长</span>
+              <span class="card-hd">计价模式</span>
             </template>
 
-            <el-form-item label="单张价格" required>
+            <el-form-item label="单次价格" required>
               <el-input-number v-model="form.singlePrice" :min="0" :precision="2" :step="0.01" />
-              <span class="unit">元 / 张</span>
+              <span class="unit">元</span>
             </el-form-item>
 
-            <el-form-item label="基础拍摄时长">
+            <el-form-item label="单次耗时">
               <el-input-number v-model="form.base_duration" :min="1" :max="480" />
               <span class="unit">分钟</span>
             </el-form-item>
@@ -132,20 +132,20 @@
                   <!-- 字段区 -->
                   <div class="pkg-card-body">
                     <el-form-item label="套餐名称" :label-width="80">
-                      <el-input v-model="pkg.name" placeholder="如：10张精修套餐" maxlength="64" />
+                      <el-input v-model="pkg.name" placeholder="如：10次精修套餐" maxlength="64" />
                     </el-form-item>
 
-                    <el-form-item label="包含张数" :label-width="80">
+                    <el-form-item label="包含次数" :label-width="80">
                       <el-input-number v-model="pkg.photoCount" :min="1" :max="99" />
-                      <span class="unit">张</span>
+                      <span class="unit">次</span>
                     </el-form-item>
 
-                    <el-form-item label="固定总价" :label-width="80">
+                    <el-form-item label="套餐价格" :label-width="80">
                       <el-input-number v-model="pkg.totalPrice" :min="0" :precision="2" :step="0.01" />
                       <span class="unit">元</span>
                     </el-form-item>
 
-                    <el-form-item label="固定耗时" :label-width="80">
+                    <el-form-item label="套餐耗时" :label-width="80">
                       <el-input-number v-model="pkg.fixedDuration" :min="1" :max="480" :step="5" />
                       <span class="unit">分钟</span>
                     </el-form-item>
@@ -187,14 +187,28 @@
                     <el-form-item label="项目名称" :label-width="80">
                       <el-input v-model="item.name" placeholder="如：妆造加急" maxlength="64" />
                     </el-form-item>
-                    <el-form-item label="金额" :label-width="80">
-                      <el-input-number v-model="item.price" :min="0" :precision="2" :step="1" />
-                      <span class="unit">元</span>
+                    <el-form-item label="现场面议" :label-width="80">
+                      <el-switch v-model="item.negotiable" />
                     </el-form-item>
+                    <template v-if="item.negotiable">
+                      <el-form-item label="预计价格区间" :label-width="80">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                          <el-input-number v-model="item.priceRangeMin" :min="0" :precision="2" :step="1" placeholder="最低" controls-position="right" />
+                          <span style="color:#B0B0B0;">~</span>
+                          <el-input-number v-model="item.priceRangeMax" :min="0" :precision="2" :step="1" placeholder="最高" controls-position="right" />
+                          <span class="unit">元</span>
+                        </div>
+                      </el-form-item>
+                    </template>
+                    <template v-else>
+                      <el-form-item label="金额" :label-width="80">
+                        <el-input-number v-model="item.price" :min="0" :precision="2" :step="1" />
+                        <span class="unit">元</span>
+                      </el-form-item>
+                    </template>
                     <el-form-item label="计费单位" :label-width="80">
                       <el-select v-model="item.unit" style="width:160px;">
                         <el-option label="元/次" value="per_time" />
-                        <el-option label="元/张" value="per_photo" />
                         <el-option label="元/个" value="per_item" />
                       </el-select>
                     </el-form-item>
@@ -289,7 +303,7 @@ function removePackage(idx) {
 }
 
 function addAdditionalItem() {
-  form.additionalItems.push({ name: '', price: 0, unit: 'per_time' })
+  form.additionalItems.push({ name: '', price: 0, unit: 'per_time', negotiable: false, priceRangeMin: 0, priceRangeMax: 0 })
 }
 function removeAdditionalItem(idx) {
   form.additionalItems.splice(idx, 1)
@@ -432,11 +446,14 @@ async function handleSave() {
         description: (p.description || '').trim(),
       }))
     const additionalItems = form.additionalItems
-      .filter(a => a.name && a.name.trim() && a.price > 0)
+      .filter(a => a.name && a.name.trim())
       .map(a => ({
         name: a.name.trim(),
         price: Number(a.price) || 0,
         unit: a.unit || 'per_time',
+        negotiable: !!(a.negotiable || false),
+        priceRangeMin: Number(a.priceRangeMin || 0),
+        priceRangeMax: Number(a.priceRangeMax || 0),
       }))
     const data = {
       ...form,
@@ -574,6 +591,14 @@ async function handleDelete(id) {
 }
 .pkg-del-btn {
   font-size: 12px !important; padding: 4px 12px !important;
+  color: #C87878 !important;
+  background: #FDF2F2 !important;
+  border: 1px solid rgba(239,168,168,0.30) !important;
+}
+.pkg-del-btn:hover {
+  color: #fff !important;
+  background: #EFA8A8 !important;
+  border-color: #EFA8A8 !important;
 }
 
 .pkg-card-body {

@@ -67,14 +67,16 @@ export const useWizardBStore = defineStore('wizardB', () => {
     if (isStyleEnabled.value) {
       payload.selectedStyleIds = selectedStyleIds.value
     } else {
-      payload.pricingModel = pricingModel.value
       const model = pricingModel.value
-      payload.singlePrice = (model === 'single' || model === 'both') ? singlePrice.value : null
+      payload.pricingModel = model
+      if (model === 'single' || model === 'both') {
+        payload.singlePrice = singlePrice.value
+      }
       payload.hasPackage = (model === 'package' || model === 'both')
       if (payload.hasPackage) {
         payload.packagePrice = packagePrice.value
         payload.packageSessionCount = packageSessionCount.value
-        payload.packageTime = packageTime.value
+        if (packageTime.value > 0) payload.packageTime = packageTime.value
       }
     }
 

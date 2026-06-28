@@ -35,6 +35,7 @@ export const useStudioCreateStore = defineStore('studioCreate', () => {
     noviceSingleAddTime: 20,
     novicePackageAddTime: 0,
     depositRatio: 30,
+    addressRequired: false,
     extraItems: [],
   })
 
@@ -49,6 +50,7 @@ export const useStudioCreateStore = defineStore('studioCreate', () => {
       isStyleEnabled: false, selectedStyleIds: [], singlePrice: 0, hasPackage: false, packagePrice: 0,
       singleShotTime: 5, packageTime: 30, isExperienceEnabled: false,
       noviceSingleAddTime: 20, novicePackageAddTime: 0, depositRatio: 30,
+      addressRequired: false,
       extraItems: [],
     })
   }
@@ -77,6 +79,7 @@ export const useStudioCreateStore = defineStore('studioCreate', () => {
       noviceSingleAddTime: step3.noviceSingleAddTime,
       novicePackageAddTime: step3.novicePackageAddTime,
       depositRatio: step3.depositRatio,
+      addressRequired: step3.addressRequired,
       extraItems: step3.extraItems.filter(e => e.name && e.name.trim()),
       contact_phone: step1.contactPhone,
       contact_wechat: step1.contactWechat,

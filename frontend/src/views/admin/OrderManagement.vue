@@ -627,6 +627,20 @@ async function deleteOrder(o) {
   }
 }
 
+// ─── 地址验证 ───
+async function verifyAddress(orderNo, valid) {
+  const res = await apiFetch('/api/order/verify-address', {
+    method: 'POST',
+    body: JSON.stringify({ orderNo, valid }),
+  })
+  if (res.success || res.code === 0) {
+    ElMessage.success(valid ? '已标记为地址正确' : '已标记为地址不正确')
+    fetchOrders()
+  } else {
+    ElMessage.error(res.message || '操作失败')
+  }
+}
+
 // ─── 格式化 ───
 function fmtBookingTime(o) {
   const start = o.bookingStartTime || o.booking_start_time
@@ -789,6 +803,13 @@ watch(() => refreshBus?.tick, async (newTick) => {
                   <div v-if="o.roleName || o.role_name" class="cell-role">{{ o.roleName || o.role_name }}</div>
                 </td>
                 <td>
+                  <!-- 地址导航（在金额左侧） -->
+                  <div v-if="o.address" class="cell-address">
+                    <a :href="`https://uri.amap.com/navigation?to=${encodeURIComponent(o.address)}`" target="_blank" class="addr-link" @click.stop>「导航</a>
+                    <span v-if="o.addressValid === true" style="color:#67c23a;font-size:11px;">✓</span>
+                    <span v-else-if="o.addressValid === false" style="color:#f56c6c;font-size:11px;">地址不正确</span>
+                    <span v-else style="font-size:10px;color:#B0B0B0;">未验证</span>
+                  </div>
                   <div class="cell-price">¥{{ fmtPrice(o.totalPrice || o.total_amount || 0) }}</div>
                   <div class="cell-deposit">定金 ¥{{ fmtPrice(o.depositAmount || o.deposit_amount || 0) }}</div>
                 </td>
@@ -847,6 +868,15 @@ watch(() => refreshBus?.tick, async (newTick) => {
                       </div>
                       <div v-if="o.requestedNewTime || o.requested_new_time"><strong>改期至:</strong> {{ o.requestedNewTime || o.requested_new_time }}</div>
                       <div><strong>联系方式:</strong> {{ o.contactNote || o.contact_note || o.contact || '—' }}</div>
+                      <div v-if="o.address"><strong>地址:</strong> {{ o.address }}
+                        <a :href="`https://uri.amap.com/navigation?to=${encodeURIComponent(o.address)}`" target="_blank" style="color:#F4A460;margin-left:6px;">导航</a>
+                        <template v-if="o.addressValid === true"> <span style="color:#67c23a;">✓</span></template>
+                        <template v-else-if="o.addressValid === false"> <span style="color:#f56c6c;">地址不正确</span></template>
+                        <div style="margin-top:4px;">
+                          <button class="btn-primary btn-sm" @click="verifyAddress(o.orderNo, true)" style="font-size:11px;padding:2px 8px;">✓ 地址正确</button>
+                          <button class="btn-secondary btn-sm" @click="verifyAddress(o.orderNo, false)" style="font-size:11px;padding:2px 8px;margin-left:4px;">✗ 地址不正确</button>
+                        </div>
+                      </div>
                       <div><strong>设备码:</strong> <code>{{ o.userDeviceId || o.user_device_id || '—' }}</code></div>
                       <div v-if="o.refundText || o.refund_text"><strong>退款账号:</strong> {{ o.refundText || o.refund_text }}</div>
                       <div v-if="o.refundImgUrl || o.refund_img_url"><strong>收款码:</strong> <img :src="o.refundImgUrl || o.refund_img_url" class="refund-thumb" /></div>
@@ -1078,6 +1108,8 @@ watch(() => refreshBus?.tick, async (newTick) => {
 .cell-title { font-weight: 600; }
 .cell-role { font-size: 11px; color: var(--color-sakura); margin-top: 1px; }
 .cell-price { font-weight: 700; }
+.cell-address { font-size: 11px; margin-bottom: 2px; }
+.cell-address .addr-link { color: #F4A460; font-weight: 600; text-decoration: none; }
 .cell-deposit { font-size: 10px; color: var(--text-sub); }
 .badge-cell { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
 .badge-pending { background: rgba(249,224,160,0.20); color: #B8933E; }

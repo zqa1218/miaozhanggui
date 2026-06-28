@@ -19,8 +19,18 @@ const TIME_REGEX = /^(\d{1,2}):(\d{2})$/;
 function generateTemplateBuffer() {
   const wb = XLSX.utils.book_new();
   const headers = TEMPLATE_HEADERS.map((h) => h.label);
-  const ws = XLSX.utils.aoa_to_sheet([headers]);
+  // 第3行为示例数据行（第2行留空给用户填写），用浅蓝色背景标示
+  const exampleRow = ['示例项目名称', '2026-06-01', '09:00', '12:00', '13800138000', '这是一个填写格式示例，导入时会被自动忽略'];
+  const ws = XLSX.utils.aoa_to_sheet([headers, [], exampleRow]);
   ws['!cols'] = TEMPLATE_HEADERS.map((h) => ({ wch: h.width }));
+  // 示例行标记浅蓝色背景（第3行，0-indexed 为 row 2）
+  const exampleRowNum = 2;
+  for (let c = 0; c < TEMPLATE_HEADERS.length; c++) {
+    const cellRef = XLSX.utils.encode_cell({ r: exampleRowNum, c });
+    if (ws[cellRef]) {
+      ws[cellRef].s = { fill: { fgColor: { rgb: 'E8F0FE' } }, font: { color: { rgb: '5A7A9A' } } };
+    }
+  }
   XLSX.utils.book_append_sheet(wb, ws, '排期导入模板');
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 }
@@ -44,10 +54,20 @@ function parseUploadedExcel(filePath) {
   const validRows = [];
 
   rawRows.forEach((row, idx) => {
-    const excelRowNum = idx + 2;
+    const excelRowNum = idx + 2; // Excel row number (1 = header, 2 = first data row)
     const rowErrors = [];
 
     const project = String(row[TEMPLATE_HEADERS[0].label] || '').trim();
+
+    // 跳过示例行：任何项目名为"示例项目名称"的行
+    if (project === '示例项目名称') {
+      return; // skip this row
+    }
+    // 跳过第二行空行（用户填写前留空），以及任何完全空白的行
+    if (!project && !row[TEMPLATE_HEADERS[1].label] && !row[TEMPLATE_HEADERS[4].label]) {
+      return;
+    }
+
     if (!project) rowErrors.push('项目不能为空');
 
     const dateRaw = String(row[TEMPLATE_HEADERS[1].label] || '').trim();
@@ -134,8 +154,18 @@ const ORDER_IMPORT_HEADERS = [
 function generateOrderTemplateBuffer() {
   const wb = XLSX.utils.book_new();
   const headers = ORDER_IMPORT_HEADERS.map(h => h.label);
-  const ws = XLSX.utils.aoa_to_sheet([headers]);
+  // 第3行为示例数据行（第2行留空给用户填写），用浅蓝色背景标示
+  const exampleRow = ['', '张三', '13800138000', '示例项目名称', '默认风格', '基础套餐', '2026-06-01', '09:00', '待付定金'];
+  const ws = XLSX.utils.aoa_to_sheet([headers, [], exampleRow]);
   ws['!cols'] = ORDER_IMPORT_HEADERS.map(h => ({ wch: h.width }));
+  // 示例行标记浅蓝色背景（第3行，0-indexed 为 row 2）
+  const exampleRowNum = 2;
+  for (let c = 0; c < ORDER_IMPORT_HEADERS.length; c++) {
+    const cellRef = XLSX.utils.encode_cell({ r: exampleRowNum, c });
+    if (ws[cellRef]) {
+      ws[cellRef].s = { fill: { fgColor: { rgb: 'E8F0FE' } }, font: { color: { rgb: '5A7A9A' } } };
+    }
+  }
   XLSX.utils.book_append_sheet(wb, ws, '订单导入');
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 }
@@ -180,7 +210,12 @@ function parseOrderImportExcel(filePath) {
 
     const customerName = String(row['客户姓名'] || '').trim();
     const customerPhone = String(row['手机号'] || '').trim();
+
+    // 跳过示例行：任何项目名为"示例项目名称"的行，以及完全空白的行
     const projectName = String(row['预约项目'] || '').trim();
+    if (projectName === '示例项目名称' || (!customerName && !projectName && !customerPhone)) {
+      return; // skip this row
+    }
     const styleName = String(row['选择样式'] || '').trim();
     const packageName = String(row['选择套餐'] || '').trim();
     const dateRaw = String(row['预约日期'] || '').trim();

@@ -3,6 +3,29 @@
    所有颜色/圆角/阴影通过 CSS 变量控制，由 theme store 注入
    ============================================================= */
 
+/* ─── 弹性过渡变量（温和弹簧，无拉伸感）─── */
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+  --ease-out: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --purple: var(--color-primary, #F4A460);
+  --purple-light: var(--color-primary-light, #F7C57C);
+  --sakura: var(--color-secondary, #F9E0A0);
+  --sakura-light: var(--color-sakura-light, #FDF2F2);
+  --sky: var(--color-sky, #A9C1D9);
+  --sky-light: var(--color-sky-light, #F0F4F8);
+  --mint: var(--color-tertiary, #A8D8B9);
+  --mint-light: var(--color-mint-light, #EDF6F0);
+  --peach: var(--color-quaternary, #EFA8A8);
+  --peach-light: var(--color-peach-light, #FEF7EF);
+  --danger: var(--color-danger, #EFA8A8);
+  --danger-light: var(--color-danger-bg, #FDF2F2);
+  --text: var(--text-primary, #4A4A4A);
+  --sub: var(--text-sub, #8E8E8E);
+  --border: var(--border-color, #E8E5DF);
+  --card-bg: var(--bg-card, #FFFFFF);
+  --glass: var(--bg-glass, #FFFFFF);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* ══════════════════════════════════════════════════════════════
@@ -15,11 +38,11 @@
   border: 1px solid var(--glass-border, transparent);
   border-radius: var(--radius-lg, 24px);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,.03));
-  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s cubic-bezier(0.25,0.8,0.25,1);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 .glass-card:hover {
   box-shadow: var(--shadow-hover, 0 8px 28px rgba(0,0,0,.08));
-  transform: translateY(-2px) scale(1.01);
+  transform: translateY(-2px);
 }
 
 .loose-card {
@@ -30,11 +53,11 @@
   border-radius: var(--radius-lg, 24px);
   padding: var(--space-md, 24px);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,.03));
-  transition: all 0.25s cubic-bezier(0.25,0.8,0.25,1);
+  transition: all 0.25s ease;
 }
 .loose-card:hover {
   box-shadow: var(--shadow-hover, 0 8px 28px rgba(0,0,0,.08));
-  transform: translateY(-2px) scale(1.01);
+  transform: translateY(-2px);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -55,7 +78,7 @@
   border-radius: var(--radius-btn, 28px);
   color: var(--text-primary, #4A4A4A);
   padding: 10px 28px;
-  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  transition: all 0.25s ease;
   cursor: pointer;
   font-weight: 500;
 }
@@ -63,18 +86,18 @@
   background: var(--color-peach-light, #FEF7EF);
   border-color: var(--color-primary, #F4A460);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,.03));
-  transform: translateY(-1px) scale(1.03);
+  transform: translateY(-1px);
 }
 
 /* ══════════════════════════════════════════════════════════════
    淡入上浮动画
    ══════════════════════════════════════════════════════════════ */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .fade-in-up {
-  animation: fadeInUp 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+  animation: fadeInUp 0.35s ease-out both;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -153,7 +176,7 @@
   border-radius: 14px !important;
   margin: 4px 12px !important;
   padding: 0 20px !important;
-  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1) !important;
+  transition: all 0.2s ease !important;
   color: var(--text-secondary, #8E8E8E) !important;
 }
 .el-menu-item:hover {
@@ -306,14 +329,14 @@
   border-radius: var(--radius-btn, 28px) !important;
   padding: 10px 28px !important;
   font-weight: 500 !important;
-  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1) !important;
+  transition: all 0.2s ease !important;
 }
 .el-button:hover {
-  transform: translateY(-1px) scale(1.03);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-md, 0 6px 20px rgba(0,0,0,.05)) !important;
 }
 .el-button:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 .el-button--primary {
   background: var(--el-btn-primary-bg, linear-gradient(135deg, #F4A460 0%, #F7C57C 100%)) !important;
@@ -380,13 +403,13 @@
   background: var(--bg-card, #FFFFFF);
   margin: 14px 24px; border-radius: var(--radius-lg, 24px); overflow: hidden;
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,.03));
-  cursor: pointer; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  cursor: pointer; transition: all 0.25s ease;
   position: relative;
 }
-.project-card:active { transform: scale(0.98); }
+.project-card:active { transform: scale(0.985); }
 .project-card:hover {
   box-shadow: var(--shadow-hover, 0 8px 28px rgba(0,0,0,.08));
-  transform: translateY(-4px) scale(1.01);
+  transform: translateY(-3px);
 }
 .project-card img {
   width: 100%; height: 190px; object-fit: cover; display: block;
@@ -423,19 +446,19 @@
   background: var(--el-btn-primary-bg, linear-gradient(135deg, #F4A460 0%, #F7C57C 100%));
   color: #fff; border: none; border-radius: var(--radius-btn, 28px);
   font-size: 16px; font-weight: 600; cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
-  box-shadow: var(--el-btn-primary-shadow, 0 4px 16px rgba(244,164,96,0.22));
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(244,164,96,0.22);
   letter-spacing: 0.5px;
 }
-.btn-primary:active { transform: scale(0.97); }
-.btn-primary:disabled { background: var(--color-disabled, #D4CFC8); box-shadow: none; cursor: not-allowed; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { background: #D4CFC8; box-shadow: none; cursor: not-allowed; }
 
 .btn-secondary {
   padding: 12px 24px;
   background: var(--bg-card, #FFFFFF);
   color: var(--text-primary, #4A4A4A); border: 1px solid var(--border-color, #E8E5DF);
   border-radius: var(--radius-btn, 28px); font-size: 14px; font-weight: 600; cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  transition: all 0.2s ease;
 }
 .btn-secondary:hover { background: var(--color-peach-light, #FEF7EF); border-color: var(--color-primary, #F4A460); }
 
@@ -481,9 +504,9 @@
 }
 .bottom-bar button {
   flex: 1; padding: 14px; border-radius: var(--radius-btn, 28px); font-size: 14px; font-weight: 600;
-  border: none; cursor: pointer; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
-  background: var(--bg-page, #F9F8F6);
-  color: var(--text-primary, #4A4A4A);
+  border: none; cursor: pointer; transition: all 0.2s ease;
+  background: #F9F8F6;
+  color: var(--text);
 }
 .bottom-bar button:hover {
   background: var(--color-peach-light, #FEF7EF);
@@ -502,7 +525,7 @@
 .tab-item {
   flex: 1; text-align: center; padding: 12px 16px; border-radius: 16px;
   font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1); color: var(--text-sub, #8E8E8E);
+  transition: all 0.2s ease; color: var(--sub);
 }
 .tab-item.active {
   background: var(--bg-card, #FFFFFF);
@@ -539,10 +562,10 @@
   text-align: center; padding: 24px 16px; border-radius: 20px;
   background: var(--bg-card, #FFFFFF);
   box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,.03));
-  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 .stat-card:hover {
-  transform: translateY(-4px) scale(1.02);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-hover, 0 8px 28px rgba(0,0,0,.08));
 }
 .stat-card .num { font-size: 32px; font-weight: 800; }

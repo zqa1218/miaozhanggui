@@ -25,6 +25,13 @@ const studio = ref(null)
 const loading = ref(true)
 const errorMsg = ref('')
 
+// 上传用
+const deviceId = computed(() => {
+  let id = storage.get('mzg_device_id', '')
+  if (!id) { id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); storage.set('mzg_device_id', id) }
+  return id
+})
+
 // ── 样式 ──
 const selectedStyleId = ref(wizardC.selectedStyleId || null)
 const selectedPackageId = ref(null)   // 选中的套餐 ID（模式 B）
@@ -804,4 +811,11 @@ function goNext() {
 .date-weekday { font-size: 11px; color: var(--text-secondary, #8E8E8E); font-weight: 500; }
 .date-day { font-size: 20px; font-weight: 800; color: #3A3A4A; line-height: 1; }
 .date-month { font-size: 10px; color: #B0B0B0; font-weight: 500; }
+
+/* ─── 人设图 / 参考动作滚动 ─── */
+.img-scroll { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+.img-scroll::-webkit-scrollbar { height: 0; }
+.img-scroll-cell { flex: 0 0 auto; width: 100px; aspect-ratio: 3/4; border-radius: 10px; overflow: hidden; scroll-snap-align: start; background: #F4F2EE; position: relative; }
+.img-scroll-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-scroll-cell .ref-label { position: absolute; bottom: 0; left: 0; right: 0; padding: 3px 6px; background: rgba(0,0,0,.4); color: #fff; font-size: 10px; text-align: center; }
 </style>

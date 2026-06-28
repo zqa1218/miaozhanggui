@@ -18,11 +18,7 @@ const loginLoading = ref(false)
 const regLoading = ref(false)
 
 const loginForm = ref({ username: '', password: '' })
-const regForm = ref({
-  username: '', password: '', shopName: '',
-  shopMode: 'studio',
-  invitationCode: '',
-})
+const regForm = ref({ username: '', password: '', shopName: '', merchantRole: 'photographer', invitationCode: '' })
 const inviteCodeFromUrl = ref(false)
 
 // ★ 自动回填邀请码
@@ -53,7 +49,7 @@ async function doLogin() {
       storage.set('mzg_admin_token', data.token)
       storage.set('mzg_admin_mid', data.mId)
       storage.set('mzg_admin_shopname', data.shopName || '')
-      storage.set('mzg_admin_role', data.shopMode || 'studio')
+      storage.set('mzg_admin_merchant_role', data.merchantRole || 'photographer')
       location.reload()
     } else {
       errorMsg.value = res.message || '登录失败'
@@ -124,23 +120,13 @@ async function doRegister() {
                 style="margin-bottom:12px;" />
       <el-input v-model="regForm.invitationCode" placeholder="邀请码（必填）"
                 style="margin-bottom:12px;" :disabled="inviteCodeFromUrl" clearable />
-
-      <!-- ★ 角色选择卡片 -->
-      <div class="role-select-section">
-        <div class="role-select-label">选择注册身份</div>
-        <div class="role-cards">
-          <div
-            v-for="r in ROLE_OPTIONS"
-            :key="r.key"
-            class="role-card"
-            :class="{ active: regForm.shopMode === r.key }"
-            @click="regForm.shopMode = r.key"
-          >
-            <span class="role-card-icon">{{ r.icon }}</span>
-            <span class="role-card-label">{{ r.label }}</span>
-            <span class="role-card-desc">{{ r.desc }}</span>
-          </div>
-        </div>
+      <div class="role-selector">
+        <span class="role-label">选择身份</span>
+        <el-radio-group v-model="regForm.merchantRole" class="role-radio-group">
+          <el-radio-button value="photographer">📷 摄影</el-radio-button>
+          <el-radio-button value="makeup_artist">💄 妆娘</el-radio-button>
+          <el-radio-button value="studio_owner">🏠 棚主</el-radio-button>
+        </el-radio-group>
       </div>
 
       <el-button type="success" style="width:100%;" @click="doRegister" :loading="regLoading">
@@ -155,47 +141,36 @@ async function doRegister() {
 </template>
 
 <style scoped>
-/* ── 角色选择卡片 ── */
-.role-select-section {
-  padding: 12px 0;
+.role-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
   margin-bottom: 12px;
-  border-top: 1px solid var(--border-color, #F0EDE8);
+  font-size: 14px;
+  color: #4A4A4A;
+  font-weight: 600;
+  border-top: 1px solid #F0EDE8;
 }
-.role-select-label {
-  font-size: 13px; font-weight: 700;
-  color: var(--text-primary, #4A4A4A);
-  margin-bottom: 10px;
+.role-label {
+  font-size: 13px;
+  color: #8E8E8E;
+  font-weight: 500;
 }
-.role-cards {
-  display: flex; gap: 8px;
+.role-radio-group {
+  display: flex;
+  width: 100%;
 }
-.role-card {
-  flex: 1; min-width: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 14px 8px; border-radius: 14px;
-  border: 2px solid var(--border-color, #E8E5DF);
-  background: var(--bg-card, #fff);
-  cursor: pointer; transition: all 0.25s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
-  user-select: none; text-align: center;
+.role-radio-group :deep(.el-radio-button__inner) {
+  padding: 10px 16px;
+  font-size: 13px;
 }
-.role-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,.03));
+.role-radio-group :deep(.el-radio-button) {
+  flex: 1;
 }
-.role-card.active {
-  border-color: var(--color-primary, #F4A460);
-  background: var(--color-peach-light, #FEF7EF);
-  box-shadow: 0 0 0 3px rgba(244,164,96,.08);
-}
-.role-card-icon { font-size: 28px; line-height: 1; }
-.role-card-label { font-size: 14px; font-weight: 700; color: var(--text-primary, #4A4A4A); }
-.role-card-desc {
-  font-size: 10px; color: var(--text-secondary, #8E8E8E);
-  line-height: 1.3; max-width: 120px;
-}
-@media (max-width: 767px) {
-  .role-cards { flex-direction: column; }
-  .role-card { flex-direction: row; justify-content: center; gap: 10px; padding: 12px 16px; }
-  .role-card-desc { display: none; }
+.role-radio-group :deep(.is-active .el-radio-button__inner) {
+  background: #FFF7EF;
+  border-color: #F4A460;
+  color: #D4893E;
 }
 </style>

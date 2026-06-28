@@ -68,8 +68,8 @@ onUnmounted(() => store.reset())
 .steps-indicator { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
 .step-dot {
   width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: var(--color-disabled-bg, #F4F2EE); color: #B0B0B0; font-weight: 700; font-size: 14px;
-  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  background: #F4F2EE; color: #B0B0B0; font-weight: 700; font-size: 14px;
+  transition: all 0.25s ease;
 }
 .step-dot.active {
   background: linear-gradient(135deg, #F4A460, #F7C57C);

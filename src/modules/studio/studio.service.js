@@ -4,10 +4,87 @@ const knex = require('../../shared/database/knex');
 const repo = require('./studio.repository');
 const styleRepo = require('../style/style.repository');
 
-/** 客户端-精简列表 */
+/** 客户端-精简列表 — 批量化所有子查询，消除 N+1 */
 async function getLiteList(mId) {
   const rows = await repo.findAllByMerchant(mId);
-  return Promise.all(rows.map(mapToLiteDTO));
+  if (rows.length === 0) return [];
+
+  const studioIds = rows.map(r => r.id);
+
+  // 一次并行加载所有子数据
+  const [availDates, styleRelations, styleDataList, allPackages, allAddons] = await Promise.all([
+    knex('studio_availabilities')
+      .whereIn('studio_id', studioIds)
+      .select('studio_id', knex.raw('CAST(available_date AS CHAR) as available_date'))
+      .orderBy('available_date', 'asc'),
+    knex('studio_style_relations').whereIn('studio_id', studioIds).select('studio_id', 'style_id'),
+    knex('studio_style_relations as ssr')
+      .join('styles', 'styles.id', 'ssr.style_id')
+      .whereIn('ssr.studio_id', studioIds)
+      .select('ssr.studio_id', 'styles.id', 'styles.style_name', 'styles.style_cover_url',
+        'styles.single_price', 'styles.has_package', 'styles.package_price'),
+    knex('style_packages')
+      .whereIn('style_id', function () {
+        this.select('style_id').from('studio_style_relations').whereIn('studio_id', studioIds);
+      })
+      .orderBy('photo_count', 'asc'),
+    knex('style_additional_items')
+      .whereIn('style_id', function () {
+        this.select('style_id').from('studio_style_relations').whereIn('studio_id', studioIds);
+      })
+      .orderBy('id', 'asc'),
+  ]);
+
+  // 构建索引 map
+  const availByStudio = {}; for (const d of availDates) { (availByStudio[d.studio_id] ||= []).push(d.available_date); }
+  const stylesByStudio = {}; for (const s of styleDataList) { (stylesByStudio[s.studio_id] ||= []).push(s); }
+  const relsByStudio = {};   for (const r of styleRelations) { (relsByStudio[r.studio_id] ||= []).push(r.style_id); }
+  const pkgsByStyle = {};    for (const p of allPackages) {
+    (pkgsByStyle[p.style_id] ||= []).push({ id: p.id, name: p.name, photoCount: p.photo_count, totalPrice: Number(p.total_price), fixedDuration: p.fixed_duration, description: p.description || '' });
+  }
+  const addonsByStyle = {};  for (const a of allAddons) {
+    (addonsByStyle[a.style_id] ||= []).push({ id: a.id, name: a.name, price: Number(a.price), unit: a.unit, negotiable: !!(a.negotiable || false), priceRangeMin: Number(a.price_range_min || 0), priceRangeMax: Number(a.price_range_max || 0) });
+  }
+
+  return rows.map(row => mapToLiteDTOFromCache(row, { availByStudio, stylesByStudio, relsByStudio, pkgsByStyle, addonsByStyle }));
+}
+
+/** 纯函数 DTO 映射——从预取缓存中取数据，无 DB 调用 */
+function mapToLiteDTOFromCache(row, cache) {
+  const dto = {
+    id: row.id, title: row.title, description: row.description, coverUrl: row.cover_url, city: row.city,
+    isStyleEnabled: row.is_style_enabled, isAllTimeOpen: row.is_all_time_open,
+    addressRequired: row.address_required || false,
+    singlePrice: row.single_price, hasPackage: row.has_package, packagePrice: row.package_price,
+    baseStartTime: fmtTime(row.base_start_time), baseEndTime: fmtTime(row.base_end_time),
+    intervalRestTime: row.interval_rest_time, isExperienceEnabled: row.is_experience_enabled,
+    noviceSingleAddTime: row.novice_single_add_time, novicePackageAddTime: row.novice_package_add_time,
+    singleShotTime: row.single_shot_time, packageTime: row.package_time,
+    packageSessionCount: row.package_session_count || 1, depositRatio: row.deposit_ratio,
+    extraItems: safeJson(row.extra_items, []), detailImgUrls: safeJson(row.detail_img_urls, []),
+    serviceMode: row.service_mode, calcMode: row.calc_mode,
+    openTime: fmtTime(row.open_time), closeTime: fmtTime(row.close_time),
+    timeInterval: row.time_interval, minPhotos: row.min_photos,
+    extraPersonFee: row.extra_person_fee, customRemarkLabel: row.custom_remark_label,
+    availableDates: cache.availByStudio[row.id] || [],
+  };
+
+  if (row.is_style_enabled) {
+    const styles = cache.stylesByStudio[row.id] || [];
+    dto.styles = styles.map(s => ({
+      id: s.id, styleName: s.style_name, styleCoverUrl: s.style_cover_url,
+      singlePrice: Number(s.single_price), hasPackage: s.has_package,
+      packagePrice: s.package_price ? Number(s.package_price) : null,
+      packages: cache.pkgsByStyle[s.id] || [],
+      additionalItems: cache.addonsByStyle[s.id] || [],
+    }));
+    dto.selectedStyleIds = (cache.relsByStudio[row.id] || []).slice();
+  } else {
+    dto.styles = [];
+    dto.selectedStyleIds = [];
+  }
+
+  return dto;
 }
 
 /** 客户端/管理端-完整列表 */
@@ -43,6 +120,8 @@ async function create(data) {
     cover_url: data.coverUrl || '',
     detail_img_urls: JSON.stringify(data.detailImgUrls || []),
     is_style_enabled: data.isStyleEnabled || false,
+    is_all_time_open: data.isAllTimeOpen || false,
+    address_required: data.addressRequired || false,
     single_price: data.isStyleEnabled ? null : (data.pricingModel === 'package' ? null : (data.singlePrice ?? null)),
     has_package: !data.isStyleEnabled && (data.pricingModel === 'package' || data.pricingModel === 'both'),
     package_price: !data.isStyleEnabled && (data.pricingModel === 'package' || data.pricingModel === 'both') ? data.packagePrice : null,
@@ -103,6 +182,8 @@ async function update(data) {
     title: 'title', city: 'city',
     description: 'description', coverUrl: 'cover_url',
     isStyleEnabled: 'is_style_enabled', hasPackage: 'has_package',
+    isAllTimeOpen: 'is_all_time_open',
+    addressRequired: 'address_required',
     baseStartTime: 'base_start_time', baseEndTime: 'base_end_time',
     intervalRestTime: 'interval_rest_time',
     isExperienceEnabled: 'is_experience_enabled',
@@ -114,7 +195,7 @@ async function update(data) {
   };
 
   for (const [jsKey, dbKey] of Object.entries(fieldMap)) {
-    if (data[jsKey] !== undefined) payload[dbKey] = data[jsKey];
+    if (data[jsKey] !== undefined && data[jsKey] !== null) payload[dbKey] = data[jsKey];
   }
 
   // 计价字段
@@ -162,6 +243,12 @@ async function update(data) {
     }
 
     // 更新可选日期
+    if (data.isAllTimeOpen !== undefined) {
+      // 全时段：清空可选日期
+      if (data.isAllTimeOpen) {
+        await repo.replaceAvailabilities(trx, data.id, []);
+      }
+    }
     if (data.availableDates !== undefined) {
       await repo.replaceAvailabilities(trx, data.id, data.availableDates);
     }
@@ -193,6 +280,8 @@ async function mapToLiteDTO(row) {
     coverUrl: row.cover_url,
     city: row.city,
     isStyleEnabled: row.is_style_enabled,
+    isAllTimeOpen: row.is_all_time_open,
+    addressRequired: row.address_required || false,
     singlePrice: row.single_price,
     hasPackage: row.has_package,
     packagePrice: row.package_price,
@@ -264,6 +353,9 @@ async function mapToLiteDTO(row) {
         name: a.name,
         price: Number(a.price),
         unit: a.unit,
+        negotiable: !!(a.negotiable || false),
+        priceRangeMin: Number(a.price_range_min || 0),
+        priceRangeMax: Number(a.price_range_max || 0),
       });
     }
 
@@ -290,8 +382,8 @@ async function mapToFullDTO(row) {
   const dto = await mapToLiteDTO(row);
   dto.availableDates = (await repo.findAvailabilities(row.id)).map(r => r.available_date);
   dto.restSlots = (await repo.findRestSlots(row.id)).map(r => ({
-    startTime: fmtTime(r.start_time),
-    endTime: fmtTime(r.end_time),
+    start_time: fmtTime(r.start_time),
+    end_time: fmtTime(r.end_time),
   }));
   if (dto.isStyleEnabled) {
     const rels = await knex('studio_style_relations').where('studio_id', row.id).select('style_id');

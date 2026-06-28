@@ -46,11 +46,54 @@ const showPaymentModal = ref(false)
 const showDeclaration = ref(false)
 const declarationContent = ref('')
 
+// ── 人设图 / 参考动作 ──
+const charImgFiles = ref([])
+const charImgUrls = ref([])
+const charImgPreviews = ref([])
+const poseImgFiles = ref([])
+const poseImgUrls = ref([])
+const poseImgPreviews = ref([])
+
+// ── 地址 ──
+const address = ref('')
+const studioAddressRequired = ref(false)
+
+function onCharImgChange(e) {
+  const files = Array.from(e.target.files || [])
+  charImgFiles.value = files
+  charImgPreviews.value = files.map(f => URL.createObjectURL(f))
+}
+function onPoseImgChange(e) {
+  const files = Array.from(e.target.files || [])
+  poseImgFiles.value = files
+  poseImgPreviews.value = files.map(f => URL.createObjectURL(f))
+}
+
+async function uploadImages(files, folder) {
+  if (!files.length) return []
+  const form = new FormData()
+  files.forEach(f => form.append('files', f))
+  form.append('folder', folder)
+  const res = await fetch('/api/upload/images', {
+    method: 'POST',
+    headers: { 'x-device-id': DEVICE_ID.value },
+    body: form,
+  }).then(r => r.json())
+  return (res.data?.urls || res.urls || [])
+}
+
 onMounted(async () => {
   if (mId.value) {
     try {
       const res = await fetch(`/api/settings?mId=${mId.value}`).then(r => r.json())
       if (res.success || res.code === 0) merchantSettings.value = res.data || {}
+    } catch {}
+    // 获取项目的 addressRequired 开关
+    try {
+      const sRes = await fetch(`/api/studios-lite?mId=${mId.value}`).then(r => r.json())
+      const list = (sRes.data || sRes) || []
+      const found = list.find(s => String(s.id) === String(studioId.value))
+      if (found) studioAddressRequired.value = !!found.addressRequired
     } catch {}
   }
 })
@@ -91,6 +134,14 @@ async function confirmPaymentAndSubmit() {
   errorMsg.value = ''
 
   try {
+    // ★ 先上传人设图和参考动作（如果选了文件）
+    const [charUrls, poseUrls] = await Promise.all([
+      uploadImages(charImgFiles.value, 'char_images'),
+      uploadImages(poseImgFiles.value, 'pose_images'),
+    ])
+    charImgUrls.value = charUrls
+    poseImgUrls.value = poseUrls
+
     // 1. 创建订单 (V2 高精度)
     const payload = {
       mId: mId.value,
@@ -120,6 +171,9 @@ async function confirmPaymentAndSubmit() {
       depositAmount: depositAmount.value,
       depositRatio: wizardC.depositRatio || 30,
       userDeviceId: DEVICE_ID.value,
+      characterImages: charImgUrls.value,
+      poseImages: poseUrls.value,
+      address: address.value || null,
     }
 
     const createRes = await fetch('/api/create-order-v2', {
@@ -265,6 +319,33 @@ function goHome() { wizardC.resetAll(); router.push(`/studios?mId=${mId.value}`)
         <div class="input-row">
           <label>备注</label>
           <textarea v-model="contactNote" placeholder="其他需求（选填）" rows="2" class="input-field" style="width:100%;"></textarea>
+        </div>
+
+        <!-- ★ 人设图上传 -->
+        <div class="input-row">
+          <label>角色人设图</label>
+          <input type="file" accept="image/*" multiple @change="onCharImgChange" style="font-size:13px;" />
+          <div v-if="charImgPreviews.length" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+            <img v-for="(url,i) in charImgPreviews" :key="i" :src="url" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #E8E5DF;" />
+          </div>
+        </div>
+
+        <!-- ★ 参考动作上传 -->
+        <div class="input-row">
+          <label>参考动作</label>
+          <input type="file" accept="image/*" multiple @change="onPoseImgChange" style="font-size:13px;" />
+          <div v-if="poseImgPreviews.length" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+            <img v-for="(url,i) in poseImgPreviews" :key="i" :src="url" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #E8E5DF;" />
+          </div>
+        </div>
+
+        <!-- ★ 地址填写（仅当项目开启） -->
+        <div v-if="studioAddressRequired" class="input-row">
+          <label>拍摄地址</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input v-model="address" placeholder="请输入拍摄地址，如：杭州市西湖区xxx" class="input-field" style="flex:1;" />
+            <span v-if="address" style="font-size:12px;color:#5A8A6A;">✓ 已填写</span>
+          </div>
         </div>
       </div>
 

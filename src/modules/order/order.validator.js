@@ -113,9 +113,14 @@ const requestCancelSchema = Joi.object({
   userDeviceId: Joi.string().optional(),
 });
 
+const verifyAddressSchema = Joi.object({
+  orderNo: Joi.string().required().messages({ 'any.required': '缺少订单号' }),
+  valid: Joi.boolean().required().messages({ 'any.required': '缺少验证结果' }),
+});
+
 module.exports = {
   createOrderSchema, createOrderV2Schema,
   payDepositSchema, confirmLockSchema,
   updateStatusSchema, archiveOrderSchema,
-  statusTransitionSchema, requestRescheduleSchema, requestCancelSchema,
+  statusTransitionSchema, requestRescheduleSchema, requestCancelSchema, verifyAddressSchema,
 };

@@ -49,6 +49,9 @@ router.post('/order/reject-cancel',      auth, validate(require('./order.validat
 router.post('/order/request-reschedule', deviceId, validate(require('./order.validator').requestRescheduleSchema), ctrl.requestReschedule);
 router.post('/order/request-cancel',     deviceId, validate(require('./order.validator').requestCancelSchema),     ctrl.requestCancel);
 
+// 管理端：验证地址
+router.post('/order/verify-address', auth, validate(require('./order.validator').verifyAddressSchema), ctrl.verifyAddress);
+
 // 管理端：恢复已取消订单
 router.post('/order/restore', auth, validate(require('./order.validator').statusTransitionSchema), ctrl.restoreOrder);
 // 管理端：永久删除已取消订单

@@ -10,8 +10,11 @@ const packageItem = Joi.object({
 
 const additionalItem = Joi.object({
   name: Joi.string().min(1).max(64).required().messages({ 'any.required': '附加项目名称必填' }),
-  price: Joi.number().min(0).required().messages({ 'any.required': '附加项目价格必填' }),
+  price: Joi.number().min(0).default(0),
   unit: Joi.string().valid('per_time', 'per_session', 'per_photo', 'per_item').default('per_time'),
+  negotiable: Joi.boolean().default(false),
+  priceRangeMin: Joi.number().min(0).default(0),
+  priceRangeMax: Joi.number().min(0).default(0),
 });
 
 const createStyleSchema = Joi.object({

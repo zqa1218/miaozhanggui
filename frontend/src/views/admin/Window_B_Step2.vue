@@ -36,9 +36,7 @@ const DAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', 
 const restSlots = ref(
   store.restSlots.length > 0
     ? [...store.restSlots]
-    : [
-        { day_of_week: null, start_time: '12:00', end_time: '13:00', reason: '午休' },
-      ]
+    : []
 )
 
 function addRestSlot() {

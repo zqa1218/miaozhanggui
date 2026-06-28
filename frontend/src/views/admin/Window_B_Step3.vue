@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWizardBStore } from '@/stores/wizardB'
 import { styleApi } from '@/api/styleApi'
@@ -69,6 +69,9 @@ function toggleStyle(id) {
 }
 
 // ---- 原生定价 ----
+const merchantRole = ref(storage.get('mzg_admin_merchant_role', 'photographer'))
+const isMakeupArtist = computed(() => merchantRole.value === 'makeup_artist')
+
 const isExperienceEnabled = ref(store.isExperienceEnabled || false)
 const noviceSingleAddTime = ref(store.noviceSingleAddTime || 20)
 const hasPackage = ref(store.hasPackage || false)
@@ -80,6 +83,7 @@ const packageSessionCount = ref(store.packageSessionCount || 1)
 const singleShotTime  = ref(store.singleShotTime || 5)
 const packageTime     = ref(store.packageTime || 30)
 const depositRatio    = ref(store.depositRatio || 30)
+const addressRequired = ref(store.addressRequired || false)
 const extraItems      = ref([...store.extraItems])
 
 // pricingModel 变化时同步 hasPackage（仅单向：下拉→开关，不反向）
@@ -103,12 +107,12 @@ async function submitStudio() {
       return
     }
   } else {
-    const model = pricingModel.value
+    const model = isMakeupArtist.value ? 'single' : pricingModel.value
     if ((model === 'single' || model === 'both') && (!singlePrice.value || singlePrice.value <= 0)) {
-      errorMsg.value = '请填写有效的单张价格'
+      errorMsg.value = '请填写有效的单次价格'
       return
     }
-    if ((model === 'package' || model === 'both') && (!packagePrice.value || packagePrice.value <= 0)) {
+    if (!isMakeupArtist.value && (model === 'package' || model === 'both') && (!packagePrice.value || packagePrice.value <= 0)) {
       errorMsg.value = '请填写有效的套餐价格'
       return
     }
@@ -118,14 +122,15 @@ async function submitStudio() {
   store.selectedStyleIds  = [...selectedStyleIds.value]
   store.isExperienceEnabled = isExperienceEnabled.value
   store.noviceSingleAddTime = noviceSingleAddTime.value
-  store.hasPackage = hasPackage.value
-  store.pricingModel      = pricingModel.value
+  store.hasPackage = isMakeupArtist.value ? false : hasPackage.value
+  store.pricingModel      = isMakeupArtist.value ? 'single' : pricingModel.value
   store.singlePrice       = singlePrice.value
-  store.packagePrice      = packagePrice.value
-  store.packageSessionCount = packageSessionCount.value
+  store.packagePrice      = isMakeupArtist.value ? 0 : packagePrice.value
+  store.packageSessionCount = isMakeupArtist.value ? 1 : packageSessionCount.value
   store.singleShotTime    = singleShotTime.value
-  store.packageTime       = packageTime.value
+  store.packageTime       = isMakeupArtist.value ? undefined : packageTime.value
   store.depositRatio      = depositRatio.value
+  store.addressRequired   = addressRequired.value
   store.extraItems        = extraItems.value.filter(e => e.name.trim())
 
   submitting.value = true
@@ -147,13 +152,13 @@ function goBack() {
   store.selectedStyleIds  = [...selectedStyleIds.value]
   store.isExperienceEnabled = isExperienceEnabled.value
   store.noviceSingleAddTime = noviceSingleAddTime.value
-  store.hasPackage       = hasPackage.value
-  store.pricingModel     = pricingModel.value
+  store.hasPackage       = isMakeupArtist.value ? false : hasPackage.value
+  store.pricingModel     = isMakeupArtist.value ? 'single' : pricingModel.value
   store.singlePrice      = singlePrice.value
-  store.packagePrice     = packagePrice.value
-  store.packageSessionCount = packageSessionCount.value
+  store.packagePrice     = isMakeupArtist.value ? 0 : packagePrice.value
+  store.packageSessionCount = isMakeupArtist.value ? 1 : packageSessionCount.value
   store.singleShotTime   = singleShotTime.value
-  store.packageTime      = packageTime.value
+  store.packageTime      = isMakeupArtist.value ? 0 : packageTime.value
   store.depositRatio     = depositRatio.value
   store.extraItems       = extraItems.value.filter(e => e.name.trim())
   router.push('/admin/studio/create/step2')
@@ -201,29 +206,37 @@ function goBack() {
 
       <!-- 路径B: 原生定价 -->
       <template v-if="!isStyleEnabled">
-        <el-divider />
-        <el-form-item label="定价模式" required>
-          <el-select v-model="pricingModel" style="width:200px;">
-            <el-option label="仅单张" value="single" />
-            <el-option label="仅套餐" value="package" />
-            <el-option label="单张 + 套餐" value="both" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item v-if="pricingModel === 'single' || pricingModel === 'both'" label="单张价格 (元)" required>
-          <el-input-number v-model="singlePrice" :min="0" :precision="2" :step="0.01" />
-        </el-form-item>
-
-        <template v-if="pricingModel === 'package' || pricingModel === 'both'">
-          <el-form-item label="套餐价格 (元)" required>
-            <el-input-number v-model="packagePrice" :min="0" :precision="2" :step="0.01" />
-          </el-form-item>
-          <el-form-item label="套餐包含次数">
-            <el-input-number v-model="packageSessionCount" :min="1" />
+        <!-- 妆娘模式：不显示定价模式下拉、套餐价格/次数，仅保留单张价格 -->
+        <template v-if="isMakeupArtist">
+          <el-form-item label="单次价格 (元)" required>
+            <el-input-number v-model="singlePrice" :min="0" :precision="2" :step="0.01" />
           </el-form-item>
         </template>
+        <template v-else>
+          <el-divider />
+          <el-form-item label="定价模式" required>
+            <el-select v-model="pricingModel" style="width:200px;">
+              <el-option label="仅单张" value="single" />
+              <el-option label="仅套餐" value="package" />
+              <el-option label="单张 + 套餐" value="both" />
+            </el-select>
+          </el-form-item>
 
-        <!-- 附加项目（原生定价模式下可用） -->
+          <el-form-item v-if="pricingModel === 'single' || pricingModel === 'both'" label="单张价格 (元)" required>
+            <el-input-number v-model="singlePrice" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+
+          <template v-if="pricingModel === 'package' || pricingModel === 'both'">
+            <el-form-item label="套餐价格 (元)" required>
+              <el-input-number v-model="packagePrice" :min="0" :precision="2" :step="0.01" />
+            </el-form-item>
+            <el-form-item label="套餐包含次数">
+              <el-input-number v-model="packageSessionCount" :min="1" />
+            </el-form-item>
+          </template>
+        </template>
+
+        <!-- 附加项目（原生定价模式下可用）—— 三种角色均可使用 -->
         <template v-if="!isStyleEnabled">
           <el-divider />
           <ExtraItemsEditor v-model="extraItems" />
@@ -234,14 +247,14 @@ function goBack() {
     <!-- 卡片：耗时与加时 -->
     <el-card shadow="never" class="step-card">
       <template #header>
-        <span class="card-header-title">拍摄耗时与加时</span>
+        <span class="card-header-title">服务耗时与加时</span>
       </template>
 
-      <el-form-item label="单张耗时" required>
+      <el-form-item label="单次耗时" required>
         <el-input-number v-model="singleShotTime" :min="1" :max="480" />
         <span class="unit-suffix">分钟</span>
       </el-form-item>
-      <el-form-item v-if="hasPackage || pricingModel !== 'single'" label="套餐单次耗时">
+      <el-form-item v-if="!isMakeupArtist && (hasPackage || pricingModel !== 'single')" label="套餐单次耗时">
         <el-input-number v-model="packageTime" :min="1" :max="480" />
         <span class="unit-suffix">分钟</span>
       </el-form-item>
@@ -259,13 +272,14 @@ function goBack() {
       </template>
     </el-card>
 
-    <!-- 卡片：套餐与定金 -->
+    <!-- 卡片：套餐与定金 — 妆娘模式只显示定金比例 -->
     <el-card v-if="!isStyleEnabled" shadow="never" class="step-card">
       <template #header>
-        <span class="card-header-title">套餐与定金</span>
+        <span class="card-header-title">定金设置</span>
       </template>
 
-      <el-form-item label="提供套餐服务">
+      <!-- 摄影/棚主模式才显示套餐开关 -->
+      <el-form-item v-if="!isMakeupArtist" label="提供套餐服务">
         <el-switch v-model="hasPackage" />
       </el-form-item>
 
