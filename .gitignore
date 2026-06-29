@@ -68,3 +68,8 @@ localhost.sql
 *.tmp
 *.temp
 .cache/
+
+# ========== Ignore these three specific files ==========
+skills-lock.json
+need.txt
+frontend/前端文件结构图.txt
