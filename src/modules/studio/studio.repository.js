@@ -5,7 +5,53 @@ const TABLE = 'studios';
 function findAllByMerchant(mId, includeDeleted = false) {
   let query = knex(TABLE).where('m_id', mId);
   if (!includeDeleted) query = query.where('is_deleted', false);
-  return query.orderBy('created_at', 'desc');
+  return query
+    .orderByRaw('CASE WHEN sort_order IS NULL OR sort_order = 0 THEN 1 ELSE 0 END')
+    .orderBy('sort_order', 'asc')
+    .orderBy('id', 'desc');
+}
+
+function findByIds(ids) {
+  return knex(TABLE).whereIn('id', ids);
+}
+
+/** 批量更新项目排序，事务保证原子性 */
+async function batchUpdateSortOrder(orderedList) {
+  const trx = await knex.transaction();
+  try {
+    for (const item of orderedList) {
+      await trx(TABLE).where({ id: item.id }).update({ sort_order: item.sort_order, updated_at: knex.fn.now() });
+    }
+    await trx.commit();
+  } catch (error) {
+    await trx.rollback();
+    throw error;
+  }
+}
+
+/** 安全解析 JSON 字段 */
+function safeJsonParse(val, fallback) {
+  if (!val) return fallback;
+  if (typeof val === 'object') return val;
+  if (typeof val === 'string' && !val.startsWith('[') && !val.startsWith('{')) return fallback;
+  try { return JSON.parse(val); } catch { return fallback; }
+}
+
+/** 删除项目单张图片（封面或详情图） */
+async function removeStudioImage(studioId, imageUrl, imageType) {
+  const studio = await knex(TABLE).where({ id: studioId }).first();
+  if (!studio) return null;
+
+  if (imageType === 'cover') {
+    return knex(TABLE).where({ id: studioId }).update({ cover_url: null, updated_at: knex.fn.now() });
+  } else {
+    const detailImages = safeJsonParse(studio.detail_img_urls, []);
+    const updated = detailImages.filter(url => url !== imageUrl);
+    return knex(TABLE).where({ id: studioId }).update({
+      detail_img_urls: JSON.stringify(updated),
+      updated_at: knex.fn.now(),
+    });
+  }
 }
 
 function findById(id) {
@@ -86,9 +132,10 @@ function replaceRestSlots(trx, studioId, slots) {
 }
 
 module.exports = {
-  findAllByMerchant, findById, findByIdAndMerchant, findWithStyles,
+  findAllByMerchant, findById, findByIds, findByIdAndMerchant, findWithStyles,
   findAvailabilities, findRestSlots,
   create, update, softDelete,
   insertStyleRelations, deleteStyleRelations,
   replaceAvailabilities, replaceRestSlots,
+  batchUpdateSortOrder, removeStudioImage,
 };

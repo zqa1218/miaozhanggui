@@ -39,4 +39,14 @@ export const studioApi = {
   remove(id) {
     return http.post('/delete-studio', { id })
   },
+
+  /** 批量更新项目排序 */
+  updateOrder(orderedList) {
+    return http.post('/update-studio-order', { orderedList })
+  },
+
+  /** 删除项目单张图片 */
+  removeImage(studioId, imageUrl, imageType) {
+    return http.post(`/studio/${studioId}/remove-image`, { imageUrl, imageType })
+  },
 }

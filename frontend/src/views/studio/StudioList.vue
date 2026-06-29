@@ -1,14 +1,61 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useStudioStore } from '@/stores/studio'
 import { storage, getQueryParam } from '@/utils/storage'
+import { Rank } from '@element-plus/icons-vue'
+import { studioApi } from '@/api/studioApi'
+import { ElMessage } from 'element-plus'
+import SortableStudioList from '@/components/admin/SortableStudioList.vue'
 
 const router = useRouter()
 const route = useRoute()
 const store = useStudioStore()
 const isAdmin = ref(route.path.startsWith('/admin'))
 const mId = ref('')
+
+// ── 排序模式：构建排序列表（父组件显式传入子组件）──
+const sortModeList = ref([])
+
+function enterSortMode() {
+  // 兼容 is_deleted 字段缺失：如果对象上没有 is_deleted，视为未删除
+  const rawList = store.list.length > 0
+    ? store.list.slice()
+    : []
+  const filtered = rawList.filter(s => {
+    if ('is_deleted' in s) return !s.is_deleted
+    if ('deleted' in s) return !s.deleted
+    if ('status' in s && s.status === 'deleted') return false
+    return true
+  })
+  filtered.sort((a, b) => {
+    const aOrder = a.sort_order || 0
+    const bOrder = b.sort_order || 0
+    if (aOrder === 0 && bOrder === 0) return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+    if (aOrder === 0) return 1
+    if (bOrder === 0) return -1
+    return aOrder - bOrder
+  })
+  // 先填充数据再切模式，保证组件挂载时 list 非空
+  sortModeList.value = filtered.map(item => ({ ...item }))
+  // 用 nextTick 确保 sortModeList 已更新后再切换
+  nextTick(() => {
+    store.toggleSortMode()
+    nextTick(() => {
+      sortModeList.value = filtered.map(item => ({ ...item }))
+    })
+  })
+}
+
+function exitSortMode() {
+  store.cancelSort()
+  sortModeList.value = []
+}
+
+// 拖拽后回调：子组件通知新顺序
+function onSortListUpdate(newList) {
+  sortModeList.value = newList ? newList.slice() : []
+}
 
 onMounted(async () => {
   mId.value = getQueryParam('mId')
@@ -23,7 +70,6 @@ onMounted(async () => {
       store.fetchLiteList({ mId: mId.value })
     }
   } else if (!isAdmin.value) {
-    // ★ 无 mId → 自动获取第一个有项目的商家
     try {
       const res = await fetch('/api/merchants-public').then(r => r.json())
       const merchants = (res.data || res) || []
@@ -38,12 +84,18 @@ onMounted(async () => {
 
 function goCreate() { router.push('/admin/studio/create/step1') }
 function goEdit(id) { router.push(`/admin/studio/edit/${id}`) }
-function doDelete(studio) {
+
+async function doDelete(studio) {
   if (!confirm(`确定删除项目「${studio.title}」？`)) return
-  import('@/api/studioApi').then(({ studioApi }) => {
-    studioApi.remove(studio.id).then(() => { store.fetchList({ mId: mId.value }) })
-  })
+  try {
+    await studioApi.remove(studio.id)
+    ElMessage.success('项目已下架')
+    store.fetchList({ mId: mId.value })
+  } catch (e) {
+    ElMessage.error(e.message || '删除失败')
+  }
 }
+
 function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
 </script>
 
@@ -54,19 +106,48 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
       <button v-if="isAdmin" class="btn-back" @click="router.push('/admin/orders')">← 返回后台</button>
       <h1 class="page-title">{{ isAdmin ? '项目管理' : '可选项目' }}</h1>
       <button v-if="isAdmin" class="btn-add" @click="goCreate">+ 上架新项目</button>
+
+      <!-- 排序开关 — B端专属 -->
+      <div
+        v-if="isAdmin"
+        class="sort-toggle"
+        :class="{ 'is-active': store.isSortMode }"
+        @click="store.isSortMode ? exitSortMode() : enterSortMode()"
+        :title="store.list.length === 0 ? '暂无项目可排序' : '拖拽调整项目展示顺序'"
+      >
+        <el-icon :size="18" class="sort-icon"><Rank /></el-icon>
+        <span class="sort-label">排序</span>
+        <el-switch
+          :model-value="store.isSortMode"
+          :disabled="store.list.length === 0"
+          size="small"
+          class="sort-switch"
+        />
+      </div>
     </div>
+
+    <!-- ===== 排序模式（父组件显式传入列表数据）===== -->
+    <Transition name="mode-fade">
+      <SortableStudioList
+        v-if="isAdmin && store.isSortMode"
+        :list="sortModeList"
+        :key="'sort-' + sortModeList.length"
+        @cancel="exitSortMode"
+        @update:list="onSortListUpdate"
+      />
+    </Transition>
 
     <!-- 加载中 -->
     <div v-if="store.loading" class="empty-state">加载中...</div>
 
     <!-- 空列表 -->
-    <div v-else-if="!store.list.length" class="empty-state">
+    <div v-else-if="!store.list.length && !store.isSortMode" class="empty-state">
       <div class="empty-icon">📦</div>
       <p>{{ isAdmin ? '暂无项目，请点击上方按钮创建' : '暂无可选项目，请稍后再来～' }}</p>
     </div>
 
-    <!-- 宫格卡片 -->
-    <div v-else class="studio-grid fade-in-up">
+    <!-- ===== 正常模式（宫格卡片） ===== -->
+    <div v-else-if="!store.isSortMode" class="studio-grid fade-in-up">
       <div
         v-for="studio in store.list"
         :key="studio.id"
@@ -121,6 +202,7 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
 .top-bar {
   display: flex; align-items: center; gap: 16px;
   padding: 0 24px; margin-bottom: 28px;
+  flex-wrap: wrap;
 }
 .page-title { font-size: 22px; flex: 1; color: var(--text-primary, #4A4A4A); }
 .btn-back {
@@ -151,17 +233,14 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
   padding: 0 24px;
 }
 @media (max-width: 768px) {
-  .studio-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+  .studio-grid { grid-template-columns: 1fr; gap: 16px; }
 }
 
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text-sub, #8b8d91); }
 .empty-icon { font-size: 40px; opacity: .2; margin-bottom: 10px; }
 
 /* ═══════════════════════════════════════════
-   C端白卡 — 封面图宫格
+   C端白卡
    ═══════════════════════════════════════════ */
 .glass-card {
   background: var(--bg-card, #FFFFFF);
@@ -178,9 +257,6 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
 }
 .glass-card:active { transform: scale(0.98); }
 
-/* ═══════════════════════════════════════════
-   B端管理卡片
-   ═══════════════════════════════════════════ */
 .card-admin {
   background: var(--bg-card, #FFFFFF);
   border-radius: 24px; overflow: hidden;
@@ -194,9 +270,6 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
   transform: translateY(-4px) scale(1.01);
 }
 
-/* ═══════════════════════════════════════════
-   封面图
-   ═══════════════════════════════════════════ */
 .card-cover {
   position: relative;
   width: 100%;
@@ -211,9 +284,7 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
   object-fit: cover;
   transition: transform 0.5s cubic-bezier(0.25,0.8,0.25,1);
 }
-.glass-card:hover .cover-img {
-  transform: scale(1.08);
-}
+.glass-card:hover .cover-img { transform: scale(1.08); }
 .cover-ph {
   position: absolute; top: 0; left: 0;
   width: 100%; height: 100%;
@@ -226,14 +297,8 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
   padding: 4px 12px; border-radius: 20px;
   z-index: 2;
 }
-.cover-tag-style {
-  background: rgba(244,164,96,0.65);
-  color: #fff;
-}
+.cover-tag-style { background: rgba(244,164,96,0.65); color: #fff; }
 
-/* ═══════════════════════════════════════════
-   信息区
-   ═══════════════════════════════════════════ */
 .card-body {
   padding: 20px 20px 24px;
   display: flex; flex-direction: column; gap: 8px;
@@ -254,34 +319,16 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.card-meta {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  font-size: 12px; color: var(--text-sub, #8b8d91);
-}
-.meta-item {
-  display: inline-flex; align-items: center; gap: 4px;
-}
+.card-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--text-sub, #8b8d91); }
+.meta-item { display: inline-flex; align-items: center; gap: 4px; }
 
-/* chips */
-.card-chips {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  margin-top: auto; padding-top: 8px;
-}
-.chip {
-  font-size: 11px; padding: 3px 10px; border-radius: 20px;
-  font-weight: 600; white-space: nowrap;
-}
+.card-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 8px; }
+.chip { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
 .chip-price { background: rgba(244,164,96,0.12); color: #D4893E; }
 .chip-pkg   { background: rgba(169,193,217,0.14); color: #5A7A9A; }
 .chip-deposit { color: var(--text-sub, #8E8E8E); }
 
-/* ═══════════════════════════════════════════
-   底部按钮
-   ═══════════════════════════════════════════ */
-.card-footer {
-  padding: 10px 16px 14px;
-  display: flex; gap: 8px;
-}
+.card-footer { padding: 10px 16px 14px; display: flex; gap: 8px; }
 .btn-go {
   width: 100%;
   background: linear-gradient(135deg, #F4A460, #F7C57C);
@@ -309,4 +356,40 @@ function goDetail(id) { router.push('/studios/' + id + '?mId=' + mId.value) }
   transition: all 0.2s ease;
 }
 .btn-del:hover { background: #FDF2F2; }
+
+/* ═══════════════════════════════════════════
+   排序开关
+   ═══════════════════════════════════════════ */
+.sort-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+.sort-toggle:hover {
+  background: rgba(255,255,255,0.2);
+  border-color: rgba(255,255,255,0.35);
+}
+.sort-toggle.is-active {
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.35);
+  box-shadow: 0 0 16px rgba(99,102,241,0.15);
+}
+.sort-toggle .sort-icon { transition: transform 0.4s ease; color: #6366f1; }
+.sort-toggle.is-active .sort-icon { transform: rotate(180deg); }
+.sort-toggle .sort-label { font-size: 13px; font-weight: 600; color: var(--text-primary, #4A4A4A); }
+.sort-switch { pointer-events: none; }
+
+/* 模式过渡 */
+.mode-fade-enter-active,
+.mode-fade-leave-active { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+.mode-fade-enter-from { opacity: 0; transform: translateY(16px) scale(0.97); }
+.mode-fade-leave-to { opacity: 0; transform: translateY(-16px) scale(0.97); }
 </style>

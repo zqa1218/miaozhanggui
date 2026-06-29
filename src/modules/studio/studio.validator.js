@@ -137,4 +137,18 @@ const deleteStudioSchema = Joi.object({
   mId: Joi.string().optional(),
 });
 
-module.exports = { createStudioSchema, updateStudioSchema, deleteStudioSchema };
+const updateOrderSchema = Joi.object({
+  orderedList: Joi.array().items(
+    Joi.object({
+      id: Joi.number().integer().positive().required(),
+      sort_order: Joi.number().integer().min(-999999).max(999999).required(),
+    })
+  ).min(1).max(500).required().messages({ 'any.required': '排序列表必填' }),
+});
+
+const removeImageSchema = Joi.object({
+  imageUrl: Joi.string().required().messages({ 'any.required': '图片URL必填' }),
+  imageType: Joi.string().valid('cover', 'detail').required().messages({ 'any.required': '图片类型必填' }),
+});
+
+module.exports = { createStudioSchema, updateStudioSchema, deleteStudioSchema, updateOrderSchema, removeImageSchema };

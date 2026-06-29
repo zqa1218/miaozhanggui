@@ -2,11 +2,16 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { studioApi } from '@/api/studioApi'
 import { storage } from '@/utils/storage'
+import { ElMessage } from 'element-plus'
 
 export const useStudioStore = defineStore('studio', () => {
   const list = ref([])
   const current = ref(null)
   const loading = ref(false)
+
+  // ── 排序模式 ──
+  const isSortMode = ref(false)
+  const isSavingOrder = ref(false)
 
   function mId() {
     return storage.get('mzg_admin_mid', '')
@@ -73,5 +78,66 @@ export const useStudioStore = defineStore('studio', () => {
     list.value = list.value.filter(s => s.id !== id)
   }
 
-  return { list, current, loading, fetchList, fetchLiteList, fetchFullList, fetchDetail, remove }
+  // ── 排序模式 actions ──
+
+  /**
+   * 切换排序模式（只做开关，数据由父组件显式传 prop 给 SortableStudioList）
+   */
+  function toggleSortMode() {
+    if (isSortMode.value) {
+      isSortMode.value = false
+      return
+    }
+    isSortMode.value = true
+  }
+
+  /**
+   * 保存排序（由 SortableStudioList 组装好 orderedList 后调用）
+   */
+  async function saveOrderWithList(orderedList) {
+    if (!orderedList || orderedList.length === 0) {
+      ElMessage.warning('没有可保存的项目排序')
+      return
+    }
+
+    isSavingOrder.value = true
+    try {
+      await studioApi.updateOrder(orderedList)
+
+      // 回写排序值到原列表
+      list.value.forEach(studio => {
+        const updated = orderedList.find(o => o.id === studio.id)
+        if (updated) studio.sort_order = updated.sort_order
+      })
+
+      // 重排 list.value
+      list.value.sort((a, b) => {
+        const aOrder = a.sort_order || 0
+        const bOrder = b.sort_order || 0
+        if (aOrder === 0 && bOrder === 0) return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+        if (aOrder === 0) return 1
+        if (bOrder === 0) return -1
+        return aOrder - bOrder
+      })
+
+      ElMessage.success(`排序已保存，${orderedList.length} 个项目已更新，C端同步生效`)
+      isSortMode.value = false
+    } catch (err) {
+      ElMessage.error('排序保存失败，请重试')
+      throw err
+    } finally {
+      isSavingOrder.value = false
+    }
+  }
+
+  function cancelSort() {
+    isSortMode.value = false
+  }
+
+  return {
+    list, current, loading,
+    isSortMode, isSavingOrder,
+    fetchList, fetchLiteList, fetchFullList, fetchDetail, remove,
+    toggleSortMode, saveOrderWithList, cancelSort,
+  }
 })

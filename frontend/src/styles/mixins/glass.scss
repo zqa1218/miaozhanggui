@@ -1,0 +1,63 @@
+// ============================================================
+// 液态玻璃风格核心参数与 Mixins
+// 全局引入，各组件可直接使用 CSS 变量
+// ============================================================
+
+// ── 设计令牌 (CSS 变量注入) ──
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.12);
+  --glass-bg-hover: rgba(255, 255, 255, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-border-active: rgba(99, 102, 241, 0.4);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+  --glass-shadow-hover: 0 12px 40px rgba(31, 38, 135, 0.25);
+  --glass-blur: 12px;
+  --glass-radius: 16px;
+  --glass-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// ── Mixins ──
+@mixin glass-card($opacity: 0.12) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow);
+}
+
+@mixin glass-hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--glass-shadow-hover);
+  transform: translateY(-2px);
+}
+
+@mixin glass-btn {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  transition: all var(--glass-transition);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+@mixin glass-pill {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  padding: 6px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -1,6 +1,8 @@
+const path = require('path');
 const ERROR_CODES = require('../../shared/errors/errorCodes');
 const AppError = require('../../shared/errors/AppError');
 const knex = require('../../shared/database/knex');
+const storage = require('../../shared/storage');
 const repo = require('./studio.repository');
 const styleRepo = require('../style/style.repository');
 
@@ -54,6 +56,9 @@ function mapToLiteDTOFromCache(row, cache) {
   const dto = {
     id: row.id, title: row.title, description: row.description, coverUrl: row.cover_url, city: row.city,
     isStyleEnabled: row.is_style_enabled, isAllTimeOpen: row.is_all_time_open,
+    is_deleted: !!row.is_deleted,
+    sort_order: row.sort_order || 0,
+    created_at: row.created_at,
     addressRequired: row.address_required || false,
     singlePrice: row.single_price, hasPackage: row.has_package, packagePrice: row.package_price,
     baseStartTime: fmtTime(row.base_start_time), baseEndTime: fmtTime(row.base_end_time),
@@ -270,6 +275,30 @@ async function remove(id, mId) {
   return { success: true };
 }
 
+/** 更新项目排序 */
+async function updateStudioOrder(mId, orderedList) {
+  const studioIds = orderedList.map(item => item.id);
+  const studios = await repo.findByIds(studioIds);
+
+  const unauthorized = studios.find(s => s.m_id !== mId);
+  if (unauthorized) throw new AppError(ERROR_CODES.UNAUTHORIZED, 403);
+
+  await repo.batchUpdateSortOrder(orderedList);
+  return { reordered: orderedList.length };
+}
+
+/** 删除项目图片 */
+async function removeStudioImage(mId, studioId, imageUrl, imageType) {
+  const studio = await repo.findById(studioId);
+  if (!studio || studio.m_id !== mId) throw new AppError(ERROR_CODES.UNAUTHORIZED, 403);
+
+  const filename = path.basename(imageUrl);
+  const subDir = imageType === 'cover' ? 'covers' : 'details';
+  storage.deleteFile(`/uploads/${subDir}/${filename}`);
+
+  await repo.removeStudioImage(studioId, imageUrl, imageType);
+}
+
 // ─── DTO 映射 ───
 
 async function mapToLiteDTO(row) {
@@ -281,6 +310,9 @@ async function mapToLiteDTO(row) {
     city: row.city,
     isStyleEnabled: row.is_style_enabled,
     isAllTimeOpen: row.is_all_time_open,
+    is_deleted: !!row.is_deleted,
+    sort_order: row.sort_order || 0,
+    created_at: row.created_at,
     addressRequired: row.address_required || false,
     singlePrice: row.single_price,
     hasPackage: row.has_package,
@@ -404,4 +436,4 @@ function fmtTime(v) {
   return v;
 }
 
-module.exports = { getLiteList, getFullList, create, update, remove };
+module.exports = { getLiteList, getFullList, create, update, remove, updateStudioOrder, removeStudioImage };

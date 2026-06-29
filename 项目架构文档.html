@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>喵掌柜系统 - 项目架构文档</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #F9F8F6; color: #333; line-height: 1.7; padding: 0; }
+  .toc { position: fixed; left: 0; top: 0; width: 260px; height: 100vh; background: #fff; border-right: 1px solid #E8E5DF; padding: 24px 16px; overflow-y: auto; font-size: 13px; z-index: 10; }
+  .toc h3 { font-size: 14px; color: #D4893E; margin-bottom: 12px; }
+  .toc a { display: block; padding: 4px 8px; color: #555; text-decoration: none; border-radius: 6px; transition: all 0.15s; }
+  .toc a:hover { background: #FEF7EF; color: #D4893E; }
+  .toc .l2 { padding-left: 18px; font-size: 12px; }
+  .main { margin-left: 280px; padding: 32px 48px; max-width: 1050px; }
+  h1 { font-size: 28px; font-weight: 800; color: #4A4A4A; margin-bottom: 8px; }
+  h1 small { font-size: 14px; font-weight: 400; color: #8E8E8E; display: block; margin-top: 4px; }
+  h2 { font-size: 20px; font-weight: 700; color: #4A4A4A; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 2px solid #F0EDE8; }
+  h3 { font-size: 15px; font-weight: 700; color: #5A5A5A; margin: 20px 0 10px; }
+  p { font-size: 14px; color: #555; margin-bottom: 10px; }
+  .card { background: #fff; border-radius: 14px; padding: 20px; margin-bottom: 16px; border: 1px solid #F0EDE8; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #D4893E; margin-bottom: 8px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+  .badge-api { background: #EDF6F0; color: #5A8A6A; }
+  .badge-page { background: #FEF7EF; color: #D4893E; }
+  .badge-store { background: #F0EFF5; color: #7A6E9A; }
+  .badge-mid { background: #E8F0F5; color: #5A7A9A; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #F0EDE8; }
+  th { font-weight: 700; color: #8E8E8E; font-size: 11px; text-transform: uppercase; }
+  td { color: #555; }
+  code { background: #F4F2EE; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', 'Consolas', monospace; color: #D4893E; }
+  .diagram { background: #FAFAFA; border-radius: 12px; padding: 20px; margin: 14px 0; overflow-x: auto; font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; line-height: 1.8; white-space: pre; color: #555; }
+  ul { margin: 6px 0 12px 18px; font-size: 13px; color: #555; }
+  li { margin-bottom: 3px; }
+  .highlight { background: #FEF7EF; border-left: 3px solid #D4893E; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 10px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<nav class="toc">
+  <h3>项目架构文档</h3>
+  <a href="#overview">概览</a>
+  <a href="#tech" class="l2">技术栈</a>
+  <a href="#structure" class="l2">目录结构</a>
+  <a href="#backend">后端架构</a>
+  <a href="#backend-modules" class="l2">模块列表</a>
+  <a href="#backend-flow" class="l2">请求流程</a>
+  <a href="#backend-db" class="l2">数据库设计</a>
+  <a href="#backend-shared" class="l2">共享基础设施</a>
+  <a href="#frontend">前端架构</a>
+  <a href="#frontend-routes" class="l2">路由设计</a>
+  <a href="#frontend-stores" class="l2">状态管理</a>
+  <a href="#frontend-api" class="l2">API 层</a>
+  <a href="#frontend-pages" class="l2">页面清单</a>
+  <a href="#frontend-components" class="l2">组件清单</a>
+  <a href="#dataflow">核心数据流</a>
+  <a href="#deploy">部署运维</a>
+  <a href="#roadmap">后续规划</a>
+</nav>
+
+<main>
+
+<h1>喵掌柜自助下单系统<small>面向摄影/妆娘/棚主的预约接单平台 · v1.0</small></h1>
+
+<!-- ═══════════════════════════════════════ -->
+<h2 id="overview">一、系统概览</h2>
+
+<p>喵掌柜是一套面向小型摄影/妆娘/棚主的多角色预约接单平台。商家（摄影师、妆娘、棚主）通过 B端管理后台创建项目、配置时间轴与定价，客户通过 C端浏览项目、选择服务时段并支付定金完成预约。</p>
+
+<div class="highlight">
+  <strong>核心能力：</strong> 项目上架 → 时间轴配置 → 客户预约 → 定金锁定 → 商家确认 → 服务完成 → 尾款结清
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<h2 id="tech">二、技术栈</h2>
+
+<table>
+  <tr><th>层</th><th>技术</th><th>版本</th></tr>
+  <tr><td>后端运行时</td><td>Node.js</td><td>≥18</td></tr>
+  <tr><td>后端框架</td><td>Express</td><td>4.21</td></tr>
+  <tr><td>数据库</td><td>MySQL (mysql2)</td><td>3.11</td></tr>
+  <tr><td>缓存 / 锁</td><td>Redis (ioredis)</td><td>5.4</td></tr>
+  <tr><td>认证</td><td>JWT (jsonwebtoken)</td><td>9.0</td></tr>
+  <tr><td>密码加密</td><td>bcryptjs</td><td>2.4</td></tr>
+  <tr><td>参数校验</td><td>Joi</td><td>17.13</td></tr>
+  <tr><td>ORM / 迁移</td><td>Knex</td><td>3.1</td></tr>
+  <tr><td>文件上传</td><td>Multer + Sharp</td><td>1.4 / 0.33</td></tr>
+  <tr><td>实时推送</td><td>WebSocket (ws)</td><td>8.18</td></tr>
+  <tr><td>日志</td><td>Winston + Morgan</td><td>3.14 / 1.10</td></tr>
+  <tr><td>前端框架</td><td>Vue 3 (Composition API)</td><td>3.4</td></tr>
+  <tr><td>前端构建</td><td>Vite</td><td>5.2</td></tr>
+  <tr><td>UI 组件库</td><td>Element Plus</td><td>2.14</td></tr>
+  <tr><td>状态管理</td><td>Pinia</td><td>2.1</td></tr>
+  <tr><td>路由</td><td>Vue Router 4</td><td>4.3</td></tr>
+  <tr><td>CSS 预处理</td><td>Sass (Dart Sass)</td><td>1.100</td></tr>
+  <tr><td>进程管理</td><td>PM2 (Cluster)</td><td>-</td></tr>
+  <tr><td>容器化</td><td>Docker Compose</td><td>-</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════ -->
+<h2 id="structure">三、目录结构</h2>
+
+<div class="diagram">
+miaozhanggui/
+├── package.json              # 后端项目配置
+├── knexfile.js               # 数据库连接配置
+├── ecosystem.config.js       # PM2 集群配置
+├── deploy.sh                 # 一键部署脚本
+├── .env.example              # 环境变量模板
+├── .env                      # 环境变量（已 gitignore）
+│
+├── src/                      # 【后端源码】
+│   ├── server.js             #   Express 入口：中间件注册 → 路由挂载 → 启动
+│   ├── app.js                #   Express app 工厂
+│   ├── routes/index.js       #   总路由聚合
+│   ├── config/               #   配置模块
+│   │   ├── index.js          #     环境变量 + 全局配置
+│   │   └── constants.js      #     业务常量
+│   ├── middlewares/          #   中间件
+│   │   ├── auth.js           #     B端 JWT 鉴权
+│   │   ├── clientAuth.js     #     C端 JWT 鉴权
+│   │   ├── optionalClientAuth.js  # 可选客户端鉴权
+│   │   ├── deviceId.js       #     设备 ID 提取
+│   │   ├── validator.js      #     Joi 校验包装器
+│   │   ├── rateLimiter.js    #     限流
+│   │   └── errorHandler.js   #     全局错误处理
+│   ├── modules/              #   业务模块（按领域拆分）
+│   │   ├── admin/            #     超管模块
+│   │   ├── merchant/         #     商家认证
+│   │   ├── client-auth/      #     客户端注册登录
+│   │   ├── studio/           #     项目管理 ★
+│   │   ├── order/            #     订单管理 ★
+│   │   ├── schedule/         #     排期管理
+│   │   ├── style/            #     预设样式
+│   │   ├── settings/         #     商家设置
+│   │   ├── notification/     #     通知推送
+│   │   ├── log/              #     操作日志
+│   │   ├── upload/           #     文件上传
+│   │   ├── refund/           #     退款
+│   │   └── reschedule/       #     改期
+│   └── shared/               #   跨模块共享
+│       ├── database/knex.js  #     Knex 实例
+│       ├── redis/client.js   #     Redis 客户端
+│       ├── errors/           #     错误定义
+│       ├── logger/           #     Winston 日志
+│       ├── storage/          #     文件存储抽象
+│       ├── utils/            #     工具函数
+│       └── websocket/        #     WebSocket 服务
+│
+├── database/migrations/      # Knex 迁移脚本 (038.js)
+├── frontend/                 # 【前端源码】
+│   ├── package.json          #   前端项目配置
+│   ├── vite.config.js        #   Vite 构建配置
+│   ├── index.html            #   入口 HTML
+│   └── src/
+│       ├── main.js           #   Vue 应用入口
+│       ├── App.vue           #   根组件
+│       ├── router/           #   路由配置
+│       ├── stores/           #   Pinia 状态管理
+│       ├── api/              #   HTTP API 封装
+│       ├── views/            #   页面组件
+│       ├── components/       #   可复用组件
+│       ├── layouts/          #   布局组件
+│       ├── composables/      #   组合式函数
+│       └── utils/            #   工具函数
+│
+├── 运行环境/                  # Docker Compose (MySQL + Redis)
+└── uploads/                  # 用户上传文件存储
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<h2 id="backend">四、后端架构</h2>
+
+<h3 id="backend-modules">4.1 模块列表</h3>
+
+<table>
+  <tr><th>Module</th><th>职责</th><th>核心 API</th></tr>
+  <tr><td><code>studio</code></td><td>项目 CRUD、批量带样式 DTO</td><td><span class="badge badge-api">GET</span> /studios-lite <span class="badge badge-api">POST</span> /add-studio /edit-studio /delete-studio</td></tr>
+  <tr><td><code>order</code></td><td>下单、支付定金/尾款、双锁机制、地址验证</td><td><span class="badge badge-api">POST</span> /create-order-v2 /pay-deposit <span class="badge badge-api">GET</span> /booked-times-v2 /my-orders</td></tr>
+  <tr><td><code>merchant</code></td><td>商家注册(邀请码)、登录、JWT、公开列表</td><td><span class="badge badge-api">POST</span> /register /login <span class="badge badge-api">GET</span> /merchants-public</td></tr>
+  <tr><td><code>client-auth</code></td><td>C端用户登录注册</td><td><span class="badge badge-api">POST</span> /client/register /client/login</td></tr>
+  <tr><td><code>schedule</code></td><td>排期管理（日历视图、Batch 写入）</td><td><span class="badge badge-api">POST</span> /schedule/batch <span class="badge badge-api">GET</span> /booked-slots</td></tr>
+  <tr><td><code>style</code></td><td>预设样式 + 套餐 + 附加项目</td><td><span class="badge badge-api">POST</span> /add-style /edit-style /delete-style</td></tr>
+  <tr><td><code>settings</code></td><td>商家设置（公告、收款码、声明）</td><td><span class="badge badge-api">GET</span> /settings <span class="badge badge-api">POST</span> /save-settings</td></tr>
+  <tr><td><code>upload</code></td><td>图片/文件上传</td><td><span class="badge badge-api">POST</span> /upload/image /upload/images</td></tr>
+  <tr><td><code>notification</code></td><td>站内通知</td><td><span class="badge badge-api">GET</span> /notifications</td></tr>
+  <tr><td><code>log</code></td><td>操作日志</td><td><span class="badge badge-api">GET</span> /logs</td></tr>
+  <tr><td><code>refund</code></td><td>退款流程</td><td><span class="badge badge-api">POST</span> /refund/request /refund/approve</td></tr>
+  <tr><td><code>reschedule</code></td><td>改期流程</td><td><span class="badge badge-api">POST</span> /reschedule/request /reschedule/approve</td></tr>
+  <tr><td><code>admin</code></td><td>超管功能（邀请码生成）</td><td><span class="badge badge-api">POST</span> /admin/generate-code</td></tr>
+</table>
+
+<h3 id="backend-flow">4.2 请求处理流程</h3>
+
+<div class="diagram">
+HTTP Request
+  │
+  ├── Middleware Chain ──────────────────
+  │   helmet() → cors() → morgan() → rateLimiter → deviceId
+  │   → auth/optionalClientAuth → validator(Joi) ──
+  │
+  ▼
+Controller  ←  解析 req.query / req.body / req.user
+  │
+  ▼
+Service     ←  业务逻辑 + 事务编排 + DTO 映射
+  │
+  ▼
+Repository  ←  knex SQL 查询
+  │
+  ▼
+MySQL / Redis
+</div>
+
+<p>每个模块遵循 <code>routes → controller → service → repository</code> 分层，其中：</p>
+<ul>
+  <li><strong>Routes：</strong> 定义 HTTP 方法、路径、中间件链</li>
+  <li><strong>Controller：</strong> 解析请求、调用 service、通过 <code>res.rh</code> 统一响应</li>
+  <li><strong>Service：</strong> 核心业务逻辑、事务编排、权限校验</li>
+  <li><strong>Repository：</strong> 纯 SQL 查询封装，不包含业务逻辑</li>
+  <li><strong>Validator：</strong> Joi schema 定义，在路由层通过中间件执行</li>
+</ul>
+
+<h3 id="backend-db">4.3 数据库核心表</h3>
+
+<table>
+  <tr><th>表</th><th>描述</th><th>迁移编号</th></tr>
+  <tr><td><code>merchants</code></td><td>商家账户：m_id, username, password_hash, merchant_role, invitation_code 等</td><td>-</td></tr>
+  <tr><td><code>studios</code></td><td>项目：title, cover_url, pricing, time_config, extra_items, is_all_time_open, address_required</td><td>001,017,037,038</td></tr>
+  <tr><td><code>orders</code></td><td>订单：order_no, studio_id, booking_time, role_name, contact, address, payment_status, service_status</td><td>003,020,026,030,032</td></tr>
+  <tr><td><code>slot_bookings</code></td><td>时段锁定：studio_id, date, start_time, end_time, lock_type(pre/hard)</td><td>004,019</td></tr>
+  <tr><td><code>styles</code></td><td>预设样式</td><td>017</td></tr>
+  <tr><td><code>style_packages</code></td><td>样式套餐</td><td>024</td></tr>
+  <tr><td><code>style_additional_items</code></td><td>样式附加项目</td><td>029</td></tr>
+  <tr><td><code>studio_style_relations</code></td><td>项目↔样式关联</td><td>018</td></tr>
+  <tr><td><code>studio_availabilities</code></td><td>项目可选日期</td><td>018</td></tr>
+  <tr><td><code>studio_rest_slots</code></td><td>项目休息时段</td><td>018</td></tr>
+  <tr><td><code>users</code></td><td>C端用户</td><td>033</td></tr>
+  <tr><td><code>invitation_codes</code></td><td>邀请码</td><td>034</td></tr>
+  <tr><td><code>notifications</code></td><td>通知</td><td>008</td></tr>
+  <tr><td><code>operation_logs</code></td><td>操作日志</td><td>007</td></tr>
+  <tr><td><code>schedule_excel_imports</code></td><td>排期导入记录</td><td>011</td></tr>
+</table>
+
+<h3 id="backend-shared">4.4 共享基础设施</h3>
+
+<div class="card">
+  <h4>统一响应格式 (res.rh)</h4>
+  <p><code>res.rh.success(data, msg)</code> → <code>{ success: true, code: 0, data, message }</code></p>
+  <p><code>res.rh.fail(msg, status)</code> → <code>{ success: false, code: 1, message }</code></p>
+  <p><code>res.rh.error(msg)</code> → <code>{ success: false, code: 1, message }</code> + 500</p>
+</div>
+
+<div class="card">
+  <h4>错误体系 (AppError + errorCodes)</h4>
+  <p>所有业务异常抛出 <code>new AppError(ERROR_CODES.STUDIO_NOT_FOUND, 404)</code>，由 errorHandler 中间件统一捕获。分为 <code>isOperational=true</code>（预期内）和 unexpected 两种。</p>
+</div>
+
+<div class="card">
+  <h4>WebSocket 实时通知</h4>
+  <p>订单创建后，通过 WebSocket 向对应 m_id 的商家推送通知，B端实时感知新订单。</p>
+</div>
+
+<div class="card">
+  <h4>双锁时段机制</h4>
+  <p><strong>pre_lock</strong>（第一重）：客户支付定金后自动创建，标记该时段不可被其他客户预约。<br>
+  <strong>hard_lock</strong>（第二重）：商家确认收款后升级，正式排入工作日历。</p>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<h2 id="frontend">五、前端架构</h2>
+
+<h3 id="frontend-routes">5.1 路由设计</h3>
+
+<table>
+  <tr><th>路径</th><th>名称</th><th>组件</th><th>说明</th></tr>
+  <tr><td><code>/</code></td><td colspan="3">redirect → /studios</td></tr>
+  <tr><td><code>/studios</code></td><td><span class="badge badge-page">C端</span></td><td>studio/StudioList.vue</td><td>项目列表（C端/B端共用）</td></tr>
+  <tr><td><code>/studios/:id</code></td><td><span class="badge badge-page">C端</span></td><td>studio/StudioDetail.vue</td><td>项目详情</td></tr>
+  <tr><td><code>/booking/:studioId</code></td><td><span class="badge badge-page">C端</span></td><td>client/Window_C_Step1.vue</td><td>预约步骤1：选时间/套餐</td></tr>
+  <tr><td><code>/booking/:studioId/step2</code></td><td><span class="badge badge-page">C端</span></td><td>client/Window_C_Step2.vue</td><td>预约步骤2：填信息/支付</td></tr>
+  <tr><td><code>/my-orders</code></td><td><span class="badge badge-page">C端</span></td><td>client/MyOrdersView.vue</td><td>我的订单</td></tr>
+  <tr><td><code>/my-orders/:id</code></td><td><span class="badge badge-page">C端</span></td><td>client/OrderDetailView.vue</td><td>订单详情</td></tr>
+  <tr><td><code>/login</code></td><td><span class="badge badge-page">C端</span></td><td>client/LoginView.vue</td><td>客户端登录</td></tr>
+  <tr><td colspan="5" style="border-bottom:2px solid #D4893E;"></td></tr>
+  <tr><td><code>/admin/login</code></td><td><span class="badge badge-mid">B端</span></td><td>admin/LoginView.vue</td><td>管理端登录</td></tr>
+  <tr><td><code>/admin/orders</code></td><td><span class="badge badge-mid">B端</span></td><td>admin/OrderManagement.vue</td><td>订单管理 ★</td></tr>
+  <tr><td><code>/admin/studios</code></td><td><span class="badge badge-mid">B端</span></td><td>studio/StudioList.vue</td><td>项目管理</td></tr>
+  <tr><td><code>/admin/studio/create/step1~3</code></td><td><span class="badge badge-mid">B端</span></td><td>admin/Window_B_Step*.vue</td><td>创建项目向导</td></tr>
+  <tr><td><code>/admin/studio/edit/:id</code></td><td><span class="badge badge-mid">B端</span></td><td>admin/EditStudio.vue</td><td>编辑项目</td></tr>
+  <tr><td><code>/admin/styles</code></td><td><span class="badge badge-mid">B端</span></td><td>admin/StylesView.vue</td><td>预设管理</td></tr>
+  <tr><td><code>/admin/settings</code></td><td><span class="badge badge-mid">B端</span></td><td>admin/SettingsView.vue</td><td>商家设置</td></tr>
+</table>
+
+<h3 id="frontend-stores">5.2 状态管理 (Pinia Stores)</h3>
+
+<table>
+  <tr><th>Store</th><th>用途</th><th>关键状态</th></tr>
+  <tr><td><span class="badge badge-store">studio</span></td><td>项目数据</td><td>list, current, fetchLiteList, fetchFullList</td></tr>
+  <tr><td><span class="badge badge-store">order</span></td><td>订单数据</td><td>orders, myOrders, fetchOrders, fetchMyOrders</td></tr>
+  <tr><td><span class="badge badge-store">wizardC</span></td><td>C端下单向导</td><td>bookingDate, startTime, computedPrice, selectedStyleId, selectedExtraItems</td></tr>
+  <tr><td><span class="badge badge-store">wizardB</span></td><td>B端创建向导</td><td>多步表单数据</td></tr>
+  <tr><td><span class="badge badge-store">studioCreate</span></td><td>项目创建多步表单</td><td>step1/2/3 reactive objects</td></tr>
+  <tr><td><span class="badge badge-store">booking</span></td><td>预约流程（内嵌版）</td><td>studio, optType, photoCount, currentStep, checkCollision</td></tr>
+  <tr><td><span class="badge badge-store">settings</span></td><td>商家设置</td><td>announcement, paymentQrCode, declarationEnabled</td></tr>
+  <tr><td><span class="badge badge-store">auth / clientAuth</span></td><td>认证令牌</td><td>token, isLoggedIn</td></tr>
+  <tr><td><span class="badge badge-store">style</span></td><td>预设样式</td><td>list, fetchList</td></tr>
+  <tr><td><span class="badge badge-store">theme</span></td><td>多角色主题</td><td>theme colors</td></tr>
+</table>
+
+<h3 id="frontend-api">5.3 API 层</h3>
+
+<p><code>utils/http.js</code> 是统一的 HTTP 适配器，基于 <code>fetch</code>，支持自动拼接 Authorization header、统一 401 处理、超时控制。</p>
+<p>所有 API 调用集中在 <code>api/</code> 目录下按领域拆分，组件禁止直接调用 fetch。</p>
+
+<h3 id="frontend-pages">5.4 页面清单</h3>
+
+<div class="diagram">
+【C端用户流】
+  /studios         →  浏览项目列表（宫格卡片）
+  /studios/:id     →  项目详情（封面、价格、人设图）
+  /booking/:id     →  选择样式/套餐 → 选日期 → 选时间 → 填充附加项
+  /booking/:id/step2 → 填角色名/联系方式 → 上传人设图/动作参考 → 填地址 → 支付定金
+  /my-orders       →  订单列表（待付/已确认/已完成/已取消）
+
+【B端管理流】
+  /admin/login     →  登录
+  /admin/orders    →  订单管理（分组表格、状态流转、地址导航、人设图查看）
+  /admin/studios   →  项目管理
+  /admin/studio/create/step1~3 → 三步创建向导
+  /admin/studio/edit/:id → 编辑项目（所有配置项）
+  /admin/styles    →  预设管理
+  /admin/settings  →  收款码、公告、免声明
+</div>
+
+<h3 id="frontend-components">5.5 组件清单</h3>
+
+<table>
+  <tr><th>目录</th><th>组件</th><th>说明</th></tr>
+  <tr><td>shared</td><td><code>DeclarationDialog.vue</code></td><td>免责声明弹窗</td></tr>
+  <tr><td>shared</td><td><code>ExtraItemsEditor.vue</code></td><td>附加项目编辑器（名称/价格/单位/面议）</td></tr>
+  <tr><td>shared</td><td><code>OpenDateSelector.vue</code></td><td>开放日期选择器（全时段 vs 指定日期）</td></tr>
+  <tr><td>shared</td><td><code>RefreshButton.vue</code></td><td>刷新按钮（带冷却）</td></tr>
+  <tr><td>shared</td><td><code>StepIndicator.vue</code></td><td>步骤指示器</td></tr>
+  <tr><td>client</td><td><code>CalendarPicker.vue</code></td><td>客户端日历选择器</td></tr>
+  <tr><td>client</td><td><code>FlexibleTimelinePicker.vue</code></td><td>灵活时间轴选择器</td></tr>
+  <tr><td>admin</td><td><code>AdminHeader.vue</code></td><td>管理端顶部导航</td></tr>
+  <tr><td>admin</td><td><code>CalendarGrid.vue</code></td><td>管理端日历甘特图</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════ -->
+<h2 id="dataflow">六、核心数据流</h2>
+
+<h3>6.1 预约下单完整链路</h3>
+
+<div class="diagram">
+┌─────────────┐    GET /studios-lite     ┌──────────┐
+│  C端浏览器    │ ──────────────────────→ │  Express   │
+│  Window_C_   │ ←──── JSON (studio[]) ── │  API       │
+│  Step1.vue   │                          │            │
+└──────┬───────┘                          └──────────┘
+       │ 用户选择 样式/套餐/日期/时间
+       │ wizardC.setStep1(...)
+       ▼
+┌─────────────┐    POST /create-order-v2 ┌──────────┐
+│  Window_C_   │ ──────────────────────→ │  order     │
+│  Step2.vue   │ ←── { orderNo } ─────── │  service   │
+│              │                          │            │
+│ 上传人设图    │  POST /pay-deposit       │ 1. 时间冲突│
+│ 上传动作参考  │ ──────────────────────→ │ 2. INSERT  │
+│ 填写地址      │ ←── pre_lock 成功 ────── │ 3. WS 通知 │
+└──────────────┘                          └──────────┘
+                                               │
+       ┌───────────────────────────────────────┘
+       │ WebSocket: "新订单通知"
+       ▼
+┌─────────────┐    POST /order/confirm-deposit
+│  B端 订单管理 │    POST /order/verify-address
+│  OrderMgt    │    POST /order/confirm-completed
+│  .vue        │    POST /order/mark-fulfilled
+│              │
+│ 点击导航→高德  │
+└──────────────┘
+</div>
+
+<h3>6.2 订单状态机</h3>
+
+<div class="diagram">
+  客户下单 ──→ 待支付(定金待确认)
+                │
+    商家确认 ←──┘ ──→ 已付定金 ──→ 已确认锁定
+                │        │
+                │  服务完成 ↓
+                │        │
+                │  尾款待确认 ──→ 已结清 ──→ 已完成拍摄
+                │
+  申请取消/改期 ←── 任意未完成状态
+                │
+     商家审批 ←──┘ ──→ 已取消 / 已退款取消
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<h2 id="deploy">七、部署运维</h2>
+
+<div class="card">
+  <h4>一键启动 (start.sh)</h4>
+  <ol>
+    <li>docker compose up -d（MySQL + Redis）</li>
+    <li>npm install（后端 + 前端依赖）</li>
+    <li>npx knex migrate:latest（数据库迁移）</li>
+    <li>node src/server.js（后端 :3000）</li>
+    <li>npx vite（前端 :5173）</li>
+  </ol>
+</div>
+
+<div class="card">
+  <h4>生产部署 (PM2)</h4>
+  <p><code>npm run prod</code> → <code>pm2 start ecosystem.config.js</code>，以 Cluster 模式运行，支持零停机 reload。</p>
+</div>
+
+<div class="card">
+  <h4>数据库迁移</h4>
+  <p>当前最新迁移 038_add_address_fields.js（studios 增 address_required，orders 增 address/address_valid）。迁移脚本均为幂等设计（先检查列是否存在）。</p>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<h2 id="roadmap">八、后续迭代规划</h2>
+
+<table>
+  <tr><th>模块</th><th>功能</th><th>说明</th></tr>
+  <tr><td>地址验证</td><td>高德 API 反查</td><td>B端验证地址时自动调用高德地理编码 API，验证地址真实性</td></tr>
+  <tr><td>人设图展示</td><td>管理端查看</td><td>B端订单详情/展开行内查看客户上传的人设图和动作参考</td></tr>
+  <tr><td>图片优化</td><td>CDN + 缩略图</td><td>上传时自动生成缩略图，减少 C端加载时间</td></tr>
+  <tr><td>排期冲突</td><td>智能检测</td><td>下单时实时检测多项目间的时间冲突（已部分实现）</td></tr>
+  <tr><td>多角色路由</td><td>整理 /m /s 路径</td><td>统一为单套路由，通过参数切换角色主题</td></tr>
+  <tr><td>微信支付</td><td>线上支付</td><td>接入微信支付 API，替代线下转账模式</td></tr>
+  <tr><td>小程序</td><td>C端小程序</td><td>移植 composables 到微信小程序</td></tr>
+</table>
+
+</main>
+</body>
+</html>

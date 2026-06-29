@@ -5,6 +5,8 @@ import { studioApi } from '@/api/studioApi'
 import { styleApi } from '@/api/styleApi'
 import { storage } from '@/utils/storage'
 import { validateImageFile } from '@/utils/validateFile'
+import { ElMessage } from 'element-plus'
+import { Delete, Close, DeleteFilled, WarningFilled } from '@element-plus/icons-vue'
 import ExtraItemsEditor from '@/components/shared/ExtraItemsEditor.vue'
 import OpenDateSelector from '@/components/shared/OpenDateSelector.vue'
 import { normalizeExtraItems, normalizeExtraItemsForSubmit } from '@/utils/extraItems'
@@ -29,6 +31,42 @@ const city = ref('')
 const description = ref('')
 const coverUrl = ref('')
 const detailImgUrls = ref([])
+
+// ── 图片删除模式 ──
+const isDeleteMode = ref(false)
+const showDeleteConfirm = ref(false)
+const isDeleting = ref(false)
+const deleteTarget = ref(null) // { type: 'cover'|'detail', url: string, index?: number }
+
+function toggleDeleteMode() {
+  isDeleteMode.value = !isDeleteMode.value
+}
+
+function confirmDeleteImage(type, url, idx) {
+  deleteTarget.value = { type, url, index: idx }
+  showDeleteConfirm.value = true
+}
+
+async function executeDelete() {
+  if (!deleteTarget.value) return
+  isDeleting.value = true
+  try {
+    await studioApi.removeImage(id, deleteTarget.value.url, deleteTarget.value.type)
+    if (deleteTarget.value.type === 'cover') {
+      coverUrl.value = ''
+    } else if (deleteTarget.value.index !== undefined) {
+      detailImgUrls.value.splice(deleteTarget.value.index, 1)
+    }
+    ElMessage.success('图片已删除')
+    showDeleteConfirm.value = false
+    deleteTarget.value = null
+    isDeleteMode.value = false
+  } catch (e) {
+    ElMessage.error(e.message || '删除失败')
+  } finally {
+    isDeleting.value = false
+  }
+}
 
 // ── 封面图上传 ──
 const coverFile = ref(null)
@@ -219,24 +257,70 @@ async function handleSubmit() {
         <label>所在城市 <input v-model="city" placeholder="如：杭州" class="input-field" style="width:100%" /></label>
         <label>项目描述 <textarea v-model="description" rows="3" class="input-field" style="width:100%"></textarea></label>
 
-        <label>封面图</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input id="edit-cover-input" type="file" accept="image/*" @change="onCoverChange" style="flex:1" />
-          <button type="button" class="btn-primary btn-sm" :disabled="!coverFile || uploadingCover" @click="uploadCover" style="width:auto;padding:5px 14px;font-size:12px;">{{ uploadingCover ? '上传中' : '上传' }}</button>
-        </div>
-        <div v-if="coverUploadMsg==='success'" style="color:#67c23a;font-size:12px;">✓ 上传成功</div>
-        <div v-else-if="coverUploadMsg" style="color:#f56c6c;font-size:12px;">✗ {{ coverUploadMsg }}</div>
-        <img v-if="coverUrl" :src="coverUrl" style="max-width:180px;margin-top:8px;border-radius:10px;" />
+        <!-- 封面图 — 带删除模式 -->
+        <div class="image-section" :class="{ 'delete-mode': isDeleteMode }">
+          <div class="section-header">
+            <label style="margin-bottom:0;">封面图</label>
+            <button
+              :class="['delete-trigger-btn', { 'is-active': isDeleteMode }]"
+              @click="toggleDeleteMode"
+              type="button"
+              :title="isDeleteMode ? '取消删除模式' : '删除图片'"
+            >
+              <el-icon :size="16">
+                <Close v-if="isDeleteMode" />
+                <Delete v-else />
+              </el-icon>
+            </button>
+          </div>
+          <div v-if="!isDeleteMode" style="display:flex;gap:8px;align-items:center;">
+            <input id="edit-cover-input" type="file" accept="image/*" @change="onCoverChange" style="flex:1" />
+            <button type="button" class="btn-primary btn-sm" :disabled="!coverFile || uploadingCover" @click="uploadCover" style="width:auto;padding:5px 14px;font-size:12px;">{{ uploadingCover ? '上传中' : '上传' }}</button>
+          </div>
+          <div v-if="coverUploadMsg==='success'" style="color:#67c23a;font-size:12px;">✓ 上传成功</div>
+          <div v-else-if="coverUploadMsg" style="color:#f56c6c;font-size:12px;">✗ {{ coverUploadMsg }}</div>
 
-        <label>详情图</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input id="edit-detail-input" type="file" accept="image/*" multiple @change="onDetailChange" style="flex:1" />
-          <button type="button" class="btn-primary btn-sm" :disabled="!detailFiles.length || uploadingDetail" @click="uploadDetails" style="width:auto;padding:5px 14px;font-size:12px;">{{ uploadingDetail ? '上传中' : '上传' }}</button>
+          <div v-if="coverUrl" class="cover-image-wrapper" :class="{ deletable: isDeleteMode }" @click="isDeleteMode && confirmDeleteImage('cover', coverUrl)">
+            <img :src="coverUrl" style="max-width:220px;border-radius:10px;" />
+            <div v-if="isDeleteMode" class="delete-overlay">
+              <el-icon :size="28" color="#fff"><DeleteFilled /></el-icon>
+              <span>点击删除</span>
+            </div>
+          </div>
         </div>
-        <div v-if="detailUploadMsg==='success'" style="color:#67c23a;font-size:12px;">✓ 上传成功</div>
-        <div v-else-if="detailUploadMsg" style="color:#f56c6c;font-size:12px;">✗ {{ detailUploadMsg }}</div>
-        <div v-if="detailImgUrls.length" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-          <img v-for="(u,i) in detailImgUrls" :key="i" :src="u" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid var(--border-color, #F0EDE8);" />
+
+        <!-- 详情图 — 带删除模式 -->
+        <div class="image-section" :class="{ 'delete-mode': isDeleteMode }">
+          <div class="section-header">
+            <label style="margin-bottom:0;">详情图 ({{ detailImgUrls.length }})</label>
+          </div>
+
+          <div v-if="!isDeleteMode" style="display:flex;gap:8px;align-items:center;">
+            <input id="edit-detail-input" type="file" accept="image/*" multiple @change="onDetailChange" style="flex:1" />
+            <button type="button" class="btn-primary btn-sm" :disabled="!detailFiles.length || uploadingDetail" @click="uploadDetails" style="width:auto;padding:5px 14px;font-size:12px;">{{ uploadingDetail ? '上传中' : '上传' }}</button>
+          </div>
+          <div v-if="detailUploadMsg==='success'" style="color:#67c23a;font-size:12px;">✓ 上传成功</div>
+          <div v-else-if="detailUploadMsg" style="color:#f56c6c;font-size:12px;">✗ {{ detailUploadMsg }}</div>
+
+          <TransitionGroup v-if="detailImgUrls.length" name="image-list" tag="div" class="detail-images-grid">
+            <div
+              v-for="(u, i) in detailImgUrls"
+              :key="u"
+              class="detail-image-card"
+              :class="{ deletable: isDeleteMode }"
+              @click="isDeleteMode && confirmDeleteImage('detail', u, i)"
+            >
+              <img :src="u" />
+              <div v-if="isDeleteMode" class="delete-overlay">
+                <el-icon :size="22" color="#fff"><DeleteFilled /></el-icon>
+              </div>
+            </div>
+          </TransitionGroup>
+
+          <!-- 删除模式遮罩提示 -->
+          <div v-if="isDeleteMode && detailImgUrls.length === 0" class="delete-empty-hint">
+            暂无详情图可删除
+          </div>
         </div>
       </fieldset>
 
@@ -336,6 +420,26 @@ async function handleSubmit() {
           {{ saving ? '保存中...' : '保存修改' }}
         </button>
       </div>
+
+      <!-- 删除确认弹窗 -->
+      <el-dialog
+        v-model="showDeleteConfirm"
+        title="确认删除"
+        width="360px"
+        :close-on-click-modal="false"
+        class="glass-dialog"
+      >
+        <div class="confirm-content">
+          <el-icon :size="48" color="#f56c6c"><WarningFilled /></el-icon>
+          <p>{{ deleteTarget?.type === 'cover' ? '封面图' : '详情图' }}将被永久删除，不可恢复</p>
+        </div>
+        <template #footer>
+          <button class="btn-secondary btn-sm" @click="showDeleteConfirm = false" :disabled="isDeleting">取消</button>
+          <button class="btn-danger btn-sm" @click="executeDelete" :disabled="isDeleting">
+            {{ isDeleting ? '删除中...' : '确认删除' }}
+          </button>
+        </template>
+      </el-dialog>
     </template>
   </div>
 </template>
@@ -362,4 +466,162 @@ label { display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-p
   font-size: 12px; color: #D4893E; font-weight: 500;
 }
 .switch-label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+/* ═══════════════════════════════════════════
+   图片删除模式样式
+   ═══════════════════════════════════════════ */
+.image-section {
+  margin-bottom: 12px;
+}
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.delete-trigger-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border-color, #E8E5DF);
+  border-radius: 50%;
+  background: var(--bg-card, #fff);
+  cursor: pointer;
+  color: var(--text-sub, #8b8d91);
+  transition: all 0.25s ease;
+}
+.delete-trigger-btn:hover {
+  border-color: #f56c6c;
+  color: #f56c6c;
+}
+.delete-trigger-btn.is-active {
+  background: #f56c6c;
+  border-color: #f56c6c;
+  color: #fff;
+}
+
+/* 删除模式脉动动画 */
+@keyframes deletePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.55);
+    border-color: rgba(245, 108, 108, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(245, 108, 108, 0);
+    border-color: rgba(245, 108, 108, 0.85);
+  }
+}
+
+.delete-mode .deletable {
+  animation: deletePulse 1.8s ease-in-out infinite;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.delete-mode .deletable:hover {
+  transform: scale(0.95);
+}
+.delete-mode .deletable:active {
+  transform: scale(0.9);
+}
+
+/* 封面图删除包装 */
+.cover-image-wrapper {
+  display: inline-block;
+  margin-top: 8px;
+  position: relative;
+}
+.cover-image-wrapper img {
+  max-width: 220px; border-radius: 10px; display: block;
+}
+
+/* 详情图网格 */
+.detail-images-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+.detail-image-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #FEFBF6, #F0F4F8);
+}
+.detail-image-card img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+/* 删除模式遮罩 */
+.delete-overlay {
+  position: absolute; inset: 0;
+  background: rgba(245, 108, 108, 0.5);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  animation: fadeInScale 0.25s ease;
+  border-radius: inherit;
+}
+.delete-overlay span {
+  font-size: 12px; color: #fff; font-weight: 600;
+}
+
+.delete-empty-hint {
+  text-align: center; padding: 20px;
+  font-size: 13px; color: var(--text-sub, #999);
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 删除后图片移除动画 */
+.image-list-leave-active {
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+}
+.image-list-leave-to {
+  opacity: 0;
+  transform: scale(0.7) translateY(10px);
+}
+.image-list-move {
+  transition: transform 0.4s ease;
+}
+
+/* 确认弹窗 */
+.confirm-content {
+  text-align: center;
+  padding: 16px 0;
+}
+.confirm-content p {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--text-primary, #4A4A4A);
+}
+.btn-danger {
+  background: #f56c6c; color: #fff;
+  border: none; border-radius: 28px; padding: 8px 20px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-danger:hover { background: #e04848; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .detail-images-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .cover-image-wrapper img { max-width: 160px; }
+}
+
+@media (max-width: 480px) {
+  .detail-images-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .delete-overlay .el-icon { font-size: 20px !important; }
+  .delete-overlay span { font-size: 11px; }
+  .cover-image-wrapper img { max-width: 140px; }
+}
 </style>

@@ -1,0 +1,365 @@
+喵掌柜自助下单系统 — 项目架构文档 v1.0
+============================================================
+
+一、系统概览
+-----------
+
+喵掌柜是一套面向小型摄影/妆娘/棚主的多角色预约接单平台。
+商家通过 B端管理后台创建项目、配置时间轴与定价，
+客户通过 C端浏览项目、选择服务时段并支付定金完成预约。
+
+核心业务流程：
+  项目上架 → 时间轴配置 → 客户预约 → 定金锁定 → 商家确认 → 服务完成 → 尾款结清
+
+
+二、技术栈
+---------
+
+  层级         | 技术                        | 版本
+  -------------|-----------------------------|------
+  后端运行时    | Node.js                     | >=18
+  后端框架      | Express                     | 4.21
+  数据库        | MySQL (mysql2)              | 3.11
+  缓存/锁       | Redis (ioredis)             | 5.4
+  认证          | JWT (jsonwebtoken)          | 9.0
+  密码加密      | bcryptjs                    | 2.4
+  参数校验      | Joi                         | 17.13
+  ORM/迁移      | Knex                        | 3.1
+  文件上传      | Multer + Sharp              | 1.4 / 0.33
+  实时推送      | WebSocket (ws)              | 8.18
+  日志          | Winston + Morgan            | 3.14 / 1.10
+  前端框架      | Vue 3 (Composition API)     | 3.4
+  前端构建      | Vite                        | 5.2
+  UI 组件库     | Element Plus                | 2.14
+  状态管理      | Pinia                       | 2.1
+  路由          | Vue Router 4                | 4.3
+  CSS 预处理    | Sass (Dart Sass)            | 1.100
+  进程管理      | PM2 (Cluster)               | -
+  容器化        | Docker Compose              | -
+
+
+三、目录结构
+-----------
+
+miaozhanggui/
+├── package.json                  后端项目配置
+├── knexfile.js                   数据库连接配置
+├── ecosystem.config.js           PM2 集群配置
+├── deploy.sh                     一键部署脚本
+├── .env.example                  环境变量模板
+│
+├── src/                          【后端源码】
+│   ├── server.js                 Express 入口：中间件注册 → 路由挂载 → 启动
+│   ├── routes/index.js           总路由聚合
+│   ├── config/                   配置模块
+│   │   ├── index.js              环境变量 + 全局配置
+│   │   └── constants.js          业务常量
+│   ├── middlewares/              中间件
+│   │   ├── auth.js               B端 JWT 鉴权
+│   │   ├── clientAuth.js         C端 JWT 鉴权
+│   │   ├── optionalClientAuth.js 可选客户端鉴权
+│   │   ├── deviceId.js           设备 ID 提取
+│   │   ├── validator.js          Joi 校验包装器
+│   │   ├── rateLimiter.js        限流
+│   │   └── errorHandler.js       全局错误处理
+│   ├── modules/                  业务模块（按领域拆分）
+│   │   ├── admin/                超管模块（邀请码管理）
+│   │   ├── merchant/             商家认证（注册/登录/JWT）
+│   │   ├── client-auth/          客户端注册登录
+│   │   ├── studio/               项目管理 ★
+│   │   │   ├── studio.routes.js  路由：GET /studios-lite, POST /add-studio ...
+│   │   │   ├── studio.controller.js  请求解析 + 响应
+│   │   │   ├── studio.service.js     核心业务（批量DTO映射、事务编排）
+│   │   │   ├── studio.repository.js  纯 SQL 查询
+│   │   │   └── studio.validator.js   Joi schema
+│   │   ├── order/                订单管理 ★
+│   │   │   ├── order.routes.js   路由：/create-order-v2, /pay-deposit, /verify-address ...
+│   │   │   ├── order.controller.js
+│   │   │   ├── order.service.js      核心业务（下单、支付、状态机、地址验证）
+│   │   │   ├── order.repository.js
+│   │   │   └── order.validator.js
+│   │   ├── schedule/             排期管理
+│   │   ├── style/                预设样式 + 套餐 + 附加项目
+│   │   ├── settings/             商家设置（公告、收款码、声明）
+│   │   ├── notification/         通知推送
+│   │   ├── log/                  操作日志
+│   │   ├── upload/               文件上传（图片/多图）
+│   │   ├── refund/               退款流程
+│   │   └── reschedule/           改期流程
+│   └── shared/                   跨模块共享
+│       ├── database/knex.js      Knex 实例
+│       ├── redis/client.js       Redis 客户端
+│       ├── errors/               错误定义（AppError + errorCodes）
+│       ├── logger/               Winston 日志
+│       ├── storage/              文件存储抽象（本地/s3）
+│       ├── utils/                工具函数
+│       │   ├── dateHelper.js     日期格式化
+│       │   ├── excelHelper.js    Excel 导入导出
+│       │   ├── orderNo.js        订单号生成
+│       │   ├── priceEngine.js    价格计算引擎
+│       │   ├── response.js       统一响应包装 (res.rh)
+│       │   └── timeCollisionEngine.js  时间碰撞检测引擎
+│       └── websocket/            WebSocket 服务
+│
+├── database/migrations/          Knex 迁移脚本（001-038）
+│
+├── frontend/                     【前端源码】
+│   ├── package.json              前端项目配置
+│   ├── vite.config.js            Vite 构建配置
+│   ├── index.html                入口 HTML
+│   └── src/
+│       ├── main.js               Vue 应用入口
+│       ├── App.vue               根组件
+│       ├── router/index.js       路由配置（C端 + B端）
+│       ├── stores/               Pinia 状态管理
+│       │   ├── studio.js         项目数据
+│       │   ├── order.js          订单数据
+│       │   ├── booking.js        预约流程
+│       │   ├── wizardC.js        C端下单向导
+│       │   ├── wizardB.js        B端创建向导
+│       │   ├── studioCreate.js   项目创建多步表单
+│       │   ├── settings.js       商家设置
+│       │   ├── style.js          预设样式
+│       │   ├── auth.js / clientAuth.js  认证令牌
+│       │   └── theme.js          多角色主题
+│       ├── api/                  HTTP API 封装
+│       │   ├── http.js           统一 fetch 适配器
+│       │   ├── order.js          订单接口
+│       │   ├── bookingApi.js     预约接口
+│       │   ├── studioApi.js      项目接口
+│       │   ├── settings.js       设置接口
+│       │   └── ...
+│       ├── views/                页面组件
+│       │   ├── studio/           StudioList.vue, StudioDetail.vue
+│       │   ├── client/           Window_C_Step1~2, MyOrdersView, ...
+│       │   ├── admin/            OrderManagement, EditStudio, Window_B_Step1~3, ...
+│       │   └── style/            StyleList.vue
+│       ├── components/           可复用组件
+│       │   ├── shared/           DeclarationDialog, ExtraItemsEditor, OpenDateSelector, ...
+│       │   ├── client/           CalendarPicker, FlexibleTimelinePicker
+│       │   └── admin/            AdminHeader, CalendarGrid
+│       ├── layouts/              布局组件
+│       │   ├── ClientLayout.vue  C端布局（导航栏 + 底部Tab + 公告）
+│       │   └── AdminLayout.vue   B端布局
+│       ├── composables/          组合式函数
+│       │   ├── useBookingEngine.js  预约引擎（纯函数）
+│       │   └── useRefreshBus.js     刷新事件总线
+│       └── utils/                工具函数
+│           ├── durationCalc.js   拍摄时长计算
+│           ├── extraItems.js     附加项目工具
+│           ├── storage.js        本地缓存抽象
+│           └── ...
+│
+└── 运行环境/                      Docker Compose (MySQL 8 + Redis 7)
+
+
+四、后端架构：模块 API 一览
+--------------------------
+
+  Module        | 核心 API
+  --------------|--------------------------------------------------------
+  studio        | GET /studios-lite    C端公开精简列表
+                | GET /studios         B端完整列表（需认证）
+                | POST /add-studio     创建项目
+                | POST /edit-studio    编辑项目
+                | POST /delete-studio  软删除项目
+  order         | POST /create-order-v2   高精度下单
+                | POST /pay-deposit       支付定金（创建 pre_lock）
+                | POST /pay-final         支付尾款
+                | POST /order/confirm-lock   管理端确认锁定（hard_lock）
+                | POST /order/verify-address  验证地址正确性
+                | POST /order/confirm-deposit 确认收到定金
+                | POST /order/confirm-completed 确认结清
+                | POST /order/mark-fulfilled    标记服务完成
+                | GET /booked-times-v2   查询已占时段
+                | GET /my-orders         我的订单
+                | GET /orders            订单管理
+                | GET /order-detail      订单详情
+                | GET /order-stats       今日统计
+  merchant      | GET /merchants-public  公开商家列表
+                | POST /register         注册（需要邀请码）
+                | POST /login            登录
+                | POST /change-password  修改密码
+  schedule      | POST /schedule/batch   批量写入排期
+                | GET /booked-slots      查询已约时段
+  style         | POST /add-style        创建样式
+                | POST /edit-style       编辑样式
+                | POST /delete-style     删除样式
+                | GET /styles            样式列表
+  settings      | GET /settings          获取设置
+                | POST /save-settings    保存设置
+  upload        | POST /upload/image     单图上传
+                | POST /upload/images    多图上传
+  admin         | POST /admin/generate-code  生成邀请码
+
+
+五、请求处理分层
+--------------
+
+  HTTP Request
+    → Middleware Chain (helmet → cors → morgan → rateLimiter → deviceId → auth → validator)
+    → Controller (req 解析 → 调用 service → res.rh 响应)
+    → Service (业务逻辑 + 事务编排 + DTO 映射)
+    → Repository (knex SQL 查询)
+    → MySQL / Redis
+
+每个模块遵循 routes → controller → service → repository 分层：
+  - Routes：定义 HTTP 方法、路径、中间件链
+  - Controller：解析请求、调用 service、通过 res.rh 统一响应
+  - Service：核心业务逻辑、事务编排、权限校验
+  - Repository：纯 SQL 查询封装，不包含业务逻辑
+  - Validator：Joi schema 定义，在路由层通过中间件执行
+
+
+六、共享基础设施
+--------------
+
+1. 统一响应格式 (res.rh)
+   res.rh.success(data, msg) → { success: true, code: 0, data, message }
+   res.rh.fail(msg, status)   → { success: false, code: 1, message }
+   res.rh.error(msg)          → { success: false, code: 1, message } + 500
+
+2. 错误体系 (AppError + errorCodes)
+   所有业务异常抛出 new AppError(ERROR_CODES.STUDIO_NOT_FOUND, 404)
+   由 errorHandler 中间件统一捕获
+   分为 isOperational=true（预期内）和 unexpected 两种
+
+3. WebSocket 实时通知
+   订单创建后通过 WebSocket 向对应 m_id 的商家推送
+   B端实时感知新订单
+
+4. 双锁时段机制
+   pre_lock（第一重）：客户支付定金后自动创建，标记该时段不可被其他客户预约
+   hard_lock（第二重）：商家确认收款后升级，正式排入工作日历
+
+
+七、数据库核心表（14张）
+-----------------------
+
+  表名                       | 说明                      | 迁移编号
+  ---------------------------|---------------------------|----------
+  merchants                  | 商家账户                  | -
+  studios                    | 项目                      | 001,017,037,038
+  orders                     | 订单                      | 003,020,026,030,032
+  slot_bookings              | 时段锁定                  | 004,019
+  styles                     | 预设样式                  | 017
+  style_packages             | 样式套餐                  | 024
+  style_additional_items     | 样式附加项目              | 029
+  studio_style_relations     | 项目↔样式关联             | 018
+  studio_availabilities      | 项目可选日期              | 018
+  studio_rest_slots          | 项目休息时段              | 018
+  users                      | C端用户                   | 033
+  invitation_codes           | 邀请码                    | 034
+  notifications              | 通知                      | 008
+  operation_logs             | 操作日志                  | 007
+  schedule_excel_imports     | 排期导入记录              | 011
+
+关键字段说明：
+  studios.address_required   boolean   是否需要用户提供拍摄地址（038迁移新增）
+  orders.address             varchar   用户填写的地址
+  orders.address_valid       boolean   摄影验证结果：null=未验证 true=正确 false=不正确
+
+
+八、前端路由设计
+--------------
+
+  【C端用户流】
+  路径                       | 组件                            | 说明
+  ---------------------------|---------------------------------|------------------
+  /                          | 重定向 → /studios                |
+  /studios                   | studio/StudioList.vue           | 项目列表
+  /studios/:id               | studio/StudioDetail.vue         | 项目详情
+  /booking/:studioId         | client/Window_C_Step1.vue      | 预约步骤1
+  /booking/:studioId/step2   | client/Window_C_Step2.vue      | 预约步骤2
+  /my-orders                 | client/MyOrdersView.vue        | 我的订单
+  /my-orders/:id             | client/OrderDetailView.vue     | 订单详情
+  /login                     | client/LoginView.vue           | 客户端登录
+
+  【B端管理流】
+  路径                       | 组件                            | 说明
+  /admin/login               | admin/LoginView.vue             | 管理端登录
+  /admin/orders              | admin/OrderManagement.vue      | 订单管理（核心）
+  /admin/studios             | studio/StudioList.vue           | 项目管理
+  /admin/studio/create/step1~3 | admin/Window_B_Step*.vue     | 三步创建向导
+  /admin/studio/edit/:id     | admin/EditStudio.vue            | 编辑项目
+  /admin/styles              | admin/StylesView.vue            | 预设管理
+  /admin/settings            | admin/SettingsView.vue          | 商家设置
+
+
+九、核心数据流：预约下单完整链路
+-------------------------------
+
+  C端浏览器                    Express API                  MySQL
+  ────────                     ───────────                  ─────
+  Window_C_Step1.vue
+    │  GET /studios-lite ────→ studio.getLiteList ────→ 批量查询 studios + styles
+    │ ←── JSON (project[]) ─────────────────────────────────  + packages + addons
+    │
+    │  用户选择 样式/套餐/日期/时间
+    │  wizardC.setStep1(...)
+    ▼
+  Window_C_Step2.vue
+    │  上传人设图/参考动作 → /api/upload/images
+    │  POST /create-order-v2 ─→ order.service.createOrderV2
+    │                              │ 1. 时间冲突检测
+    │                              │ 2. INSERT orders
+    │                              │ 3. WebSocket → 通知商家
+    │ ←── { orderNo } ─────────────────────────────────────
+    │
+    │  POST /pay-deposit ─────→ order.service.payDeposit
+    │                              │ 1. INSERT slot_bookings(pre_lock)
+    │ ←── pre_lock 成功 ─────────  │ 2. UPDATE orders.status
+    │
+    │                    B端 OrderManagement.vue
+    │                    收到 WebSocket 新订单通知
+    │
+    │                    ◆ 核对流水 POST /order/confirm-deposit
+    │                    ◆ 导航到地址 高德地图链接
+    │                    ◆ 验证地址 POST /order/verify-address
+    │                    ◆ 确认结清 POST /order/confirm-completed
+    │                    ◆ 完成拍摄 POST /order/mark-fulfilled
+
+
+十、订单状态机
+------------
+
+  客户下单 ──→ 待支付(定金待确认)
+                  │
+      商家确认 ←──┘ ──→ 已付定金 ──→ 已确认锁定(hard_lock)
+                  │        │
+            服务完成 ↓        │
+                  │        ↓
+            尾款待确认 ──→ 已结清 ──→ 已完成拍摄
+
+    申请取消/改期 ←── 任意未完成状态
+                  │
+      商家审批 ←──┘ ──→ 已取消 / 已退款取消
+
+
+十一、部署运维
+------------
+
+  【开发环境】 bash运行环境/start.sh 一键启动
+    1. docker compose up -d（MySQL + Redis）
+    2. npm install（后端 + 前端依赖）
+    3. npx knex migrate:latest（数据库迁移）
+    4. node src/server.js（后端 :3000）
+    5. npx vite（前端 :5173）
+
+  【生产部署】 npm run prod
+    pm2 start ecosystem.config.js（Cluster 模式，零停机 reload）
+
+  【数据库迁移】
+    当前最新迁移：038_add_address_fields.js
+    迁移脚本均为幂等设计（先检查列/表是否存在再操作）
+
+
+十二、后续迭代规划
+-----------------
+
+  ◆ 地址验证增强 — 对接高德地理编码 API，自动反查地址真实性
+  ◆ 人设图/动作图 — B端订单详情内查看C端上传的图片
+  ◆ 图片 CDN + 缩略图 — 上传时自动生成缩略图
+  ◆ 微信小程序 — 移植 composables 到 wx 环境
+  ◆ 微信支付 — 线上支付替代线下转账
+  ◆ 多角色路由整理 — 统一 /m /s 路径到单套路由

@@ -66,4 +66,34 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { getLiteList, getFullList, create, update, remove };
+/** POST /update-studio-order */
+async function updateOrder(req, res) {
+  try {
+    const mId = req.user && req.user.mId;
+    if (!mId) return res.rh.fail('缺少商家身份', 401);
+    const result = await service.updateStudioOrder(mId, req.body.orderedList);
+    res.rh.success(result, '排序已更新');
+  } catch (err) {
+    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
+    logger.error('updateOrder error', err);
+    res.rh.error('排序更新失败');
+  }
+}
+
+/** POST /studio/:studioId/remove-image */
+async function removeImage(req, res) {
+  try {
+    const mId = req.user && req.user.mId;
+    if (!mId) return res.rh.fail('缺少商家身份', 401);
+    const { studioId } = req.params;
+    const { imageUrl, imageType } = req.body;
+    await service.removeStudioImage(mId, studioId, imageUrl, imageType);
+    res.rh.success(null, '图片已删除');
+  } catch (err) {
+    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
+    logger.error('removeImage error', err);
+    res.rh.error('图片删除失败');
+  }
+}
+
+module.exports = { getLiteList, getFullList, create, update, remove, updateOrder, removeImage };
