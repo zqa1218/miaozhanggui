@@ -5,13 +5,23 @@ on:
     workflows: ["CI"]
     branches: [main]
     types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1
         with:
@@ -22,3 +32,15 @@ jobs:
           script: |
             echo "${{ secrets.ENV_FILE }}" > /www/wwwroot/miazhanggui.xyz/.env
             bash /www/wwwroot/miazhanggui.xyz/deploy.sh
+
+      - name: Record Deployed Commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
+          git fetch origin main
+          MAIN_SHA=$(git rev-parse origin/main)
+          git tag -f deployed-production "$MAIN_SHA"
+          git push origin refs/tags/deployed-production --force
