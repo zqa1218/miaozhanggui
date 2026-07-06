@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>喵喵在线预约</title>
+    <script src="https://cdn.staticfile.org/vue/3.4.21/vue.global.prod.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/element-plus/2.6.1/index.min.css" />
+    <script src="https://cdn.staticfile.org/element-plus/2.6.1/index.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --ios-bg: #f5f5f7;
+            --ios-card: #ffffff;
+            --ios-border: #e5e5ea;
+            --ios-text: #1d1d1f;
+            --ios-sub: #6e6e73;
+            --ios-blue: #0a84ff;
+            --ios-green: #34c759;
+            --ios-orange: #ff9f0a;
+            --ios-red: #ff3b30;
+            --ios-pink: #ff6b8a;
+        }
+        [v-cloak] { display: none !important; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+            background: linear-gradient(180deg, #f8f9fb 0%, #f4f5f9 100%);
+            color: var(--ios-text);
+            padding-bottom: 100px;
+            min-height: 100vh;
+        }
+
+        .nav-bar {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            text-align: center;
+            padding: 14px 0;
+            font-size: 16px;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            border-bottom: 1px solid #ececf1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-back {
+            position: absolute;
+            left: 15px;
+            color: var(--ios-blue);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            background: none;
+            border: none;
+        }
+
+        .notice-wrap {
+            margin: 12px;
+            background: #fff7e6;
+            border: 1px solid #ffe1b0;
+            color: #ad6800;
+            font-size: 13px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1.5;
+        }
+
+        .studio-card {
+            background: #fff;
+            margin: 12px;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--ios-border);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .studio-card:active { transform: scale(0.98); }
+        .studio-card img {
+            width: 100%;
+            height: 186px;
+            object-fit: cover;
+            display: block;
+        }
+        .studio-card .placeholder-img {
+            width: 100%;
+            height: 186px;
+            background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #cf8ba0;
+        }
+        .studio-info { padding: 12px 14px 14px; }
+        .studio-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+        .studio-desc { font-size: 13px; color: #8e8e93; line-height: 1.5; }
+        .studio-tags { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .studio-tag {
+            font-size: 11px;
+            background: #f0f2f5;
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: var(--ios-sub);
+        }
+
+        .detail-img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 0;
+        }
+        .detail-content {
+            padding: 18px;
+            background: #fff;
+            border-radius: 18px 18px 0 0;
+            margin-top: -18px;
+            position: relative;
+            z-index: 10;
+            border-top: 1px solid #f0f2f5;
+        }
+
+        .price-tag { color: var(--ios-red); font-size: 22px; font-weight: 700; margin: 10px 0; }
+        .price-breakdown { font-size: 13px; color: var(--ios-sub); margin: 6px 0; line-height: 1.8; }
+
+        .cal-box, .time-section, .order-card {
+            background: #fff;
+            margin: 12px;
+            border-radius: 16px;
+            padding: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--ios-border);
+        }
+
+        .cal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .cal-btn {
+            background: #f2f3f8;
+            border: 1px solid #e7e8ef;
+            padding: 6px 14px;
+            border-radius: 999px;
+            color: var(--ios-blue);
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .cal-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 12px;
+            color: #8e8e93;
+            margin-bottom: 8px;
+        }
+        .cal-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+        }
+        .cal-day {
+            padding: 10px 0;
+            font-size: 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #323233;
+            transition: 0.2s;
+            border: 1px solid transparent;
+            position: relative;
+        }
+        .cal-day:hover { background: #f0f2f5; }
+        .cal-day.today { font-weight: 700; color: var(--ios-blue); }
+        .cal-day.selected { background: var(--ios-blue); color: #fff; font-weight: 700; }
+        .cal-day.past { color: #c8c8cc; cursor: default; }
+        .cal-day.past:hover { background: transparent; }
+        .cal-day.holiday { color: var(--ios-red); }
+        .cal-day.has-order::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--ios-red);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .time-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .time-chip {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            border: 1px solid var(--ios-border);
+            cursor: pointer;
+            transition: 0.2s;
+            background: #fff;
+            color: var(--ios-text);
+        }
+        .time-chip.selected { background: var(--ios-blue); color: #fff; border-color: var(--ios-blue); }
+        .time-chip.disabled { background: #f5f5f5; color: #c8c8cc; cursor: not-allowed; border-color: #f0f0f0; }
+
+        .section-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--ios-text); }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .input-row input, .input-row textarea {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--ios-border);
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            background: #f9fafb;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        .input-row input:focus, .input-row textarea:focus { border-color: var(--ios-blue); }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: var(--ios-blue);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary:active { background: #0070e0; }
+        .btn-primary:disabled { background: #b0c4de; cursor: not-allowed; }
+
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(14px);
+            border-top: 1px solid #ececf1;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--ios-sub);
+        }
+        .empty-state i { font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.4; }
+
+        .my-order-item {
+            padding: 14px;
+            border-bottom: 1px solid #f0f2f5;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .my-order-item:active { background: #f8f9fb; }
+        .my-order-status {
+            display: inline-block;
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-deposit { background: #d1ecf1; color: #0c5460; }
+        .status-complete { background: #d4edda; color: #155724; }
+        .status-cancel { background: #f1f1f1; color: #888; }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin: 12px;
+            background: #f0f2f5;
+            border-radius: 12px;
+            padding: 4px;
+        }
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            color: var(--ios-sub);
+        }
+        .tab-item.active { background: #fff; color: var(--ios-text); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
+
+        .el-overlay { z-index: 1000 !important; }
+    </style>
+</head>
+<body>
+<div id="app" v-cloak>
+    <!-- 导航栏 -->
+    <div class="nav-bar">
+        <button class="nav-back" v-if="currentView !== 'list'" @click="goBack">&#10094; 返回</button>
+        {{ navTitle }}
+    </div>
+
+    <!-- 公告 -->
+    <div class="notice-wrap" v-if="announcement && currentView === 'list'">
+        <i class="fa-solid fa-bullhorn" style="color:#ff9500;"></i>
+        <span>{{ announcement }}</span>
+    </div>
+
+    <!-- ========== 项目列表 ========== -->
+    <template v-if="currentView === 'list'">
+        <div v-if="loading" style="text-align:center;padding:40px;">
+            <el-icon class="is-loading" :size="32"><i class="fa-solid fa-spinner fa-spin"></i></el-icon>
+            <p style="color:#8e8e93;margin-top:12px;">加载中...</p>
+        </div>
+        <div v-else-if="studios.length === 0" class="empty-state">
+            <i class="fa-regular fa-folder-open"></i>
+            <p>暂无项目，敬请期待~</p>
+        </div>
+        <div v-else class="studio-card" v-for="s in studios" :key="s.id" @click="openDetail(s)">
+            <img v-if="s.coverUrl" :src="s.coverUrl" :alt="s.title">
+            <div v-else class="placeholder-img">🐱</div>
+            <div class="studio-info">
+                <div class="studio-title">{{ s.title }}</div>
+                <div class="studio-desc">{{ s.description || '暂无描述' }}</div>
+                <div class="studio-tags">
+                    <span class="studio-tag">{{ calcModeLabel(s.calcMode) }}</span>
+                    <span class="studio-tag" v-if="s.isPackageDay">支持包天</span>
+                    <span class="studio-tag">定金{{ s.depositRatio }}%</span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- ========== 项目详情/下单 ========== -->
+    <template v-if="currentView === 'detail'">
+        <img v-if="detailStudio.detailImgUrls && detailStudio.detailImgUrls.length"
+             :src="detailStudio.detailImgUrls[0]" class="detail-img">
+        <img v-else-if="detailStudio.coverUrl" :src="detailStudio.coverUrl" class="detail-img">
+        <div class="detail-content">
+            <div style="font-size:20px;font-weight:700;">{{ detailStudio.title }}</div>
+            <div class="studio-desc" style="margin-top:6px;">{{ detailStudio.description || '' }}</div>
+            <div class="price-tag" v-if="pricePreview">
+                ¥{{ pricePreview.totalPrice }} <span style="font-size:14px;color:#8e8e93;">/ 定金 ¥{{ pricePreview.depositAmount }}</span>
+            </div>
+            <div class="price-breakdown" v-if="pricePreview && pricePreview.totalPrice > 0">
+                <div v-if="pricePreview.unitPrice">单价: ¥{{ pricePreview.unitPrice }}</div>
+                <div v-if="pricePreview.extraPersonFee">额外人数费: ¥{{ pricePreview.extraPersonFee }}</div>
+            </div>
+        </div>
+
+        <!-- 日历 -->
+        <div class="cal-box">
+            <div class="cal-header">
+                <button class="cal-btn" @click="prevMonth">&#10094;</button>
+                <span>{{ calYear }}年 {{ calMonth }}月</span>
+                <button class="cal-btn" @click="nextMonth">&#10095;</button>
+            </div>
+            <div class="cal-weekdays">
+                <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+            </div>
+            <div class="cal-days">
+                <div v-for="d in calDays" :key="d.key"
+                     :class="['cal-day', {
+                       today: d.isToday,
+                       selected: d.dateStr === selectedDate,
+                       past: d.isPast,
+                       holiday: d.isHoliday,
+                       'has-order': bookedDates.has(d.dateStr)
+                     }]"
+                     @click="d.isPast || selectDate(d.dateStr)">
+                    {{ d.day }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 已选日期展示已有订单的时段 -->
+        <div class="time-section" v-if="selectedDate">
+            <div class="section-title">{{ selectedDate }} 可选时段</div>
+            <div v-if="loadingSlots" style="text-align:center;color:#8e8e93;padding:20px;">加载中...</div>
+            <div v-else>
+                <div style="margin-bottom:8px;">
+                    <label style="font-size:13px;">
+                        <input type="checkbox" v-model="isPackageDay" v-if="detailStudio.isPackageDay">
+                        <span v-if="detailStudio.isPackageDay"> 包天（¥{{ detailStudio.packagePrice }}）</span>
+                    </label>
+                </div>
+                <div class="time-grid" v-if="!isPackageDay">
+                    <div v-for="t in timeSlots" :key="t"
+                         :class="['time-chip', {
+                           selected: selectedTimes.includes(t),
+                           disabled: bookedSlotsMap[t]
+                         }]"
+                         @click="bookedSlotsMap[t] || toggleTime(t)">
+                        {{ t }}
+                    </div>
+                </div>
+                <div v-else style="color:var(--ios-green);font-weight:600;padding:10px;">
+                    包天模式 - 全天可用
+                </div>
+            </div>
+        </div>
+
+        <!-- 参数 + 联系 -->
+        <div class="order-card" v-if="selectedTimes.length || isPackageDay">
+            <div class="section-title">预约信息</div>
+            <div class="input-row" v-if="detailStudio.calcMode === 'photo' || detailStudio.calcMode === 'photo_time'">
+                <label style="font-size:13px;width:100%;">拍摄张数</label>
+                <input type="number" v-model.number="photoCount" :min="detailStudio.minPhotos || 1" style="width:100%;">
+            </div>
+            <div class="input-row">
+                <label style="font-size:13px;width:100%;">人数</label>
+                <input type="number" v-model.number="peopleCount" min="1" style="width:100%;">
+            </div>
+            <div class="input-row">
+                <label style="font-size:13px;width:100%;">{{ detailStudio.customRemarkLabel || '备注' }}</label>
+                <textarea v-model="contactNote" rows="2" :placeholder="'请填写联系方式及'+(detailStudio.customRemarkLabel||'备注')"></textarea>
+            </div>
+        </div>
+
+        <div style="padding:12px;">
+            <button class="btn-primary" @click="submitOrder"
+                    :disabled="!canSubmit || submitting">
+                {{ submitting ? '提交中...' : '确认预约 · ¥' + (pricePreview ? pricePreview.totalPrice : '0') }}
+            </button>
+        </div>
+    </template>
+
+    <!-- ========== 我的订单 ========== -->
+    <template v-if="currentView === 'myOrders'">
+        <div class="tabs">
+            <div class="tab-item" :class="{ active: myOrderTab === 'all' }" @click="myOrderTab = 'all'">全部</div>
+            <div class="tab-item" :class="{ active: myOrderTab === 'active' }" @click="myOrderTab = 'active'">进行中</div>
+            <div class="tab-item" :class="{ active: myOrderTab === 'done' }" @click="myOrderTab = 'done'">已完成</div>
+        </div>
+        <div v-if="filteredMyOrders.length === 0" class="empty-state">
+            <i class="fa-regular fa-receipt"></i>
+            <p>暂无订单</p>
+        </div>
+        <div v-else v-for="o in filteredMyOrders" :key="o.orderNo" class="my-order-item" @click="openOrder(o)">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>{{ o.studioTitle }}</strong>
+                <span :class="['my-order-status', statusClass(o.status)]">{{ o.status }}</span>
+            </div>
+            <div style="font-size:12px;color:#8e8e93;margin-top:4px;">
+                {{ o.date }} · {{ (o.times||[]).join(', ') }}
+            </div>
+            <div style="font-size:13px;margin-top:2px;">
+                ¥{{ o.totalPrice }} / 定金¥{{ o.depositAmount }}
+            </div>
+        </div>
+    </template>
+
+    <!-- ========== 订单详情弹窗 ========== -->
+    <el-dialog v-model="orderDetailVisible" title="订单详情" width="92%" :close-on-click-modal="true"
+               style="border-radius:16px;">
+        <template v-if="viewingOrder">
+            <div style="line-height:2;">
+                <p><strong>订单号:</strong> {{ viewingOrder.orderNo }}</p>
+                <p><strong>项目:</strong> {{ viewingOrder.studioTitle }}</p>
+                <p><strong>日期:</strong> {{ viewingOrder.date }}</p>
+                <p><strong>时段:</strong> {{ (viewingOrder.times||[]).join(', ') }}</p>
+                <p><strong>总价:</strong> ¥{{ viewingOrder.totalPrice }}</p>
+                <p><strong>定金:</strong> ¥{{ viewingOrder.depositAmount }}</p>
+                <p><strong>状态:</strong> {{ viewingOrder.status }}</p>
+                <p><strong>联系方式:</strong> {{ viewingOrder.contact }}</p>
+            </div>
+            <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+                <el-button type="primary" v-if="viewingOrder.status === '待支付'"
+                           @click="markDepositPaid(viewingOrder)">我已支付定金</el-button>
+                <el-button type="success" v-if="viewingOrder.status === '已付定金'"
+                           @click="markFinalPaid(viewingOrder)">我已支付尾款</el-button>
+                <el-button type="warning" v-if="['待支付','已付定金'].includes(viewingOrder.status)"
+                           @click="showRefundDialog(viewingOrder)">申请退款</el-button>
+                <el-button v-if="['待支付','已付定金'].includes(viewingOrder.status)"
+                           @click="showRescheduleDialog(viewingOrder)">申请改期</el-button>
+            </div>
+        </template>
+    </el-dialog>
+
+    <!-- 退款弹窗 -->
+    <el-dialog v-model="refundVisible" title="申请退款" width="90%">
+        <el-input v-model="refundText" type="textarea" rows="3" placeholder="请输入退款账号信息（支付宝/微信）"></el-input>
+        <div style="margin-top:10px;">
+            <span style="font-size:13px;color:#8e8e93;">上传收款码（可选）</span>
+            <input type="file" accept="image/*" @change="onRefundImgChange" style="margin-top:6px;">
+        </div>
+        <template #footer>
+            <el-button @click="refundVisible = false">取消</el-button>
+            <el-button type="danger" @click="submitRefund">提交申请</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 改期弹窗 -->
+    <el-dialog v-model="rescheduleVisible" title="申请改期" width="90%">
+        <p style="margin-bottom:8px;">当前: {{ viewingOrder?.date }} · {{ (viewingOrder?.times||[]).join(',') }}</p>
+        <el-date-picker v-model="rescheduleDate" type="date" placeholder="选择新日期"
+                        :disabled-date="disabledDate" style="width:100%;margin-bottom:8px;"></el-date-picker>
+        <div v-if="rescheduleDateStr">
+            <div class="time-grid">
+                <div v-for="t in rescheduleTimeSlots" :key="t"
+                     :class="['time-chip', { selected: rescheduleTimes.includes(t), disabled: rescheduleBookedMap[t] }]"
+                     @click="rescheduleBookedMap[t] || toggleRescheduleTime(t)">
+                    {{ t }}
+                </div>
+            </div>
+        </div>
+        <template #footer>
+            <el-button @click="rescheduleVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitReschedule" :disabled="rescheduleTimes.length===0">提交改期申请</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- 底部导航 -->
+    <div class="bottom-bar" v-if="currentView === 'list' || currentView === 'myOrders'">
+        <button class="btn-primary" style="flex:1;" @click="currentView = 'list'"
+                :style="{background: currentView==='list'?'var(--ios-blue)':'#e5e5ea', color: currentView==='list'?'#fff':'#666'}">
+            <i class="fa-solid fa-house"></i> 项目
+        </button>
+        <button class="btn-primary" style="flex:1;" @click="loadMyOrders"
+                :style="{background: currentView==='myOrders'?'var(--ios-blue)':'#e5e5ea', color: currentView==='myOrders'?'#fff':'#666'}">
+            <i class="fa-solid fa-receipt"></i> 我的订单
+        </button>
+    </div>
+</div>
+
+<script>
+const { createApp, ref, computed, reactive, watch, onMounted, nextTick } = Vue;
+
+const API_BASE = '/api';
+const M_ID = new URLSearchParams(location.search).get('mId') || '';
+
+// deviceId 管理
+function getDeviceId() {
+    let did = localStorage.getItem('mzg_device_id');
+    if (!did) { did = 'did_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); localStorage.setItem('mzg_device_id', did); }
+    return did;
+}
+const DEVICE_ID = getDeviceId();
+
+async function apiGet(path) {
+    const res = await fetch(API_BASE + path);
+    return res.json();
+}
+async function apiPost(path, body) {
+    const res = await fetch(API_BASE + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    return res.json();
+}
+
+const app = createApp({
+    setup() {
+        const currentView = ref('list');
+        const loading = ref(true);
+        const loadingSlots = ref(false);
+        const submitting = ref(false);
+        const announcement = ref('');
+
+        // 项目
+        const studios = ref([]);
+        const detailStudio = ref({});
+
+        // 日历
+        const calYear = ref(new Date().getFullYear());
+        const calMonth = ref(new Date().getMonth() + 1);
+        const selectedDate = ref('');
+        const isPackageDay = ref(false);
+        const selectedTimes = ref([]);
+        const bookedSlotsMap = ref({});
+        const bookedDates = ref(new Set());
+        const holidayCache = ref({});
+
+        // 价格预览
+        const pricePreview = ref(null);
+        const peopleCount = ref(1);
+        const photoCount = ref(1);
+        const contactNote = ref('');
+
+        // 我的订单
+        const myOrders = ref([]);
+        const myOrderTab = ref('all');
+        const orderDetailVisible = ref(false);
+        const viewingOrder = ref(null);
+
+        // 退款
+        const refundVisible = ref(false);
+        const refundText = ref('');
+        const refundFile = ref(null);
+
+        // 改期
+        const rescheduleVisible = ref(false);
+        const rescheduleDate = ref(null);
+        const rescheduleTimes = ref([]);
+        const rescheduleBookedMap = ref({});
+        const rescheduleTimeSlots = ref([]);
+
+        // 导航
+        const navTitle = computed(() => {
+            if (currentView.value === 'list') return '🐱 喵喵预约';
+            if (currentView.value === 'detail') return detailStudio.value.title || '项目详情';
+            if (currentView.value === 'myOrders') return '我的订单';
+            return '';
+        });
+
+        // 时段槽
+        const timeSlots = computed(() => {
+            const s = detailStudio.value;
+            if (!s.openTime) return [];
+            const slots = [];
+            const [oh, om] = (s.openTime||'09:00').split(':').map(Number);
+            const [ch, cm] = (s.closeTime||'21:00').split(':').map(Number);
+            const start = oh * 60 + om, end = ch * 60 + cm;
+            const interval = s.timeInterval || 60;
+            for (let t = start; t < end; t += interval) {
+                const hh = String(Math.floor(t/60)).padStart(2,'0');
+                const mm = String(t%60).padStart(2,'0');
+                slots.push(`${hh}:${mm}`);
+            }
+            return slots;
+        });
+
+        const canSubmit = computed(() => {
+            if (!selectedDate.value) return false;
+            if (isPackageDay.value) return !!contactNote.value.trim();
+            return selectedTimes.value.length > 0 && !!contactNote.value.trim();
+        });
+
+        const filteredMyOrders = computed(() => {
+            const active = ['待支付','已付定金','尾款待确认','退款审核中'];
+            if (myOrderTab.value === 'active') return myOrders.value.filter(o => active.includes(o.status));
+            if (myOrderTab.value === 'done') return myOrders.value.filter(o => !active.includes(o.status));
+            return myOrders.value;
+        });
+
+        const rescheduleDateStr = computed(() => {
+            if (!rescheduleDate.value) return '';
+            const d = new Date(rescheduleDate.value);
+            return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        });
+
+        // 日历生成
+        const calDays = computed(() => {
+            const y = calYear.value, m = calMonth.value;
+            const daysInMonth = new Date(y, m, 0).getDate();
+            const firstDow = new Date(y, m-1, 1).getDay();
+            const today = new Date(); today.setHours(0,0,0,0);
+            const todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+            const days = [];
+            for (let i = 0; i < firstDow; i++) days.push({ day:'', key:'empty'+i, dateStr:'', isPast:true, isToday:false, isHoliday:false });
+            for (let d = 1; d <= daysInMonth; d++) {
+                const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const dt = new Date(y, m-1, d);
+                days.push({
+                    day: d, key: ds, dateStr: ds,
+                    isPast: dt < today,
+                    isToday: ds === todayStr,
+                    isHoliday: !!(holidayCache.value[ds] && holidayCache.value[ds].isHoliday),
+                });
+            }
+            return days;
+        });
+
+        function prevMonth() {
+            if (calMonth.value === 1) { calYear.value--; calMonth.value = 12; }
+            else calMonth.value--;
+        }
+        function nextMonth() {
+            if (calMonth.value === 12) { calYear.value++; calMonth.value = 1; }
+            else calMonth.value++;
+        }
+
+        async function selectDate(dateStr) {
+            selectedDate.value = dateStr;
+            selectedTimes.value = [];
+            isPackageDay.value = false;
+            await loadBookedSlots();
+            calcPrice();
+        }
+
+        function toggleTime(t) {
+            const idx = selectedTimes.value.indexOf(t);
+            if (idx >= 0) selectedTimes.value.splice(idx, 1);
+            else selectedTimes.value.push(t);
+            selectedTimes.value.sort();
+            calcPrice();
+        }
+
+        function calcPrice() {
+            const s = detailStudio.value;
+            if (!s || (!selectedTimes.value.length && !isPackageDay.value)) { pricePreview.value = null; return; }
+            const hours = isPackageDay.value ? 999 : selectedTimes.value.length;
+            let unitPrice = s.price || 0;
+            let basePrice = 0;
+
+            if (s.isPackageDay && isPackageDay.value) {
+                unitPrice = s.packagePrice || 0;
+                basePrice = unitPrice;
+            } else if (s.calcMode === 'photo') {
+                unitPrice = getEffPrice(s, selectedDate.value);
+                basePrice = (photoCount.value || s.minPhotos || 1) * unitPrice;
+            } else if (s.calcMode === 'photo_time') {
+                unitPrice = getEffPrice(s, selectedDate.value);
+                basePrice = (photoCount.value || s.minPhotos || 1) * unitPrice;
+            } else {
+                unitPrice = getEffPrice(s, selectedDate.value);
+                if (s.hasDiscount && s.discountRules && s.discountRules.length) {
+                    const sorted = [...s.discountRules].sort((a,b) => b.hours - a.hours);
+                    const m = sorted.find(r => hours >= r.hours);
+                    if (m) unitPrice = m.price;
+                }
+                basePrice = hours * unitPrice;
+            }
+
+            const extraPersons = Math.max(0, peopleCount.value - 1);
+            const extraTotal = extraPersons * (s.extraPersonFee||0) * (s.calcMode==='photo' ? (photoCount.value||1) : (isPackageDay.value ? 1 : hours));
+            const totalPrice = Math.round((basePrice + extraTotal)*100)/100;
+            const depositAmount = Math.round((totalPrice * (s.depositRatio||30) / 100)*100)/100;
+
+            pricePreview.value = {
+                unitPrice: Math.round(unitPrice*100)/100,
+                basePrice: Math.round(basePrice*100)/100,
+                extraPersonFee: Math.round(extraTotal*100)/100,
+                totalPrice,
+                depositAmount,
+                depositRatio: s.depositRatio||30,
+            };
+        }
+
+        function getEffPrice(s, dateStr) {
+            if (s.isHolidayPrice && holidayCache.value[dateStr]?.isHoliday) return s.holidayPrice || s.price || 0;
+            if (s.isHolidayPrice && s.weekdayPrice != null) return s.weekdayPrice;
+            return s.price || 0;
+        }
+
+        async function loadBookedSlots() {
+            if (!selectedDate.value || !detailStudio.value.id) return;
+            loadingSlots.value = true;
+            try {
+                const res = await apiGet(`/booked-times?mId=${M_ID}&date=${selectedDate.value}&studioId=${detailStudio.value.id}`);
+                if (res.code === 0 && res.data) {
+                    bookedSlotsMap.value = res.data.bookedMap || {};
+                }
+            } catch(e) { console.error(e); }
+            loadingSlots.value = false;
+        }
+
+        async function loadStudios() {
+            loading.value = true;
+            try {
+                const [settingsRes, studiosRes] = await Promise.all([
+                    apiGet(`/settings?mId=${M_ID}`),
+                    apiGet(`/studios-lite?mId=${M_ID}`),
+                ]);
+                if (settingsRes.code === 0 && settingsRes.data) {
+                    announcement.value = settingsRes.data.announcement || '';
+                }
+                if (studiosRes.code === 0) studios.value = studiosRes.data || [];
+            } catch(e) { console.error(e); }
+            loading.value = false;
+        }
+
+        async function loadMyOrders() {
+            currentView.value = 'myOrders';
+            try {
+                const res = await apiGet(`/my-orders?mId=${M_ID}&userDeviceId=${DEVICE_ID}`);
+                if (res.code === 0) myOrders.value = res.data || [];
+            } catch(e) { console.error(e); }
+        }
+
+        function openDetail(s) {
+            detailStudio.value = s;
+            selectedDate.value = '';
+            selectedTimes.value = [];
+            isPackageDay.value = false;
+            bookedSlotsMap.value = {};
+            pricePreview.value = null;
+            photoCount.value = s.minPhotos || 1;
+            peopleCount.value = 1;
+            contactNote.value = '';
+            currentView.value = 'detail';
+        }
+
+        function openOrder(o) {
+            viewingOrder.value = o;
+            orderDetailVisible.value = true;
+        }
+
+        function goBack() {
+            if (currentView.value === 'detail') currentView.value = 'list';
+            else if (currentView.value === 'myOrders') currentView.value = 'list';
+        }
+
+        async function submitOrder() {
+            if (!canSubmit.value || submitting.value) return;
+            submitting.value = true;
+            const s = detailStudio.value;
+            const body = {
+                mId: M_ID,
+                studioId: s.id,
+                studioTitle: s.title,
+                serviceMode: s.serviceMode,
+                date: selectedDate.value,
+                times: isPackageDay.value ? timeSlots.value : selectedTimes.value,
+                isPackageOrder: isPackageDay.value,
+                totalPrice: pricePreview.value.totalPrice,
+                depositAmount: pricePreview.value.depositAmount,
+                depositRatio: pricePreview.value.depositRatio,
+                contact: contactNote.value,
+                peopleCount: peopleCount.value,
+                photoCount: photoCount.value,
+                userDeviceId: DEVICE_ID,
+                calcMode: s.calcMode,
+                isHolidayPrice: s.isHolidayPrice || false,
+            };
+            try {
+                const res = await apiPost('/create-order', body);
+                if (res.code === 0) {
+                    alert('预约成功！订单号: ' + res.data.orderNo + '\n请按照提示完成支付~');
+                    currentView.value = 'list';
+                } else {
+                    alert(res.message || '下单失败');
+                }
+            } catch(e) { alert('网络错误'); }
+            submitting.value = false;
+        }
+
+        async function markDepositPaid(o) {
+            try {
+                const res = await apiPost('/update-status', { orderNo: o.orderNo, status: '已付定金', mId: M_ID });
+                if (res.code === 0) { alert('已标记为已付定金'); orderDetailVisible.value = false; loadMyOrders(); }
+                else alert(res.message);
+            } catch(e) { alert('网络错误'); }
+        }
+
+        async function markFinalPaid(o) {
+            try {
+                const res = await apiPost('/update-status', { orderNo: o.orderNo, status: '尾款待确认', mId: M_ID });
+                if (res.code === 0) { alert('已标记尾款待确认'); orderDetailVisible.value = false; loadMyOrders(); }
+                else alert(res.message);
+            } catch(e) { alert('网络错误'); }
+        }
+
+        function showRefundDialog(o) {
+            viewingOrder.value = o;
+            refundText.value = '';
+            refundFile.value = null;
+            refundVisible.value = true;
+        }
+
+        function onRefundImgChange(e) {
+            refundFile.value = e.target.files[0] || null;
+        }
+
+        async function submitRefund() {
+            let imgUrl = '';
+            if (refundFile.value) {
+                const fd = new FormData();
+                fd.append('file', refundFile.value);
+                fd.append('folder', 'refunds');
+                try {
+                    const res = await fetch(API_BASE + '/upload/image', { method: 'POST', body: fd });
+                    const j = await res.json();
+                    if (j.code === 0) imgUrl = j.data.url;
+                } catch(e) {}
+            }
+            try {
+                const res = await apiPost('/apply-cancel', {
+                    orderNo: viewingOrder.value.orderNo,
+                    mId: M_ID,
+                    refundText: refundText.value,
+                    refundImgUrl: imgUrl,
+                });
+                if (res.code === 0) { alert('退款申请已提交'); refundVisible.value = false; orderDetailVisible.value = false; loadMyOrders(); }
+                else alert(res.message);
+            } catch(e) { alert('网络错误'); }
+        }
+
+        function showRescheduleDialog(o) {
+            viewingOrder.value = o;
+            rescheduleDate.value = null;
+            rescheduleTimes.value = [];
+            rescheduleBookedMap.value = {};
+            rescheduleVisible.value = true;
+            rescheduleTimeSlots.value = timeSlots.value;
+        }
+
+        function toggleRescheduleTime(t) {
+            const idx = rescheduleTimes.value.indexOf(t);
+            if (idx >= 0) rescheduleTimes.value.splice(idx, 1);
+            else rescheduleTimes.value.push(t);
+        }
+
+        async function submitReschedule() {
+            try {
+                const res = await apiPost('/reschedule/apply', {
+                    mId: M_ID,
+                    orderNo: viewingOrder.value.orderNo,
+                    oldDate: viewingOrder.value.date,
+                    oldTimes: viewingOrder.value.times || [],
+                    newDate: rescheduleDateStr.value,
+                    newTimes: rescheduleTimes.value,
+                    reason: '',
+                });
+                if (res.code === 0) { alert('改期申请已提交，请等待商家确认'); rescheduleVisible.value = false; orderDetailVisible.value = false; loadMyOrders(); }
+                else alert(res.message);
+            } catch(e) { alert('网络错误'); }
+        }
+
+        function disabledDate(time) {
+            const d = new Date(time); d.setHours(0,0,0,0);
+            return d < new Date(new Date().setHours(0,0,0,0));
+        }
+
+        function calcModeLabel(m) {
+            if (m === 'time') return '按时计费';
+            if (m === 'photo') return '按张计费';
+            if (m === 'photo_time') return '按张+时段';
+            return m;
+        }
+        function statusClass(s) {
+            if (['待支付'].includes(s)) return 'status-pending';
+            if (['已付定金','尾款待确认','退款审核中'].includes(s)) return 'status-deposit';
+            if (['已结清','已完成拍摄'].includes(s)) return 'status-complete';
+            return 'status-cancel';
+        }
+
+        // 节假日加载（带 localStorage 缓存 24h）
+        async function loadHolidays() {
+            const y = calYear.value, m = calMonth.value;
+            const cacheKey = `holiday_${y}_${m}`;
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    if (Date.now() - parsed.ts < 86400000) {
+                        Object.assign(holidayCache.value, parsed.data);
+                        return;
+                    }
+                } catch(e) {}
+            }
+            try {
+                const res = await fetch(`https://timor.news/api/holiday/year/${y}?month=${m}`);
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.code === 0 && json.data && json.data.days) {
+                        const data = {};
+                        json.data.days.forEach(d => {
+                            data[d.date] = { isHoliday: d.isHoliday, tag: d.tag || '' };
+                        });
+                        Object.assign(holidayCache.value, data);
+                        localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data }));
+                    }
+                }
+            } catch(e) {}
+        }
+
+        watch([calYear, calMonth], () => { loadHolidays(); if (currentView.value === 'detail') calcPrice(); });
+        watch([peopleCount, photoCount, isPackageDay, selectedTimes], () => calcPrice());
+
+        onMounted(async () => {
+            if (!M_ID) { document.body.innerHTML = '<div style="text-align:center;padding:60px;color:#888;">缺少商家ID，请联系商家获取正确链接</div>'; return; }
+            await loadHolidays();
+            await loadStudios();
+        });
+
+        return {
+            currentView, navTitle, loading, loadingSlots, submitting, announcement,
+            studios, detailStudio, calYear, calMonth, calDays, selectedDate,
+            isPackageDay, selectedTimes, bookedSlotsMap, bookedDates, holidayCache,
+            timeSlots, pricePreview, peopleCount, photoCount, contactNote, canSubmit,
+            myOrders, myOrderTab, filteredMyOrders, orderDetailVisible, viewingOrder,
+            refundVisible, refundText, refundFile, rescheduleVisible, rescheduleDate,
+            rescheduleTimes, rescheduleBookedMap, rescheduleTimeSlots, rescheduleDateStr,
+            prevMonth, nextMonth, selectDate, toggleTime, openDetail, openOrder, goBack,
+            submitOrder, loadMyOrders, markDepositPaid, markFinalPaid,
+            showRefundDialog, onRefundImgChange, submitRefund,
+            showRescheduleDialog, toggleRescheduleTime, submitReschedule,
+            disabledDate, calcModeLabel, statusClass,
+        };
+    }
+});
+
+app.use(ElementPlus);
+app.mount('#app');
+</script>
+</body>
+</html>

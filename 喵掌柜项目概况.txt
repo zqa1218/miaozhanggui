@@ -1,0 +1,539 @@
+================================================================================
+                      喵掌柜自助下单系统 —— 项目概况
+================================================================================
+
+一、项目概述
+--------------------------------------------------------------------------------
+"喵掌柜"是一个面向摄影/写真行业的在线预约下单平台，支持**双端架构**：
+
+  ● C端（客户端）  — 普通用户浏览摄影项目、选择时段、在线下单预约
+  ● B端（管理后台）— 商户管理项目、查看排期、处理订单、确认收款
+
+项目采用前后端分离的 SPA 架构，部署在单台服务器上。C端和B端共用同一个后端 API 服务，
+前端编译为静态文件后由 Express 统一托管。
+
+核心业务流程：
+  用户浏览工作室 → 选择摄影项目 → 挑选日期和时段 → 填写信息下单
+  → 微信扫码付定金 → 商户后台确认收款 → 锁定时段（hard_lock）
+  → 拍摄完成 → 付尾款 → 订单完成
+
+
+二、技术栈总览
+--------------------------------------------------------------------------------
+
+  层级            技术                                    说明
+  ──────────────────────────────────────────────────────────────────────────
+  后端运行时      Node.js + Express 4                     HTTP 框架
+  数据库          MySQL (utf8mb4)                         主存储，通过 Knex 迁移
+  缓存 / 队列     Redis (ioredis)                        可选，用于缓存和分布式锁
+  实时通信        WebSocket (ws)                          订单状态推送通知
+  认证            JWT (jsonwebtoken + bcryptjs)           双端独立鉴权
+  参数校验        Joi                                      请求体校验
+  文件上传        multer + sharp                           图片上传 + 压缩/缩放
+  日志            winston + morgan                         分级日志输出
+  进程管理        PM2 (cluster 模式)                       多核利用 + 零停机重启
+  部署            Bash 脚本                                git pull → 迁移 → 构建 → reload
+  ──────────────────────────────────────────────────────────────────────────
+  前端框架        Vue 3 (Composition API)                  SPA 应用
+  构建工具        Vite 5                                   极速开发/HMR
+  UI 组件库       Element Plus                             企业级 UI 组件
+  状态管理        Pinia                                    响应式 store
+  路由            Vue Router 4                             SPA 路由 + 导航守卫
+  HTTP 请求       原生 fetch (自定义适配器模式)             便于移植到小程序
+  样式预处理      SCSS (sass)                              全局主题 + Element 覆盖
+  ──────────────────────────────────────────────────────────────────────────
+  数据库工具      Knex.js                                  SQL 查询构建器 + 迁移
+  安全            helmet + cors + express-rate-limit       HTTP 头安全 + 跨域 + 限流
+  Excel           xlsx 库                                   订单导入导出
+
+
+三、项目目录结构
+--------------------------------------------------------------------------------
+
+miaozhanggui.xyz/
+│
+├── .env                          # 环境变量（MySQL/Redis/JWT/上传/CORS/微信）
+├── .env.example                  # 环境变量模板
+├── package.json                  # 后端依赖声明
+├── ecosystem.config.js           # PM2 cluster 模式配置
+├── knexfile.js                   # Knex 数据库连接配置（dev/prod）
+├── deploy.sh                     # 一键部署脚本（5步：pull→install→migrate→build→reload）
+│
+├── database/
+│   └── migrations/               # 34个数据库迁移文件（详见第六节）
+│
+├── src/                          # ★ 后端源码
+│   ├── server.js                 # 启动入口：连接DB/Redis → 启动HTTP → 挂载WebSocket
+│   ├── app.js                    # Express 应用装配：中间件 → 路由 → 静态文件 → 错误处理
+│   │
+│   ├── config/
+│   │   ├── index.js              # 从 .env 读取全部配置并导出
+│   │   └── constants.js          # 业务枚举（订单状态/计费模式/错误码等）
+│   │
+│   ├── middlewares/              # 中间件层（8个）
+│   │   ├── auth.js               # JWT 管理端鉴权（Bearer Token）
+│   │   ├── clientAuth.js         # JWT 客户端鉴权
+│   │   ├── optionalClientAuth.js # 可选客户端鉴权（登录非必须）
+│   │   ├── adminAuth.js          # 超级管理员鉴权
+│   │   ├── deviceId.js           # 设备ID提取（未登录用户的身份标识）
+│   │   ├── validator.js          # Joi 校验中间件工厂
+│   │   ├── rateLimiter.js        # 内存限流器
+│   │   └── errorHandler.js       # 全局错误捕获（区分 AppError / 未知错误）
+│   │
+│   ├── routes/
+│   │   └── index.js              # 路由注册中心，汇总所有模块路由到 /api
+│   │
+│   ├── modules/                  # ★ 业务模块（13个，每个含 routes/controller/service/repository/validator）
+│   │   ├── admin/                # 超级管理后台（Dashboard/用户审核）
+│   │   ├── client-auth/          # C端用户认证（微信/QQ OAuth登录）
+│   │   ├── merchant/             # 商户模块（注册/登录/个人资料/密码）
+│   │   ├── studio/               # 摄影项目模块（CRUD/列表/搜索）
+│   │   ├── style/                # 预设样式模块（套餐/附加项管理）
+│   │   ├── order/                # ★ 核心订单模块（创建/状态机/导入导出/时段冲突检测）
+│   │   ├── schedule/             # 排期管理（营业时间/不可接单时段/排期导入导出）
+│   │   ├── refund/               # 退款处理
+│   │   ├── reschedule/           # 改期申请与审批
+│   │   ├── settings/             # 商户设置（公告/收款码/营业模式）
+│   │   ├── log/                  # 操作日志记录与查询
+│   │   ├── notification/         # 消息通知（WebSocket推送 + 站内消息）
+│   │   └── upload/               # 文件上传（图片压缩 + 路径管理）
+│   │
+│   └── shared/                   # ★ 共享基础设施
+│       ├── database/knex.js      # MySQL 连接池（Knex 单例）
+│       ├── redis/client.js       # Redis 连接（ioredis 单例，可选启用）
+│       ├── logger/index.js       # Winston 日志器
+│       ├── errors/
+│       │   ├── AppError.js       # 自定义业务错误类（含错误码+HTTP状态码）
+│       │   └── errorCodes.js     # 错误码 → 中文消息映射表
+│       ├── utils/
+│       │   ├── response.js       # 统一响应格式 { success, data, message }
+│       │   ├── orderNo.js        # 订单号生成器
+│       │   ├── dateHelper.js     # 日期工具（时区/格式化/时间段展开）
+│       │   ├── priceEngine.js    # ★ 价格计算引擎（时间/张数/包天/节假日/折扣）
+│       │   ├── timeCollisionEngine.js # ★ 时段碰撞检测（并发安全，含行级锁）
+│       │   └── excelHelper.js    # Excel 导入导出（xlsx 库）
+│       ├── storage/              # 文件存储抽象层
+│       │   ├── index.js          # 按配置选择后端
+│       │   ├── local.js          # 本地磁盘存储
+│       │   └── oss.js            # 阿里云 OSS（预留）
+│       └── websocket/index.js    # WebSocket 通知服务（用户/商家双通道推送）
+│
+├── frontend/                     # ★ 前端源码
+│   ├── package.json              # Vue 3 + Element Plus + Pinia + Vue Router
+│   ├── vite.config.js            # Vite 配置 + API 代理 + SCSS 全局注入 + @ 别名
+│   ├── index.html                # SPA 入口 HTML
+│   ├── dist/                     # 构建产物（Express 直接托管）
+│   │
+│   └── src/
+│       ├── main.js               # Vue 应用入口（挂载 Pinia/Router/ElementPlus）
+│       ├── App.vue               # 根组件（主题CSS + 路由视图 + 过渡动画）
+│       │
+│       ├── api/                  # ★ API 调用层（16个文件，一一对应后端模块）
+│       │   ├── bookingApi.js     # 预约/锁定相关
+│       │   ├── order.js          # 订单（创建/支付/状态机/导入导出）
+│       │   ├── merchant.js       # 商户认证
+│       │   ├── studio.js / studioApi.js  # 摄影项目
+│       │   ├── style.js / styleApi.js    # 预设样式
+│       │   ├── schedule.js       # 排期/时段
+│       │   ├── refund.js         # 退款
+│       │   ├── reschedule.js     # 改期
+│       │   ├── settings.js       # 设置
+│       │   ├── log.js            # 操作日志
+│       │   ├── notification.js   # 通知
+│       │   ├── upload.js         # 文件上传
+│       │   └── adminApi.js       # 超管功能
+│       │
+│       ├── stores/               # ★ Pinia 状态管理（10个 Store）
+│       │   ├── auth.js           # 管理端认证（token/mId/shopName）
+│       │   ├── clientAuth.js     # C端认证（OAuth + JWT）
+│       │   ├── booking.js        # 预约流程状态（时段/锁状态）
+│       │   ├── order.js          # 订单列表/筛选
+│       │   ├── schedule.js       # 排期日历/占用/不可用
+│       │   ├── studio.js         # 摄影项目列表
+│       │   ├── studioCreate.js   # 项目创建向导状态
+│       │   ├── style.js          # 预设样式
+│       │   ├── settings.js       # 商户设置
+│       │   ├── wizardB.js        # B端创建向导（Window B）
+│       │   └── wizardC.js        # C端下单向导（Window C）
+│       │
+│       ├── router/index.js       # ★ 路由配置（双端路由 + 导航守卫）
+│       │
+│       ├── layouts/              # 布局组件
+│       │   ├── AdminLayout.vue   # B端后台布局（侧边栏 + 顶栏）
+│       │   └── ClientLayout.vue  # C端前台布局（顶部导航 + 底部栏）
+│       │
+│       ├── views/                # ★ 页面视图（约35个 .vue 文件）
+│       │   ├── admin/            # B端管理页面（21个页面）
+│       │   │   ├── OrderManagement.vue  # ★ 订单管理主页面
+│       │   │   ├── LoginView.vue        # 管理端登录
+│       │   │   ├── DashboardView.vue    # 商户仪表盘
+│       │   │   ├── SuperAdminDashboard.vue # 超级管理员仪表盘
+│       │   │   ├── StudiosView.vue / StylesView.vue  # 项目/样式管理
+│       │   │   ├── StudioCreateStep1/2/3.vue         # 三步创建项目向导
+│       │   │   ├── EditStudio.vue          # 编辑项目
+│       │   │   ├── ScheduleView.vue        # 排期管理
+│       │   │   ├── Window_B_Step1/2/3.vue  # B端创建流程
+│       │   │   ├── Window_B_Style_Create.vue # 样式创建
+│       │   │   ├── SettingsView.vue        # 设置页
+│       │   │   ├── NotificationsView.vue   # 通知列表
+│       │   │   ├── LogsView.vue            # 操作日志
+│       │   │   ├── ProfileView.vue         # 个人资料
+│       │   │   └── OrdersView.vue          # 订单查看
+│       │   │
+│       │   ├── client/           # C端用户页面（9个页面）
+│       │   │   ├── HomeView.vue          # 首页
+│       │   │   ├── StudioDetailView.vue  # 项目详情
+│       │   │   ├── Window_C_Step1.vue    # 下单第一步（选日期时段）
+│       │   │   ├── Window_C_Step2.vue    # 下单第二步（填信息确认）
+│       │   │   ├── MyOrdersView.vue      # 我的订单列表
+│       │   │   ├── OrderDetailView.vue   # 订单详情
+│       │   │   ├── LoginView.vue         # C端登录
+│       │   │   ├── BookingStep1/2.vue    # 预约步骤
+│       │   │
+│       │   ├── studio/           # 工作室列表页（复用 B/C 端）
+│       │   │   ├── StudioList.vue
+│       │   │   └── StudioDetail.vue
+│       │   ├── style/
+│       │   │   └── StyleList.vue
+│       │   └── NotFoundView.vue  # 404 页面
+│       │
+│       ├── components/           # 可复用组件
+│       │   ├── admin/
+│       │   │   └── CalendarGrid.vue          # 排期日历网格
+│       │   ├── client/
+│       │   │   ├── CalendarPicker.vue        # 日期选择器
+│       │   │   └── FlexibleTimelinePicker.vue # 灵活时段选择
+│       │   └── shared/
+│       │       ├── StepIndicator.vue         # 步骤指示器
+│       │       ├── OpenDateSelector.vue      # 开放日期选择
+│       │       ├── DeclarationDialog.vue     # 免责声明弹窗
+│       │       ├── ExtraItemsEditor.vue      # 附加项目编辑器
+│       │       └── RefreshButton.vue         # 刷新按钮
+│       │
+│       ├── composables/          # Vue 组合式函数
+│       │   ├── useBookingEngine.js  # 预约逻辑复用
+│       │   └── useRefreshBus.js     # 跨组件刷新总线
+│       │
+│       ├── utils/                # 前端工具函数
+│       │   ├── http.js           # ★ HTTP 请求适配器（统一 fetch 封装，含 401 拦截）
+│       │   ├── storage.js        # 存储适配器（localStorage → 未来可切为 wx.storage）
+│       │   ├── durationCalc.js   # 时长计算
+│       │   ├── extraItems.js     # 附加项目工具
+│       │   ├── openDates.js      # 开放日期工具
+│       │   └── validateFile.js   # 文件校验
+│       │
+│       └── assets/styles/        # 全局样式
+│           ├── theme.css         # 主题 CSS 变量
+│           ├── global.css        # 全局样式
+│           └── element-override.scss  # Element Plus 样式覆盖
+│
+├── uploads/                      # 上传文件存储目录
+│   ├── covers/                   # 项目封面图
+│   ├── details/                  # 项目详情图
+│   └── qrcodes/                  # 收款码图片
+│
+├── logs/                         # 运行日志
+├── scripts/                      # 脚本（init-db, seed 等）
+├── dist/                         # 旧版构建产物
+└── node_modules/                 # 后端依赖
+
+
+四、后端架构详解
+--------------------------------------------------------------------------------
+
+【架构模式】三层架构 + 模块化
+  每个业务模块内部遵循统一模式：
+    routes.js     → 路由定义 + 中间件链
+    controller.js → 请求处理（薄层，只做参数提取和响应返回）
+    service.js    → 业务逻辑（核心，可跨模块调用）
+    repository.js → 数据库访问（SQL 操作封装）
+    validator.js  → Joi 校验规则
+
+【API 路由表】（全部挂载于 /api 下）
+
+  模块         路由前缀/端点                            鉴权      说明
+  ──────────────────────────────────────────────────────────────────────────
+  health       GET  /api/health                        公开      健康检查
+  merchant     POST /api/register                      公开      商户注册
+               POST /api/login                         公开      商户登录
+               GET  /api/merchants-public              公开      商户公共列表
+               GET  /api/profile                       管理端    获取资料
+               PUT  /api/profile                       管理端    更新资料
+               POST /api/change-password               管理端    修改密码
+  client-auth  POST /api/client/auth/login             公开      C端OAuth登录
+  studio       GET  /api/studios-lite                  公开      项目简要列表
+               GET  /api/studios                       管理端    项目完整列表
+               POST /api/add-studio                    管理端    创建项目
+               POST /api/edit-studio                   管理端    编辑项目
+               POST /api/delete-studio                 管理端    删除项目
+  order        POST /api/create-order                  C端       创建订单(V1兼容)
+               POST /api/create-order-v2               C端       创建订单(V2精确)
+               GET  /api/my-orders                     C端       我的订单
+               GET  /api/orders                        管理端    订单列表
+               GET  /api/order-detail                  公开      订单详情
+               GET  /api/order-stats                   管理端    今日统计
+               POST /api/pay-deposit                   C端       支付定金
+               POST /api/pay-final                     C端       支付尾款
+               POST /api/order/confirm-lock            管理端    确认锁定(二重锁)
+               POST /api/order/confirm-deposit         管理端    确认收到定金
+               POST /api/order/confirm-completed       管理端    确认结清
+               POST /api/order/mark-fulfilled          管理端    标记服务完成
+               POST /api/order/confirm-settled         管理端    确认尾款结清
+               POST /api/order/request-reschedule      C端       申请改期
+               POST /api/order/approve-reschedule      管理端    同意改期
+               POST /api/order/reject-reschedule       管理端    拒绝改期
+               POST /api/order/request-cancel          C端       申请取消
+               POST /api/order/approve-cancel          管理端    同意取消
+               POST /api/order/reject-cancel           管理端    拒绝取消
+               POST /api/order/restore                 管理端    恢复已取消订单
+               POST /api/order/delete                  管理端    永久删除订单
+               POST /api/update-status                 管理端    更新订单状态
+               POST /api/archive-order                 管理端    归档订单
+               GET  /api/booked-times-v2               公开      查询已占用时段
+               GET  /api/order/import-template         管理端    下载导入模板
+               GET  /api/order/export                  管理端    导出Excel
+               POST /api/order/import                  管理端    批量导入
+               POST /api/order/clear-completed         管理端    清除已完成订单
+  schedule     (排期相关路由)                           管理端    排期CRUD
+  refund       (退款相关路由)                           管理端    退款处理
+  reschedule   (改期相关路由)                           管理端    改期管理
+  settings     GET/POST /api/settings/*                管理端    商户设置
+  notification GET  /api/notifications                 管理端    通知列表
+               GET  /api/notifications/unread          管理端    未读计数
+               POST /api/notifications/mark-read       管理端    已读标记
+               GET  /api/user-notifications            公开      用户版通知
+  log          GET  /api/logs                          管理端    日志列表
+               POST /api/logs                          管理端    添加日志
+               POST /api/clear-logs                    管理端    清除日志
+  upload       POST /api/upload/*                      管理端    文件上传
+  style        GET/POST /api/styles/*                  管理端    预设样式管理
+  admin        GET/POST /api/admin/*                   超管      超管功能
+
+【核心设计模式】
+
+  1. 统一响应格式
+     所有 API 返回 { success: boolean, data: any, message: string }
+     通过 res.rh.success() / res.rh.fail() / res.rh.error() 统一输出
+
+  2. 业务错误类 (AppError)
+     携带错误码 + HTTP 状态码 + isOperational 标记
+     全局错误处理中间件区分 业务错误(4xx) / 未知错误(5xx)
+
+  3. 二重锁机制（防超卖核心）
+     第一重 pre_lock：用户支付定金后自动锁定时段（软锁）
+     第二重 hard_lock：商户后台确认后转为硬锁（只有 hard_lock 才真正占位）
+     配合 timeCollisionEngine 的行级锁 (SELECT FOR UPDATE) 防止并发冲突
+
+  4. 价格计算引擎 (priceEngine.js)
+     纯函数，零副作用，支持四种计费模式：
+       time       — 按时段时长计费
+       photo      — 按拍摄张数计费
+       photo_time — 按张数+时段计费
+       包天        — 固定包天价格
+     功能：节假日溢价 / 多时段阶梯折扣 / 额外人数费 / 定金比例
+
+  5. 时段碰撞检测引擎 (timeCollisionEngine.js)
+     计算总服务时长 = 基础拍摄 + 模特加时 + 间隔休息
+     闭合时间段重叠检测
+     支持事务内行级锁（防止并发插入重叠预订）
+
+  6. 状态机（订单生命周期）
+     待支付 → 已付定金 → 尾款待确认 → 已结清 → 已完成拍摄
+     任意状态可发起：改期申请 / 取消申请 → 审批 → 执行
+     支持：恢复已取消订单 / 永久删除已取消订单
+
+
+五、前端架构详解
+--------------------------------------------------------------------------------
+
+【设计原则】
+  ● 适配器模式：所有 HTTP 请求通过 utils/http.js 发出，API 层不直接依赖 axios，
+    便于未来移植到微信小程序（替换为 wx.request）
+  ● 存储抽象层：所有本地持久化通过 utils/storage.js，可一键切换后端存储
+  ● 组件/页面分离：views/ 存放路由页面（厚组件），components/ 存放可复用组件
+  ● 业务逻辑外置：composables/ 存放可复用的响应式逻辑
+
+【路由设计】
+  双端路由，两个主布局：
+
+  C端（ClientLayout）：
+    /                         → 重定向到 /studios
+    /studios                  → 工作室列表
+    /studios/:id              → 工作室详情
+    /styles                   → 样式列表
+    /booking/:studioId        → 下单步骤1
+    /booking/:studioId/step2  → 下单步骤2
+    /my-orders                → 我的订单
+    /my-orders/:id            → 订单详情
+    /login                    → C端登录（独立布局）
+
+  B端（AdminLayout）：
+    /admin                    → 重定向到 /admin/orders
+    /admin/login              → 管理端登录
+    /admin/orders             → 订单管理 ★
+    /admin/studios            → 项目管理
+    /admin/styles             → 预设管理
+    /admin/studio/create/*    → 三步创建项目
+    /admin/studio/edit/:id    → 编辑项目
+    /admin/schedule           → 排期管理
+    /admin/settings           → 设置
+    /admin/notifications      → 通知
+    /admin/logs               → 操作日志
+    /admin/dashboard          → 超级管理员面板
+
+  全局导航守卫：
+    ● B端需要鉴权的路由 → 无 Token 跳转到 /admin/login
+    ● C端需要登录的路由 → 无 Token 跳转到 /login?redirect=xxx
+    ● B端已登录访问登录页 → 直接跳转到 /admin/orders
+
+【状态管理 (Pinia Stores)】
+
+  auth.js          — 管理端认证状态（token, mId, shopName）
+  clientAuth.js    — C端认证状态（OAuth + JWT Token）
+  booking.js       — 预约流程（可用时段、锁状态、联系方式）
+  order.js         — 订单管理（列表、筛选、统计）
+  schedule.js      — 排期管理（日历、已预订、不可用时段）
+  studio.js        — 摄影项目列表
+  studioCreate.js  — 项目创建向导（多步表单状态）
+  style.js         — 预设样式管理
+  settings.js      — 商户设置
+  wizardB.js       — B端多步向导
+  wizardC.js       — C端下单向导
+
+【UI 组件设计】
+  ● Element Plus 作为基础组件库
+  ● 自定义组件：
+    CalendarGrid.vue            — B端排期日历（可拖选不可用时段）
+    CalendarPicker.vue          — C端日期选择器
+    FlexibleTimelinePicker.vue  — 灵活时段选择（支持多个不连续时段）
+    StepIndicator.vue           — 步骤进度条
+    DeclarationDialog.vue       — 免责声明确认弹窗
+    ExtraItemsEditor.vue        — 附加项目编辑器（动态增删）
+    OpenDateSelector.vue        — 开放日期范围选择
+    RefreshButton.vue           — 全局刷新按钮（防抖+loading）
+
+
+六、数据库设计
+--------------------------------------------------------------------------------
+
+数据库名称：miaozhanggui
+字符集：utf8mb4
+
+迁移文件（共34个）：
+
+  #   文件名                              对应表/操作
+  ──────────────────────────────────────────────────────────────────────────
+  001 001_create_merchants                merchants（商户表）
+  002 002_create_studios                  studios（摄影项目表）
+  003 003_create_orders                   orders（订单表）
+  004 004_create_slot_bookings            slot_bookings（时段预订表）
+  005 005_create_unavailable_slots        unavailable_slots（不可用时段表）
+  006 006_create_reschedule_requests      reschedule_requests（改期申请表）
+  007 007_create_operation_logs           operation_logs（操作日志表）
+  008 008_create_notifications            notifications（通知表）
+  009 009_add_reject_reason               orders 增加拒绝原因字段
+  010 010_add_dual_qrcode                 merchants 增加定金/尾款双收款码
+  011 011_create_schedule_excel_imports   排期 Excel 导入记录表
+  012 012_rename_merchant_id_column       merchant_id → m_id 重命名
+  013 013_add_missing_indexes             补建缺失索引
+  014 014_add_end_time_fields             orders/slot_bookings 增加结束时间
+  015 015_add_time_end_to_unique_constraints 唯一约束包含 time_end
+  016 016_add_original_status             订单原始状态字段
+  017 017_create_styles_and_alter_studios  styles表 + studios 扩展
+  018 018_create_studio_relations          studio_relations / studio_availabilities
+  019 019_alter_slot_bookings_v2          slot_bookings 改为高精度时间
+  020 020_alter_orders_v2                 orders 增加字段（V2 数据结构）
+  021 021_drop_deprecated_columns         清理废弃列
+  022 022_fix_is_deleted_not_null         studios 软删除修复
+  023 023_restore_prematurely_dropped_columns 恢复过早删除的列
+  024 024_create_style_packages           style_packages（样式套餐表）
+  025 025_add_payment_qrcode_to_merchants merchants 增加支付收款码
+  026 026_add_declaration_to_merchants    merchants 增加免责声明
+  027 026_add_order_status_fields         orders 增加状态机字段
+  028 027_add_contact_fields              orders 增加联系方式字段
+  029 027_add_is_studio_owner_to_merchants merchants 增加工作室所有权
+  030 028_add_package_session_count       style_packages 增加场次数字段
+  031 029_create_style_additional_items   style_additional_items（附加项目表）
+  032 030_add_addon_fields_to_orders      orders 增加附加项
+  033 031_add_extra_items_to_studios      studios 增加额外项目
+  034 032_add_extra_items_to_orders       orders 增加额外项目
+  035 033_create_users                    users（C端用户表）
+  036 034_create_invitation_codes         invitation_codes（邀请码表）
+
+核心表关系：
+  merchants (1) ──── (N) studios         一个商户有多个摄影项目
+  merchants (1) ──── (N) orders          一个商户有多个订单
+  studios   (1) ──── (N) orders          一个项目有多个订单
+  orders    (1) ──── (N) slot_bookings   一个订单占用多个时段（每时段一条记录）
+  studios   (1) ──── (N) slot_bookings   一个项目的时段被多笔订单占用
+  studios   (1) ──── (N) unavailable_slots 一个项目有多个不可用时段
+  orders    (1) ──── (N) reschedule_requests 一个订单可多次申请改期
+  styles    (1) ──── (N) style_packages  一个样式有多个套餐
+  styles    (1) ──── (N) style_additional_items 一个样式有多个附加项
+
+
+七、部署与运维
+--------------------------------------------------------------------------------
+
+【部署流程】(deploy.sh)
+  1. git pull origin main             拉取最新代码
+  2. npm ci                           安装后端依赖
+  3. npx knex migrate:latest          执行数据库迁移（production 环境）
+  4. cd frontend && npm ci && build   安装前端依赖并构建
+  5. pm2 reload ecosystem.config.js   零停机重启服务
+
+【PM2 配置】
+  ● 进程名：miaozhanggui-api
+  ● 模式：cluster（多核利用）
+  ● 实例数：max（自动检测 CPU 核数）
+  ● 零停机：wait_ready + listen_timeout
+  ● 日志：./logs/pm2-error.log / ./logs/pm2-out.log
+
+【环境变量】
+  服务器配置    — NODE_ENV, PORT, HOST
+  MySQL         — MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
+  Redis         — REDIS_HOST, REDIS_PORT, REDIS_PASSWORD（可选）
+  JWT           — JWT_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN
+  文件上传      — UPLOAD_DIR, MAX_FILE_SIZE
+  CORS          — CORS_ORIGINS（逗号分隔白名单）
+  微信          — WECHAT_APPID, WECHAT_SECRET, WECHAT_MCHID, WECHAT_API_KEY
+
+【启动命令】
+  ● 开发：npm run dev (nodemon 热重载)
+  ● 生产：npm run prod (PM2 cluster)
+  ● 迁移：npm run migrate
+  ● 前端开发：cd frontend && npm run dev (Vite HMR, 端口 5173, 代理 /api → 3000)
+
+
+八、关键特性总结
+--------------------------------------------------------------------------------
+
+  1. 双端架构        — C端（用户下单）+ B端（商户管理），共享后端 API
+  2. 订单状态机      — 完整生命周期管理（待支付→已付定金→已结清→已完成）
+  3. 二重锁机制      — 防超卖的 pre_lock + hard_lock 双层时段锁定
+  4. 时段碰撞检测    — 闭合区间重叠检测 + 数据库行级锁(SELECT FOR UPDATE)
+  5. 多模式计价      — time/photo/photo_time/包天，含节假日+阶梯折扣
+  6. 改期/取消审批   — C端发起申请 → B端审批 → 自动更新时段
+  7. Excel 导入导出  — 订单和排期支持批量导入导出
+  8. WebSocket 推送  — 订单状态变更实时通知商家和用户
+  9. 邀请码注册      — 关闭公开注册，仅通过邀请码创建商户
+  10. OAuth 登录     — C端支持微信/QQ第三方登录
+  11. 适配器模式     — 前端 HTTP/Storage 层抽象，便于移植小程序
+  12. 零停机部署     — PM2 cluster + reload 实现无缝更新
+
+
+九、开发服务器访问地址
+--------------------------------------------------------------------------------
+
+  ● 生产环境：   https://miazhanggui.xyz
+  ● API 地址：   https://miazhanggui.xyz/api
+  ● 健康检查：   GET /api/health
+  ● WebSocket：  wss://miazhanggui.xyz/ws?token=<jwt>
+  ● 前端开发：   http://localhost:5173 (Vite dev server)
+  ● 后端开发：   http://localhost:3000 (Express)
+
+
+================================================================================
+  文档生成时间：2026-07-02
+  项目最新提交：b6f1aed - 停止注册，启用邀请码注册，更改了一些接单逻辑
+================================================================================

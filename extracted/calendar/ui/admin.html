@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>喵喵自助下单后台nya～</title>
+    <script src="https://cdn.staticfile.org/vue/3.4.21/vue.global.prod.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/element-plus/2.6.1/index.min.css" />
+    <script src="https://cdn.staticfile.org/element-plus/2.6.1/index.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --ios-bg: #f5f5f7; --ios-card: #ffffff; --ios-border: #e5e5ea;
+            --ios-text: #1d1d1f; --ios-sub: #6e6e73; --ios-blue: #0a84ff;
+            --ios-green: #34c759; --ios-orange: #ff9f0a; --ios-red: #ff3b30;
+        }
+        [v-cloak] { display: none !important; }
+        * { box-sizing: border-box; }
+        body {
+            background: linear-gradient(180deg, #f8f9fb 0%, #f3f4f8 100%);
+            margin: 0; padding: 20px; color: var(--ios-text);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+        }
+        .dashboard {
+            max-width: 1220px; margin: 0 auto; background: #fff; padding: 18px;
+            border-radius: 22px; border: 1px solid var(--ios-border); box-shadow: 0 10px 24px rgba(0,0,0,.05);
+        }
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px; gap: 10px; flex-wrap: wrap;
+            background: #ffffffcc; backdrop-filter: blur(12px);
+            border: 1px solid #ececf1; border-radius: 16px; padding: 14px;
+        }
+        .header-title { font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .login-box {
+            max-width: 420px; margin: 80px auto; background: #fff; padding: 36px 28px;
+            border-radius: 22px; border: 1px solid var(--ios-border); box-shadow: 0 10px 24px rgba(0,0,0,.05);
+        }
+        .login-box h2 { text-align: center; margin-bottom: 24px; font-size: 22px; }
+
+        .order-card {
+            margin-bottom: 12px; border-left: 4px solid var(--ios-blue);
+            border-radius: 14px; border: 1px solid var(--ios-border); background: #fff; padding: 14px;
+        }
+        .order-card.refunding { border-left-color: var(--ios-orange); }
+        .order-card.completed { border-left-color: var(--ios-green); }
+        .order-card.cancelled { border-left-color: #ccc; }
+
+        .section-box {
+            background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 14px;
+            border: 1px solid var(--ios-border); box-shadow: 0 8px 20px rgba(0,0,0,.03);
+        }
+        .section-box h3 { margin: 0 0 12px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+
+        .tag {
+            display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600;
+        }
+        .tag-blue { background: #e8f4fd; color: #0a84ff; }
+        .tag-green { background: #e8f8ed; color: #34c759; }
+        .tag-orange { background: #fff3e0; color: #ff9500; }
+        .tag-red { background: #ffeaea; color: #ff3b30; }
+        .tag-gray { background: #f1f1f1; color: #888; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        @media(max-width:768px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+
+        .unread-badge {
+            position: absolute; top: -6px; right: -6px;
+            background: var(--ios-red); color: #fff; font-size: 10px;
+            width: 18px; height: 18px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-weight: 700;
+        }
+        .tab-nav {
+            display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap;
+            background: #f0f2f5; border-radius: 12px; padding: 4px;
+        }
+        .tab-nav span {
+            padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+            cursor: pointer; color: var(--ios-sub); transition: .2s;
+        }
+        .tab-nav span.active { background: #fff; color: var(--ios-text); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+
+        .time-grid-admin {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+        }
+        .time-chip-admin {
+            padding: 6px 12px; border-radius: 14px; font-size: 12px;
+            border: 1px solid var(--ios-border); cursor: pointer; transition: .2s;
+            background: #fff; color: var(--ios-text);
+        }
+        .time-chip-admin.disabled { background: #ffebeb; border-color: #ffcccc; color: #cc0000; }
+        .time-chip-admin:not(.disabled):hover { background: #e8f4fd; }
+
+        .stat-card {
+            text-align: center; padding: 14px; border-radius: 14px;
+            background: #f9fafb; border: 1px solid #ececf1;
+        }
+        .stat-card .num { font-size: 28px; font-weight: 700; }
+        .stat-card .lbl { font-size: 12px; color: var(--ios-sub); margin-top: 4px; }
+
+        .el-overlay { z-index: 2000 !important; }
+
+        /* ===== Excel 导入导出专用样式 ===== */
+        .excel-section {
+            margin-top: 16px;
+            border-top: 2px dashed #e5e5ea;
+            padding-top: 16px;
+        }
+        .excel-upload-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .excel-upload-area .file-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 10px;
+            border: 1px solid var(--ios-blue);
+            color: var(--ios-blue);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: .2s;
+            background: #e8f4fd;
+        }
+        .excel-upload-area .file-label:hover {
+            background: var(--ios-blue);
+            color: #fff;
+        }
+        .excel-upload-area .file-label input {
+            display: none;
+        }
+        .excel-result-box {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-top: 8px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .excel-result-box .err-item {
+            color: var(--ios-red);
+            font-size: 12px;
+        }
+        .batch-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid #f0f2f5;
+            cursor: pointer;
+            transition: .15s;
+        }
+        .batch-row:hover {
+            background: #f8f9fb;
+        }
+        .batch-row:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+<div id="app" v-cloak>
+    <!-- ========== 未登录 ========== -->
+    <div class="login-box" v-if="!isLoggedIn">
+        <h2>🐱 喵掌柜后台</h2>
+        <el-tabs v-model="loginTab" stretch>
+            <el-tab-pane label="登录" name="login"></el-tab-pane>
+            <el-tab-pane label="注册" name="register"></el-tab-pane>
+        </el-tabs>
+        <template v-if="loginTab === 'login'">
+            <el-input v-model="loginForm.username" placeholder="账号" style="margin-bottom:12px;" clearable></el-input>
+            <el-input v-model="loginForm.password" type="password" placeholder="密码" show-password
+                      style="margin-bottom:12px;" @keyup.enter="doLogin"></el-input>
+            <el-button type="primary" style="width:100%;" @click="doLogin" :loading="loginLoading">登录</el-button>
+        </template>
+        <template v-else>
+            <el-input v-model="regForm.shopName" placeholder="店铺名称" style="margin-bottom:12px;" clearable></el-input>
+            <el-input v-model="regForm.username" placeholder="账号(3-32字符)" style="margin-bottom:12px;" clearable></el-input>
+            <el-input v-model="regForm.password" type="password" placeholder="密码(6-64字符)" show-password
+                      style="margin-bottom:12px;"></el-input>
+            <el-button type="success" style="width:100%;" @click="doRegister" :loading="regLoading">注册入驻</el-button>
+        </template>
+        <p style="margin-top:16px;font-size:12px;color:#8e8e93;text-align:center;">
+            注册后将获得商家ID，请妥善保存
+        </p>
+    </div>
+
+    <!-- ========== 已登录：主面板 ========== -->
+    <div class="dashboard" v-else>
+        <!-- 顶部 -->
+        <div class="header">
+            <div class="header-title">🐱 {{ shopName || '喵掌柜后台' }}</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span style="font-size:12px;color:#8e8e93;">ID: {{ mId }}</span>
+                <el-badge :value="unreadCount" :hidden="unreadCount===0" :max="99">
+                    <el-button size="small" @click="openNotifications" circle>
+                        <i class="fa-solid fa-bell"></i>
+                    </el-button>
+                </el-badge>
+                <el-button size="small" @click="doLogout">退出</el-button>
+            </div>
+        </div>
+
+        <!-- Tab 切换 -->
+        <div class="tab-nav">
+            <span :class="{ active: currentTab==='orders' }" @click="switchTab('orders')">📋 订单管理</span>
+            <span :class="{ active: currentTab==='studios' }" @click="switchTab('studios')">📦 项目管理</span>
+            <span :class="{ active: currentTab==='schedule' }" @click="switchTab('schedule')">📅 排期设置</span>
+            <span :class="{ active: currentTab==='reschedule' }" @click="switchTab('reschedule')">🔄 改期审核</span>
+            <span :class="{ active: currentTab==='settings' }" @click="switchTab('settings')">⚙️ 设置</span>
+            <span :class="{ active: currentTab==='logs' }" @click="switchTab('logs')">📝 日志</span>
+        </div>
+
+        <!-- ===== 订单管理 ===== -->
+        <div v-if="currentTab==='orders'">
+            <!-- 统计 -->
+            <div class="grid-3" style="margin-bottom:14px;">
+                <div class="stat-card"><div class="num" style="color:var(--ios-blue);">{{ orderStats.active }}</div><div class="lbl">进行中</div></div>
+                <div class="stat-card"><div class="num" style="color:var(--ios-orange);">{{ orderStats.refunding }}</div><div class="lbl">退款审核</div></div>
+                <div class="stat-card"><div class="num" style="color:var(--ios-green);">{{ orderStats.completed }}</div><div class="lbl">已完成</div></div>
+            </div>
+            <!-- 筛选 -->
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+                <el-select v-model="orderFilter.status" placeholder="状态筛选" clearable size="small" style="width:140px;">
+                    <el-option v-for="s in allStatuses" :key="s" :label="s" :value="s"></el-option>
+                </el-select>
+                <el-date-picker v-model="orderFilter.date" type="date" placeholder="按日期" size="small"
+                                value-format="YYYY-MM-DD" style="width:150px;"></el-date-picker>
+                <el-input v-model="orderFilter.search" placeholder="搜索订单号/联系方式" size="small" style="width:180px;" clearable></el-input>
+                <el-button size="small" @click="searchOrders">查询</el-button>
+            </div>
+
+            <div v-if="ordersLoading" style="text-align:center;padding:40px;">加载中...</div>
+            <div v-else-if="orders.length===0" style="text-align:center;padding:40px;color:#8e8e93;">暂无订单</div>
+            <div v-else v-for="o in orders" :key="o.orderNo"
+                 :class="['order-card', o.status==='退款审核中'?'refunding':(o.status==='已完成拍摄'?'completed':(o.status.includes('取消')?'cancelled':''))]">
+                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+                    <strong>{{ o.studioTitle }}</strong>
+                    <span :class="statusTagClass(o.status)">{{ o.status }}</span>
+                </div>
+                <div style="font-size:13px;color:#6e6e73;margin-top:4px;">
+                    {{ o.date }} · {{ (o.times||[]).join(', ') }}
+                    <span v-if="o.isPackageOrder" class="tag tag-blue">包天</span>
+                </div>
+                <div style="font-size:13px;margin-top:2px;">
+                    ¥{{ o.totalPrice }} / 定金¥{{ o.depositAmount }} · {{ o.peopleCount }}人
+                    <span v-if="o.photoCount"> · {{ o.photoCount }}张</span>
+                </div>
+                <div style="font-size:12px;color:#8e8e93;">{{ o.contact }}</div>
+                <div style="font-size:11px;color:#aaa;">{{ o.orderNo }} · {{ o.createdAt }}</div>
+                <div v-if="o.status==='退款审核中' && o.refundText" style="background:#fff7e6;padding:8px;border-radius:8px;margin-top:6px;font-size:12px;">
+                    退款信息: {{ o.refundText }}
+                    <img v-if="o.refundImgUrl" :src="o.refundImgUrl" style="max-width:200px;display:block;margin-top:4px;border-radius:6px;">
+                </div>
+                <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                    <el-button size="small" v-if="o.status==='待支付'" @click="updateOrderStatus(o,'已付定金')">确认定金</el-button>
+                    <el-button size="small" v-if="o.status==='已付定金'" @click="updateOrderStatus(o,'尾款待确认')">确认尾款待审</el-button>
+                    <el-button size="small" type="success" v-if="o.status==='尾款待确认'" @click="updateOrderStatus(o,'已结清')">确认结清</el-button>
+                    <el-button size="small" type="success" v-if="o.status==='已结清'" @click="archiveOrder(o,'已完成拍摄')">完成拍摄</el-button>
+                    <el-button size="small" type="danger" v-if="o.status==='退款审核中'" @click="approveRefund(o)">同意退款</el-button>
+                    <el-button size="small" v-if="o.status==='退款审核中'" @click="rejectRefund(o)">拒绝退款</el-button>
+                    <el-button size="small" v-if="!['已完成拍摄','已取消','已退款取消'].includes(o.status)"
+                               @click="archiveOrder(o,'已取消')" type="danger" plain>取消订单</el-button>
+                </div>
+            </div>
+            <div v-if="orders.length > 0" style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:14px;">
+                <el-button size="small" :disabled="orderPage <= 1" @click="goOrderPage(orderPage - 1)">上一页</el-button>
+                <span style="font-size:13px;color:#8e8e93;">{{ orderPage }} / {{ orderTotalPages }} (共{{ orderTotal }}条)</span>
+                <el-button size="small" :disabled="orderPage >= orderTotalPages" @click="goOrderPage(orderPage + 1)">下一页</el-button>
+            </div>
+        </div>
+        <!-- ===== 项目管理 ===== -->
+        <div v-if="currentTab==='studios'">
+            <el-button type="primary" @click="openStudioForm(null)" style="margin-bottom:12px;">+ 上架新项目</el-button>
+            <div v-if="studios.length===0" style="text-align:center;padding:40px;color:#8e8e93;">暂无项目，请添加</div>
+            <div v-else v-for="s in studios" :key="s.id" class="section-box" style="cursor:pointer;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+                    <div>
+                        <strong>{{ s.title }}</strong>
+                        <span class="tag tag-blue" style="margin-left:8px;">{{ calcLabel(s.calcMode) }}</span>
+                        <span class="tag tag-green" v-if="s.isPackageDay">可包天</span>
+                    </div>
+                    <div style="display:flex;gap:6px;">
+                        <el-button size="small" @click="openStudioForm(s)">编辑</el-button>
+                        <el-button size="small" type="danger" @click="deleteStudio(s)">删除</el-button>
+                    </div>
+                </div>
+                <div style="font-size:12px;color:#8e8e93;margin-top:4px;">
+                    ¥{{ s.price || s.weekdayPrice || '?' }} · 定金{{ s.depositRatio }}% · {{ s.openTime }}-{{ s.closeTime }}
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 排期设置 ===== -->
+        <div v-if="currentTab==='schedule'">
+            <div class="grid-2" style="margin-bottom:12px;">
+                <div>
+                    <label style="font-size:13px;">选择项目</label>
+                    <el-select v-model="scheduleStudioId" placeholder="选择项目" @change="loadUnavailableGrid" style="width:100%;">
+                        <el-option v-for="s in studios" :key="s.id" :label="s.title" :value="s.id"></el-option>
+                    </el-select>
+                </div>
+                <div>
+                    <label style="font-size:13px;">选择日期</label>
+                    <el-date-picker v-model="scheduleDate" placeholder="选择日期" value-format="YYYY-MM-DD"
+                                    @change="loadUnavailableGrid" style="width:100%;"></el-date-picker>
+                </div>
+            </div>
+            <div v-if="scheduleStudioId && scheduleDate" class="section-box">
+                <h3>不可接单时段（点击切换）</h3>
+                <p style="font-size:12px;color:#8e8e93;">红色=不接单 | 白色=可接单</p>
+                <div class="time-grid-admin">
+                    <div v-for="g in unavailableGrid" :key="g.slot"
+                         :class="['time-chip-admin', { disabled: g.disabled }]"
+                         @click="toggleUnavailableSlot(g)">
+                        {{ g.slot }}
+                    </div>
+                </div>
+                <el-button type="primary" @click="saveUnavailableSlots" style="margin-top:10px;">保存设置</el-button>
+            </div>
+
+            <!-- ===== Excel 导入导出 ===== -->
+            <div class="excel-section">
+                <h3 style="font-size:16px;margin:0 0 4px;">📥 Excel 批量导入排期</h3>
+                <p style="font-size:12px;color:#8e8e93;margin:0 0 12px;">下载模板 → 填写数据 → 上传导入 → 自动入库</p>
+                <div class="excel-upload-area">
+                    <el-button size="small" type="primary" @click="downloadExcelTemplate" :loading="excelDownloading">
+                        <i class="fa-solid fa-download"></i> 下载模板
+                    </el-button>
+                    <label class="file-label" :class="{ 'is-uploading': excelUploading }">
+                        <i class="fa-solid fa-upload"></i>
+                        {{ excelUploading ? '上传解析中...' : '上传 Excel' }}
+                        <input type="file" accept=".xlsx,.xls" @change="onExcelFileChange" :disabled="excelUploading">
+                    </label>
+                    <span style="font-size:12px;color:#8e8e93;">支持 .xlsx / .xls，最大 10MB</span>
+                </div>
+                <div v-if="excelLastResult" class="excel-result-box">
+                    <div><strong>批次号：</strong>{{ excelLastResult.batchId }}</div>
+                    <div>
+                        ✅ 成功 <strong style="color:var(--ios-green);">{{ excelLastResult.successCount }}</strong> 条
+                        &nbsp;&nbsp;
+                        ❌ 失败 <strong style="color:var(--ios-red);">{{ excelLastResult.failCount }}</strong> 条
+                    </div>
+                    <div v-if="excelLastResult.errors && excelLastResult.errors.length > 0" style="margin-top:4px;">
+                        <div v-for="e in excelLastResult.errors.slice(0,10)" :key="e.row" class="err-item">
+                            第 {{ e.row }} 行：{{ e.errors.join('；') }}
+                        </div>
+                        <div v-if="excelLastResult.errors.length > 10" class="err-item">
+                            ... 还有 {{ excelLastResult.errors.length - 10 }} 条错误未显示
+                        </div>
+                    </div>
+                    <el-button size="small" @click="excelLastResult = null" style="margin-top:6px;">关闭</el-button>
+                    <el-button size="small" type="primary" @click="loadExcelBatches" style="margin-top:6px;margin-left:6px;">刷新列表</el-button>
+                </div>
+                <div style="margin-top:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <strong style="font-size:14px;">📋 导入批次</strong>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            <el-select v-model="excelBatchStatusFilter" placeholder="状态" size="small"
+                                       style="width:110px;" clearable @change="loadExcelBatches">
+                                <el-option label="待处理" value="pending"></el-option>
+                                <el-option label="已处理" value="processed"></el-option>
+                                <el-option label="失败" value="failed"></el-option>
+                            </el-select>
+                            <el-button size="small" @click="loadExcelBatches">刷新</el-button>
+                        </div>
+                    </div>
+                    <div v-if="excelBatchesLoading" style="text-align:center;padding:20px;color:#8e8e93;">加载中...</div>
+                    <div v-else-if="excelBatches.length===0" style="text-align:center;padding:20px;color:#8e8e93;">暂无导入记录</div>
+                    <div v-else>
+                        <div v-for="b in excelBatches" :key="b.id" class="batch-row" @click="viewBatchDetail(b)">
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:13px;">
+                                    {{ b.project }}
+                                    <span :class="excelStatusTag(b.status)">{{ excelStatusText(b.status) }}</span>
+                                </div>
+                                <div style="font-size:12px;color:#8e8e93;">
+                                    {{ b.schedule_date }} · {{ b.time_slot_start }}-{{ b.time_slot_end }}
+                                </div>
+                                <div style="font-size:11px;color:#aaa;">批次: {{ b.batch_id }} · {{ b.created_at }}</div>
+                            </div>
+                            <div style="text-align:right;font-size:12px;color:#8e8e93;">
+                                {{ b.contact }}
+                                <div v-if="b.studio_name" class="tag tag-green" style="margin-top:2px;">{{ b.studio_name }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="excelBatchTotal > excelBatchPageSize"
+                         style="display:flex;justify-content:center;align-items:center;gap:12px;margin-top:10px;">
+                        <el-button size="small" :disabled="excelBatchPage <= 1"
+                                   @click="excelBatchPage--; loadExcelBatches();">上一页</el-button>
+                        <span style="font-size:12px;color:#8e8e93;">
+                            {{ excelBatchPage }} / {{ Math.ceil(excelBatchTotal / excelBatchPageSize) }}
+                        </span>
+                        <el-button size="small"
+                                   :disabled="excelBatchPage >= Math.ceil(excelBatchTotal / excelBatchPageSize)"
+                                   @click="excelBatchPage++; loadExcelBatches();">下一页</el-button>
+                    </div>
+                </div>
+                <div style="margin-top:12px;text-align:right;">
+                    <el-button size="small" @click="exportExcelData" :loading="excelExporting">
+                        <i class="fa-solid fa-file-export"></i> 导出当前数据
+                    </el-button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 改期审核 ===== -->
+        <div v-if="currentTab==='reschedule'">
+            <div v-if="reschedules.length===0" style="text-align:center;padding:40px;color:#8e8e93;">暂无改期申请</div>
+            <div v-else v-for="r in reschedules" :key="r.id" class="section-box">
+                <div><strong>{{ r.orderNo }}</strong> <span :class="statusTagClass(r.status)">{{ r.status }}</span></div>
+                <div style="font-size:13px;margin-top:4px;">
+                    原: {{ r.oldDate }} · {{ (r.oldTimes||[]).join(',') }}
+                </div>
+                <div style="font-size:13px;color:var(--ios-blue);">→ 新: {{ r.newDate }} · {{ (r.newTimes||[]).join(',') }}</div>
+                <div style="font-size:12px;color:#8e8e93;" v-if="r.reason">原因: {{ r.reason }}</div>
+                <div style="margin-top:8px;display:flex;gap:6px;" v-if="r.status==='待处理'">
+                    <el-button size="small" type="primary" @click="approveReschedule(r)">同意改期</el-button>
+                    <el-button size="small" type="danger" @click="rejectReschedule(r)">拒绝</el-button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 设置 ===== -->
+        <div v-if="currentTab==='settings'" class="section-box">
+            <h3>店铺设置</h3>
+            <el-form label-width="100px">
+                <el-form-item label="店铺名称">
+                    <el-input v-model="settingsForm.shopName"></el-input>
+                </el-form-item>
+                <el-form-item label="营业模式">
+                    <el-radio-group v-model="settingsForm.shopMode">
+                        <el-radio value="studio">工作室模式</el-radio>
+                        <el-radio value="photographer">摄影师模式</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="公告">
+                    <el-input v-model="settingsForm.announcement" type="textarea" rows="3"></el-input>
+                </el-form-item>
+                <el-form-item label="收款码">
+                    <div>
+                        <input type="file" accept="image/*" @change="onQrUpload">
+                        <img v-if="settingsForm.qrCodeUrl" :src="settingsForm.qrCodeUrl"
+                             style="max-width:200px;display:block;margin-top:8px;border-radius:8px;">
+                    </div>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="saveSettings">保存设置</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+
+        <!-- ===== 日志 ===== -->
+        <div v-if="currentTab==='logs'">
+            <el-button size="small" type="danger" @click="clearLogs" style="margin-bottom:10px;">清空日志</el-button>
+            <div v-if="logs.length===0" style="text-align:center;padding:40px;color:#8e8e93;">暂无日志</div>
+            <div v-else v-for="l in logs" :key="l.id" style="padding:8px 0;border-bottom:1px solid #f0f2f5;font-size:13px;">
+                <span style="color:#8e8e93;margin-right:8px;">{{ l.createdAt }}</span> {{ l.action }}
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 项目编辑弹窗 ===== -->
+    <el-dialog v-model="studioFormVisible" :title="editingStudio?.id ? '编辑项目' : '上架项目'" width="90%"
+               :close-on-click-modal="false" @opened="onStudioFormOpened">
+        <el-form label-width="100px" v-if="studioFormVisible">
+            <el-form-item label="项目名称">
+                <el-input v-model="sf.title" placeholder="例如：汉服写真"></el-input>
+            </el-form-item>
+            <el-form-item label="描述">
+                <el-input v-model="sf.description" type="textarea" rows="2"></el-input>
+            </el-form-item>
+            <el-form-item label="封面图">
+                <input type="file" accept="image/*" @change="onCoverUpload">
+                <img v-if="sf.coverUrl" :src="sf.coverUrl" style="max-width:160px;display:block;margin-top:6px;border-radius:8px;">
+            </el-form-item>
+            <el-form-item label="详情图">
+                <input type="file" accept="image/*" multiple @change="onDetailUpload">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+                    <img v-for="(u,i) in sf.detailImgUrls" :key="i" :src="u"
+                         style="width:80px;height:80px;object-fit:cover;border-radius:8px;">
+                </div>
+            </el-form-item>
+            <el-form-item label="服务模式">
+                <el-radio-group v-model="sf.serviceMode">
+                    <el-radio value="studio">工作室</el-radio>
+                    <el-radio value="photographer">摄影师</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item label="计费方式">
+                <el-radio-group v-model="sf.calcMode">
+                    <el-radio value="time">按时段</el-radio>
+                    <el-radio value="photo">按张数</el-radio>
+                    <el-radio value="photo_time">按张数+时段</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item label="营业时间">
+                <el-time-picker v-model="sf.openTime" format="HH:mm" value-format="HH:mm" placeholder="开始"
+                                style="width:120px;"></el-time-picker>
+                <span style="margin:0 6px;">~</span>
+                <el-time-picker v-model="sf.closeTime" format="HH:mm" value-format="HH:mm" placeholder="结束"
+                                style="width:120px;"></el-time-picker>
+            </el-form-item>
+            <el-form-item label="排期间隔">
+                <el-input-number v-model="sf.timeInterval" :min="30" :max="240" :step="30"></el-input-number> 分钟
+            </el-form-item>
+            <el-form-item label="节假日不同价">
+                <el-switch v-model="sf.isHolidayPrice"></el-switch>
+            </el-form-item>
+            <el-form-item label="统一价格" v-if="!sf.isHolidayPrice">
+                <el-input-number v-model="sf.price" :min="0" :precision="2"></el-input-number> 元
+            </el-form-item>
+            <template v-if="sf.isHolidayPrice">
+                <el-form-item label="工作日价"><el-input-number v-model="sf.weekdayPrice" :min="0" :precision="2"></el-input-number> 元</el-form-item>
+                <el-form-item label="节假日价"><el-input-number v-model="sf.holidayPrice" :min="0" :precision="2"></el-input-number> 元</el-form-item>
+            </template>
+            <el-form-item label="支持包天">
+                <el-switch v-model="sf.isPackageDay"></el-switch>
+            </el-form-item>
+            <el-form-item label="包天价格" v-if="sf.isPackageDay">
+                <el-input-number v-model="sf.packagePrice" :min="0" :precision="2"></el-input-number> 元
+            </el-form-item>
+            <el-form-item label="多时段折扣">
+                <el-switch v-model="sf.hasDiscount"></el-switch>
+            </el-form-item>
+            <template v-if="sf.hasDiscount">
+                <el-form-item label="折扣规则">
+                    <div v-for="(r,i) in sf.discountRules" :key="i" style="display:flex;gap:6px;margin-bottom:4px;align-items:center;">
+                        <span>满</span><el-input-number v-model="r.hours" :min="2" size="small" style="width:80px;"></el-input-number>
+                        <span>小时按</span><el-input-number v-model="r.price" :min="0" :precision="2" size="small" style="width:100px;"></el-input-number>
+                        <span>元/时</span>
+                        <el-button size="small" @click="sf.discountRules.splice(i,1)" type="danger" circle>×</el-button>
+                    </div>
+                    <el-button size="small" @click="sf.discountRules.push({hours:3,price:100})">+ 添加规则</el-button>
+                </el-form-item>
+            </template>
+            <el-form-item label="定金比例">
+                <el-radio-group v-model="sf.depositRatio">
+                    <el-radio :value="5">5%</el-radio>
+                    <el-radio :value="10">10%</el-radio>
+                    <el-radio :value="30">30%</el-radio>
+                    <el-radio :value="50">50%</el-radio>
+                    <el-radio :value="100">100%</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item label="额外人数费">
+                <el-input-number v-model="sf.extraPersonFee" :min="0" :precision="2"></el-input-number> 元/人
+            </el-form-item>
+            <el-form-item label="起订张数" v-if="sf.calcMode!=='time'">
+                <el-input-number v-model="sf.minPhotos" :min="1"></el-input-number>
+            </el-form-item>
+            <el-form-item label="每时段最大张数" v-if="sf.calcMode==='photo_time'">
+                <el-input-number v-model="sf.slotMaxPhotos" :min="1"></el-input-number>
+            </el-form-item>
+            <el-form-item label="场照接单">
+                <el-switch v-model="sf.isFieldPhoto"></el-switch>
+            </el-form-item>
+            <el-form-item label="场照日期" v-if="sf.isFieldPhoto">
+                <el-date-picker v-model="sf.fieldPhotoDates" type="dates" placeholder="选择场照日期"
+                                value-format="YYYY-MM-DD" style="width:100%;"></el-date-picker>
+            </el-form-item>
+            <el-form-item label="备注标签">
+                <el-input v-model="sf.customRemarkLabel" placeholder="例如：CN/角色名"></el-input>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="studioFormVisible = false">取消</el-button>
+            <el-button type="primary" @click="saveStudio" :loading="studioSaving">
+                {{ editingStudio?.id ? '保存修改' : '上架' }}
+            </el-button>
+        </template>
+    </el-dialog>
+
+    <!-- ===== Excel 批次详情弹窗 ===== -->
+    <el-dialog v-model="excelDetailVisible" title="批次详情" width="90%" :close-on-click-modal="false">
+        <div style="margin-bottom:8px;font-size:13px;color:#8e8e93;">
+            批次号：<strong>{{ excelDetailBatchId }}</strong> · 共 {{ excelDetailRows.length }} 条
+        </div>
+        <el-table :data="excelDetailRows" border stripe size="small" max-height="400" style="width:100%;">
+            <el-table-column prop="project" label="项目" width="120"></el-table-column>
+            <el-table-column prop="schedule_date" label="日期" width="110"></el-table-column>
+            <el-table-column label="时间段" width="130">
+                <template #default="{ row }">
+                    {{ row.time_slot_start }} - {{ row.time_slot_end }}
+                </template>
+            </el-table-column>
+            <el-table-column prop="contact" label="联系方式" width="130"></el-table-column>
+            <el-table-column prop="remarks" label="备注" min-width="150"></el-table-column>
+            <el-table-column label="状态" width="80">
+                <template #default="{ row }">
+                    <span :class="excelStatusTag(row.status)">{{ excelStatusText(row.status) }}</span>
+                </template>
+            </el-table-column>
+            <el-table-column prop="error_message" label="错误信息" min-width="140">
+                <template #default="{ row }">
+                    <span style="color:var(--ios-red);font-size:12px;">{{ row.error_message || '-' }}</span>
+                </template>
+            </el-table-column>
+        </el-table>
+        <template #footer>
+            <el-button @click="excelDetailVisible = false">关闭</el-button>
+        </template>
+    </el-dialog>
+
+    <!-- ===== 通知弹窗 ===== -->
+    <el-dialog v-model="notifVisible" title="通知消息" width="90%">
+        <div v-if="notifications.length===0" style="text-align:center;padding:20px;color:#8e8e93;">暂无通知</div>
+        <div v-else v-for="n in notifications" :key="n.id"
+             style="padding:10px;border-bottom:1px solid #f0f2f5;cursor:pointer;"
+             :style="{opacity: n.isRead?0.6:1}" @click="markOneRead(n)">
+            <strong>{{ n.title }}</strong>
+            <span :class="'tag tag-'+notifTagType(n.type)" style="margin-left:6px;">{{ n.type }}</span>
+            <div style="font-size:12px;color:#8e8e93;">{{ n.content }}</div>
+            <div style="font-size:10px;color:#aaa;">{{ n.createdAt }}</div>
+        </div>
+        <template #footer>
+            <el-button @click="notifVisible=false">关闭</el-button>
+            <el-button type="primary" @click="markAllRead">全部已读</el-button>
+        </template>
+    </el-dialog>
+</div>
+
+<script>
+const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue;
+const API_BASE = '/api';
+
+let AUTH_TOKEN = localStorage.getItem('mzg_admin_token') || '';
+let AUTH_MID = localStorage.getItem('mzg_admin_mid') || '';
+
+async function apiGet(path) {
+    const headers = {};
+    if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+    const res = await fetch(API_BASE + path, { headers });
+    if (res.status === 401) { localStorage.clear(); AUTH_TOKEN = ''; AUTH_MID = ''; location.reload(); }
+    return res.json();
+}
+async function apiPost(path, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+    const res = await fetch(API_BASE + path, { method: 'POST', headers, body: body ? JSON.stringify(body) : '{}' });
+    if (res.status === 401) { localStorage.clear(); AUTH_TOKEN = ''; AUTH_MID = ''; location.reload(); }
+    return res.json();
+}
+async function apiUpload(path, formData) {
+    const headers = {};
+    if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+    const res = await fetch(API_BASE + path, { method: 'POST', headers, body: formData });
+    return res.json();
+}
+
+const app = createApp({
+    setup() {
+        const isLoggedIn = ref(!!AUTH_TOKEN);
+        const mId = ref(AUTH_MID);
+        const shopName = ref(localStorage.getItem('mzg_admin_shopname') || '');
+
+        // 登录
+        const loginTab = ref('login');
+        const loginLoading = ref(false);
+        const regLoading = ref(false);
+        const loginForm = reactive({ username: '', password: '' });
+        const regForm = reactive({ username: '', password: '', shopName: '' });
+
+        async function doLogin() {
+            loginLoading.value = true;
+            try {
+                const res = await fetch(API_BASE + '/login', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify(loginForm),
+                }).then(r => r.json());
+                if (res.code === 0 && res.data) {
+                    AUTH_TOKEN = res.data.token; AUTH_MID = res.data.mId;
+                    localStorage.setItem('mzg_admin_token', AUTH_TOKEN);
+                    localStorage.setItem('mzg_admin_mid', AUTH_MID);
+                    localStorage.setItem('mzg_admin_shopname', res.data.shopName||'');
+                    mId.value = AUTH_MID; shopName.value = res.data.shopName || ''; isLoggedIn.value = true;
+                    loadAllData();
+                } else {
+                    alert(res.message || '登录失败');
+                }
+            } catch(e) { alert('网络错误'); }
+            loginLoading.value = false;
+        }
+
+        async function doRegister() {
+            regLoading.value = true;
+            try {
+                const res = await apiPost('/register', regForm);
+                if (res.code === 0 && res.data) {
+                    alert(res.data.message || '注册成功！你的商家ID: ' + res.data.mId);
+                    loginForm.username = regForm.username;
+                    loginForm.password = regForm.password;
+                    loginTab.value = 'login';
+                } else {
+                    alert(res.message || '注册失败');
+                }
+            } catch(e) { alert('网络错误'); }
+            regLoading.value = false;
+        }
+
+        function doLogout() {
+            localStorage.clear(); AUTH_TOKEN = ''; AUTH_MID = ''; location.reload();
+        }
+
+        // Tab
+        const currentTab = ref('orders');
+
+        // 项目
+        const studios = ref([]);
+        const studioFormVisible = ref(false);
+        const editingStudio = ref(null);
+        const studioSaving = ref(false);
+        const sf = reactive(getDefaultStudioForm());
+
+        function getDefaultStudioForm() {
+            return {
+                title: '', description: '', coverUrl: '', detailImgUrls: [],
+                serviceMode: 'studio', calcMode: 'time',
+                isHolidayPrice: false, price: 100, weekdayPrice: 80, holidayPrice: 120,
+                isPackageDay: false, packagePrice: 500, hasDiscount: false, discountRules: [],
+                depositRatio: 30, openTime: '09:00', closeTime: '21:00', timeInterval: 60,
+                minPhotos: 1, slotMaxPhotos: 20, extraPersonFee: 0,
+                isFieldPhoto: false, fieldPhotoDates: [], customRemarkLabel: '备注',
+            };
+        }
+
+        function resetSf() {
+            Object.assign(sf, getDefaultStudioForm());
+        }
+
+        function openStudioForm(s) {
+            if (s) {
+                editingStudio.value = s;
+                Object.assign(sf, {
+                    title: s.title, description: s.description||'', coverUrl: s.coverUrl||'',
+                    detailImgUrls: s.detailImgUrls||[], serviceMode: s.serviceMode,
+                    calcMode: s.calcMode, isHolidayPrice: s.isHolidayPrice||false,
+                    price: s.price||100, weekdayPrice: s.weekdayPrice||80, holidayPrice: s.holidayPrice||120,
+                    isPackageDay: s.isPackageDay||false, packagePrice: s.packagePrice||500,
+                    hasDiscount: s.hasDiscount||false, discountRules: s.discountRules||[],
+                    depositRatio: s.depositRatio||30, openTime: s.openTime||'09:00',
+                    closeTime: s.closeTime||'21:00', timeInterval: s.timeInterval||60,
+                    minPhotos: s.minPhotos||1, slotMaxPhotos: s.slotMaxPhotos||20,
+                    extraPersonFee: s.extraPersonFee||0, isFieldPhoto: s.isFieldPhoto||false,
+                    fieldPhotoDates: s.fieldPhotoDates||[], customRemarkLabel: s.customRemarkLabel||'备注',
+                });
+            } else {
+                editingStudio.value = null;
+                resetSf();
+            }
+            studioFormVisible.value = true;
+        }
+
+        function onStudioFormOpened() {}
+
+        async function onCoverUpload(e) {
+            const f = e.target.files[0]; if (!f) return;
+            const fd = new FormData(); fd.append('file', f); fd.append('folder', 'covers');
+            const res = await apiUpload('/upload/image', fd);
+            if (res.code === 0) sf.coverUrl = res.data.url;
+        }
+
+        async function onDetailUpload(e) {
+            const files = e.target.files; if (!files.length) return;
+            const fd = new FormData();
+            for (const f of files) fd.append('files', f);
+            fd.append('folder', 'details');
+            const res = await apiUpload('/upload/images', fd);
+            if (res.code === 0) sf.detailImgUrls = [...sf.detailImgUrls, ...(res.data.urls||[])];
+        }
+
+        async function saveStudio() {
+            studioSaving.value = true;
+            const body = {
+                mId: AUTH_MID,
+                title: sf.title,
+                description: sf.description,
+                coverUrl: sf.coverUrl,
+                detailImgUrls: sf.detailImgUrls,
+                serviceMode: sf.serviceMode,
+                calcMode: sf.calcMode,
+                isHolidayPrice: sf.isHolidayPrice,
+                price: sf.price,
+                weekdayPrice: sf.weekdayPrice,
+                holidayPrice: sf.holidayPrice,
+                isPackageDay: sf.isPackageDay,
+                packagePrice: sf.packagePrice,
+                hasDiscount: sf.hasDiscount,
+                discountRules: sf.discountRules,
+                depositRatio: sf.depositRatio,
+                openTime: sf.openTime,
+                closeTime: sf.closeTime,
+                timeInterval: sf.timeInterval,
+                minPhotos: sf.minPhotos,
+                slotMaxPhotos: sf.slotMaxPhotos,
+                extraPersonFee: sf.extraPersonFee,
+                isFieldPhoto: sf.isFieldPhoto,
+                fieldPhotoDates: sf.fieldPhotoDates,
+                customRemarkLabel: sf.customRemarkLabel,
+            };
+            if (editingStudio.value?.id) body.id = editingStudio.value.id;
+
+            try {
+                const url = editingStudio.value?.id ? '/edit-studio' : '/add-studio';
+                const res = await apiPost(url, body);
+                if (res.code === 0) {
+                    alert(editingStudio.value?.id ? '修改成功' : '上架成功');
+                    studioFormVisible.value = false;
+                    loadStudios();
+                } else { alert(res.message); }
+            } catch(e) { alert('网络错误'); }
+            studioSaving.value = false;
+        }
+
+        async function deleteStudio(s) {
+            if (!confirm('确定删除「'+s.title+'」？')) return;
+            const res = await apiPost('/delete-studio', { id: s.id, mId: AUTH_MID });
+            if (res.code === 0) { alert('已删除'); loadStudios(); }
+            else alert(res.message);
+        }
+
+        // 订单
+        const orders = ref([]);
+        const ordersLoading = ref(false);
+        const orderFilter = reactive({ status: '', date: '', search: '' });
+        const allStatuses = ['待支付','已付定金','尾款待确认','已结清','已完成拍摄','已取消','退款审核中','已退款取消'];
+        const orderPage = ref(1);
+        const orderTotal = ref(0);
+        const orderPageSize = ref(20);
+        const orderStats = ref({ active: 0, refunding: 0, completed: 0 });
+
+        const orderTotalPages = computed(() => Math.max(1, Math.ceil(orderTotal.value / orderPageSize.value)));
+
+        async function loadOrders() {
+            ordersLoading.value = true;
+            let path = `/orders?mId=${AUTH_MID}&page=${orderPage.value}&pageSize=${orderPageSize.value}`;
+            if (orderFilter.status) path += `&status=${encodeURIComponent(orderFilter.status)}`;
+            if (orderFilter.date) path += `&date=${orderFilter.date}`;
+            if (orderFilter.search) path += `&search=${encodeURIComponent(orderFilter.search)}`;
+            const res = await apiGet(path);
+            if (res.code === 0) {
+                const data = res.data || {};
+                orders.value = data.list || [];
+                orderTotal.value = data.total || 0;
+                orderStats.value = data.stats || { active: 0, refunding: 0, completed: 0 };
+            }
+            ordersLoading.value = false;
+        }
+
+        function goOrderPage(p) {
+            orderPage.value = p;
+            loadOrders();
+        }
+
+        function searchOrders() {
+            orderPage.value = 1;
+            loadOrders();
+        }
+
+        async function updateOrderStatus(o, status) {
+            const res = await apiPost('/update-status', { orderNo: o.orderNo, status, mId: AUTH_MID });
+            if (res.code === 0) { loadOrders(); addLog(`订单 ${o.orderNo} → ${status}`); }
+            else alert(res.message);
+        }
+
+        async function archiveOrder(o, type) {
+            if (!confirm(`确定将订单归档为「${type}」？`)) return;
+            const res = await apiPost('/archive-order', { orderNo: o.orderNo, type, mId: AUTH_MID });
+            if (res.code === 0) { loadOrders(); addLog(`订单 ${o.orderNo} 归档: ${type}`); }
+            else alert(res.message);
+        }
+
+        async function approveRefund(o) {
+            if (!confirm('确定同意退款？将释放该订单占用的时段。')) return;
+            const res = await apiPost('/update-status', { orderNo: o.orderNo, status: '已退款取消', mId: AUTH_MID });
+            if (res.code === 0) { loadOrders(); addLog(`同意退款: ${o.orderNo}`); }
+            else alert(res.message);
+        }
+
+        async function rejectRefund(o) {
+            const res = await apiPost('/update-status', { orderNo: o.orderNo, status: '已付定金', mId: AUTH_MID });
+            if (res.code === 0) { loadOrders(); addLog(`拒绝退款: ${o.orderNo}`); }
+            else alert(res.message);
+        }
+
+        // 排期
+        const scheduleStudioId = ref(null);
+        const scheduleDate = ref('');
+        const unavailableGrid = ref([]);
+
+        // Excel 导入导出
+        const excelDownloading = ref(false);
+        const excelUploading = ref(false);
+        const excelExporting = ref(false);
+        const excelLastResult = ref(null);
+        const excelBatches = ref([]);
+        const excelBatchesLoading = ref(false);
+        const excelBatchPage = ref(1);
+        const excelBatchPageSize = ref(20);
+        const excelBatchTotal = ref(0);
+        const excelBatchStatusFilter = ref('');
+        const excelDetailVisible = ref(false);
+        const excelDetailRows = ref([]);
+        const excelDetailBatchId = ref('');
+
+        async function loadUnavailableGrid() {
+            if (!scheduleStudioId.value || !scheduleDate.value) return;
+            const res = await apiGet(`/unavailable-slots/grid?mId=${AUTH_MID}&studioId=${scheduleStudioId.value}&date=${scheduleDate.value}`);
+            if (res.code === 0) unavailableGrid.value = res.data || [];
+        }
+
+        function toggleUnavailableSlot(g) {
+            g.disabled = !g.disabled;
+        }
+
+        async function saveUnavailableSlots() {
+            const slots = unavailableGrid.value.filter(g => g.disabled).map(g => g.slot);
+            const res = await apiPost('/unavailable-slots/save', {
+                mId: AUTH_MID, studioId: scheduleStudioId.value, date: scheduleDate.value, slots,
+            });
+            if (res.code === 0) { alert('已保存'); addLog(`设置不可接单时段: ${scheduleDate.value}`); }
+            else alert(res.message);
+        }
+
+        // ===== Excel 导入导出方法 =====
+
+        async function downloadExcelTemplate() {
+            excelDownloading.value = true;
+            try {
+                const headers = {};
+                if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+                const res = await fetch(API_BASE + '/schedule/excel/template', { headers });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.message || '下载模板失败');
+                    return;
+                }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '排期导入模板.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('网络错误，请重试');
+            }
+            excelDownloading.value = false;
+        }
+
+        async function onExcelFileChange(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['xlsx', 'xls'].includes(ext)) {
+                alert('仅支持 .xlsx 或 .xls 格式');
+                e.target.value = '';
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                alert('文件大小不能超过 10MB');
+                e.target.value = '';
+                return;
+            }
+            excelUploading.value = true;
+            excelLastResult.value = null;
+            try {
+                const fd = new FormData();
+                fd.append('file', file);
+                const res = await apiUpload('/schedule/excel/import', fd);
+                if (res.code === 0) {
+                    excelLastResult.value = res.data || res;
+                    addLog(`Excel批量导入: 成功${excelLastResult.value.successCount}条 失败${excelLastResult.value.failCount}条`);
+                    loadExcelBatches();
+                } else {
+                    alert(res.message || '导入失败');
+                }
+            } catch (e) {
+                alert('网络错误，请重试');
+            }
+            excelUploading.value = false;
+            e.target.value = '';
+        }
+
+        async function loadExcelBatches() {
+            excelBatchesLoading.value = true;
+            try {
+                let path = `/schedule/excel/batches?page=${excelBatchPage.value}&pageSize=${excelBatchPageSize.value}`;
+                if (excelBatchStatusFilter.value) path += `&status=${excelBatchStatusFilter.value}`;
+                const res = await apiGet(path);
+                if (res.code === 0) {
+                    const data = res.data || {};
+                    excelBatches.value = data.rows || [];
+                    excelBatchTotal.value = data.total || 0;
+                }
+            } catch (e) { /* 静默失败 */ }
+            excelBatchesLoading.value = false;
+        }
+
+        async function viewBatchDetail(batch) {
+            try {
+                const res = await apiGet(`/schedule/excel/batches/${batch.batch_id}`);
+                if (res.code === 0) {
+                    excelDetailRows.value = res.data.rows || [];
+                    excelDetailBatchId.value = batch.batch_id;
+                    excelDetailVisible.value = true;
+                } else {
+                    alert(res.message || '加载批次详情失败');
+                }
+            } catch (e) {
+                alert('网络错误');
+            }
+        }
+
+        async function exportExcelData() {
+            excelExporting.value = true;
+            try {
+                let path = '/schedule/excel/export?';
+                if (excelBatchStatusFilter.value) path += `status=${excelBatchStatusFilter.value}&`;
+                const headers = {};
+                if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+                const res = await fetch(API_BASE + path, { headers });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.message || '导出失败');
+                    return;
+                }
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '排期数据导出_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                addLog('导出Excel数据');
+            } catch (e) {
+                alert('网络错误');
+            }
+            excelExporting.value = false;
+        }
+
+        function excelStatusTag(status) {
+            if (status === 'pending') return 'tag tag-orange';
+            if (status === 'processed') return 'tag tag-green';
+            if (status === 'failed') return 'tag tag-red';
+            return 'tag tag-gray';
+        }
+        function excelStatusText(status) {
+            if (status === 'pending') return '待处理';
+            if (status === 'processed') return '已处理';
+            if (status === 'failed') return '失败';
+            return status;
+        }
+
+        // 改期
+        const reschedules = ref([]);
+
+        async function loadReschedules() {
+            const res = await apiGet(`/reschedule/list?mId=${AUTH_MID}`);
+            if (res.code === 0) reschedules.value = res.data || [];
+        }
+
+        async function approveReschedule(r) {
+            const res = await apiPost('/reschedule/approve', { requestId: r.id, mId: AUTH_MID });
+            if (res.code === 0) { alert('已同意改期'); loadReschedules(); loadOrders(); addLog(`同意改期: ${r.orderNo}`); }
+            else alert(res.message);
+        }
+
+        async function rejectReschedule(r) {
+            const res = await apiPost('/reschedule/reject', { requestId: r.id, mId: AUTH_MID });
+            if (res.code === 0) { alert('已拒绝改期'); loadReschedules(); addLog(`拒绝改期: ${r.orderNo}`); }
+            else alert(res.message);
+        }
+
+        // 设置
+        const settingsForm = reactive({ shopName: '', shopMode: 'studio', announcement: '', qrCodeUrl: '' });
+
+        async function loadSettings() {
+            const res = await apiGet(`/settings?mId=${AUTH_MID}`);
+            if (res.code === 0 && res.data) {
+                Object.assign(settingsForm, {
+                    shopName: res.data.shopName || '',
+                    shopMode: res.data.shopMode || 'studio',
+                    announcement: res.data.announcement || '',
+                    qrCodeUrl: res.data.qrCodeUrl || '',
+                });
+                shopName.value = res.data.shopName || '';
+                localStorage.setItem('mzg_admin_shopname', res.data.shopName || '');
+            }
+        }
+
+        async function onQrUpload(e) {
+            const f = e.target.files[0]; if (!f) return;
+            const fd = new FormData(); fd.append('file', f); fd.append('folder', 'qrcodes');
+            const res = await apiUpload('/upload/image', fd);
+            if (res.code === 0) settingsForm.qrCodeUrl = res.data.url;
+        }
+
+        async function saveSettings() {
+            const res = await apiPost('/settings', {
+                mId: AUTH_MID,
+                shopName: settingsForm.shopName,
+                shopMode: settingsForm.shopMode,
+                announcement: settingsForm.announcement,
+                qrCodeUrl: settingsForm.qrCodeUrl,
+            });
+            if (res.code === 0) {
+                alert('设置已保存');
+                shopName.value = settingsForm.shopName;
+                localStorage.setItem('mzg_admin_shopname', settingsForm.shopName);
+                addLog('更新店铺设置');
+            } else alert(res.message);
+        }
+
+        // 日志
+        const logs = ref([]);
+
+        async function loadLogs() {
+            const res = await apiGet(`/logs?mId=${AUTH_MID}`);
+            if (res.code === 0) logs.value = res.data || [];
+        }
+
+        async function addLog(action) {
+            await apiPost('/logs', { mId: AUTH_MID, action }).catch(()=>{});
+        }
+
+        async function clearLogs() {
+            if (!confirm('确定清空所有日志？')) return;
+            const res = await apiPost('/clear-logs', { mId: AUTH_MID });
+            if (res.code === 0) { alert('已清空'); logs.value = []; }
+            else alert(res.message);
+        }
+
+        // 通知
+        const notifVisible = ref(false);
+        const notifications = ref([]);
+        const unreadCount = ref(0);
+
+        async function loadNotifications() {
+            const res = await apiGet(`/notifications?mId=${AUTH_MID}`);
+            if (res.code === 0) notifications.value = res.data || [];
+        }
+
+        async function loadUnreadCount() {
+            const res = await apiGet(`/notifications/unread?mId=${AUTH_MID}`);
+            if (res.code === 0 && res.data) unreadCount.value = res.data.count || 0;
+        }
+
+        async function openNotifications() {
+            await loadNotifications();
+            notifVisible.value = true;
+        }
+
+        async function markOneRead(n) {
+            await apiPost('/notifications/mark-read', { mId: AUTH_MID, ids: [n.id] });
+            n.isRead = true;
+            await loadUnreadCount();
+        }
+
+        async function markAllRead() {
+            await apiPost('/notifications/mark-read', { mId: AUTH_MID, ids: [] });
+            notifications.value.forEach(n => n.isRead = true);
+            await loadUnreadCount();
+        }
+
+        // 轮询
+        let pollTimer = null;
+
+        async function loadAllData() {
+            await Promise.all([loadStudios(), loadOrders(), loadReschedules(), loadSettings(), loadLogs(), loadUnreadCount()]);
+        }
+
+        async function loadStudios() {
+            const res = await apiGet(`/studios?mId=${AUTH_MID}`);
+            if (res.code === 0) studios.value = res.data || [];
+        }
+
+        function switchTab(tab) {
+            currentTab.value = tab;
+            if (tab === 'orders') loadOrders();
+            if (tab === 'studios') loadStudios();
+            if (tab === 'schedule') { loadExcelBatches(); }
+            if (tab === 'reschedule') loadReschedules();
+            if (tab === 'settings') loadSettings();
+            if (tab === 'logs') loadLogs();
+        }
+
+        function calcLabel(m) {
+            if (m==='time') return '按时计费';
+            if (m==='photo') return '按张计费';
+            if (m==='photo_time') return '按张+时段';
+            return m;
+        }
+
+        function statusTagClass(s) {
+            if (['待支付'].includes(s)) return 'tag tag-orange';
+            if (['已付定金','尾款待确认'].includes(s)) return 'tag tag-blue';
+            if (['已结清','已完成拍摄'].includes(s)) return 'tag tag-green';
+            if (['退款审核中'].includes(s)) return 'tag tag-red';
+            return 'tag tag-gray';
+        }
+
+        function notifTagType(t) {
+            if (t==='warning') return 'orange';
+            if (t==='success') return 'green';
+            if (t==='danger') return 'red';
+            return 'blue';
+        }
+
+        onMounted(() => {
+            if (isLoggedIn.value) {
+                loadAllData();
+                pollTimer = setInterval(() => { loadOrders(); loadUnreadCount(); }, 30000);
+            }
+            window.addEventListener('beforeunload', () => {
+                if (pollTimer) clearInterval(pollTimer);
+            });
+        });
+
+        return {
+            isLoggedIn, mId, shopName, loginTab, loginLoading, regLoading, loginForm, regForm,
+            doLogin, doRegister, doLogout,
+            currentTab, switchTab,
+            studios, studioFormVisible, editingStudio, studioSaving, sf,
+            openStudioForm, onCoverUpload, onDetailUpload, saveStudio, deleteStudio,
+            orders, ordersLoading, orderFilter, allStatuses, orderStats,
+            orderPage, orderTotal, orderTotalPages, searchOrders, goOrderPage,
+            loadOrders, updateOrderStatus, archiveOrder, approveRefund, rejectRefund,
+            scheduleStudioId, scheduleDate, unavailableGrid, loadUnavailableGrid,
+            toggleUnavailableSlot, saveUnavailableSlots,
+            excelDownloading, excelUploading, excelExporting,
+            excelLastResult, excelBatches, excelBatchesLoading,
+            excelBatchPage, excelBatchPageSize, excelBatchTotal,
+            excelBatchStatusFilter,
+            excelDetailVisible, excelDetailRows, excelDetailBatchId,
+            downloadExcelTemplate, onExcelFileChange, loadExcelBatches,
+            viewBatchDetail, exportExcelData, excelStatusTag, excelStatusText,
+            reschedules, loadReschedules, approveReschedule, rejectReschedule,
+            settingsForm, loadSettings, onQrUpload, saveSettings,
+            logs, loadLogs, addLog, clearLogs,
+            notifVisible, notifications, unreadCount, openNotifications,
+            markOneRead, markAllRead, loadUnreadCount,
+            calcLabel, statusTagClass, notifTagType,
+        };
+    }
+});
+
+app.use(ElementPlus);
+app.mount('#app');
+</script>
+</body>
+</html>
