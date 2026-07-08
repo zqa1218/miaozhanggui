@@ -13,8 +13,15 @@ const DEFAULT_TIMEOUT = 15000;
 
 /**
  * 动态获取 Auth Token — 每次请求时实时读取，避免缓存过期 Token
+ * @param {'admin'|'client'|'none'} tokenType
  */
-function getAuthHeaders() {
+function getAuthHeaders(tokenType = 'admin') {
+  if (tokenType === 'client') {
+    const token = storage.get('mzg_client_token', '')
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+  if (tokenType === 'none') return {}
+  // default: admin
   const token = storage.get('mzg_admin_token', '')
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
@@ -22,7 +29,7 @@ function getAuthHeaders() {
 /**
  * 核心请求方法（Adapter 内部实现）
  */
-async function _request({ url, method = 'GET', data = null, params = {}, headers = {} }) {
+async function _request({ url, method = 'GET', data = null, params = {}, headers = {}, tokenType = 'admin' }) {
   // 构建完整 URL
   let fullUrl = `${BASE_URL}${url}`;
 
@@ -43,7 +50,7 @@ async function _request({ url, method = 'GET', data = null, params = {}, headers
     method,
     headers: {
       'Content-Type': 'application/json',
-      ...getAuthHeaders(),
+      ...getAuthHeaders(tokenType),
       ...headers,
     },
   };
@@ -66,11 +73,19 @@ async function _request({ url, method = 'GET', data = null, params = {}, headers
 
   // 401 → 清除登录态并重定向到登录页
   if (response.status === 401) {
-    storage.remove('mzg_admin_token')
-    storage.remove('mzg_admin_mid')
-    storage.remove('mzg_admin_shopname')
-    if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
-      window.location.href = '/admin/login'
+    if (tokenType === 'client') {
+      storage.remove('mzg_client_token')
+      storage.remove('mzg_client_user')
+      if (!window.location.pathname.startsWith('/admin') && window.location.pathname !== '/login') {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search)
+      }
+    } else {
+      storage.remove('mzg_admin_token')
+      storage.remove('mzg_admin_mid')
+      storage.remove('mzg_admin_shopname')
+      if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
+        window.location.href = '/admin/login'
+      }
     }
     return { success: false, code: 'UNAUTHORIZED', message: '请先登录', data: null }
   }
@@ -91,22 +106,23 @@ async function _request({ url, method = 'GET', data = null, params = {}, headers
 
 // ---- 对外暴露的标准接口 ----
 // 组件仅能通过以下方法发起请求
+// 第三个参数 tokenType: 'admin'（默认）| 'client' | 'none'
 
 export const http = {
-  get(url, params = {}) {
-    return _request({ url, method: 'GET', params });
+  get(url, params = {}, tokenType = 'admin') {
+    return _request({ url, method: 'GET', params, tokenType });
   },
 
-  post(url, data = {}) {
-    return _request({ url, method: 'POST', data });
+  post(url, data = {}, tokenType = 'admin') {
+    return _request({ url, method: 'POST', data, tokenType });
   },
 
-  put(url, data = {}) {
-    return _request({ url, method: 'PUT', data });
+  put(url, data = {}, tokenType = 'admin') {
+    return _request({ url, method: 'PUT', data, tokenType });
   },
 
-  delete(url, params = {}) {
-    return _request({ url, method: 'DELETE', params });
+  delete(url, params = {}, tokenType = 'admin') {
+    return _request({ url, method: 'DELETE', params, tokenType });
   },
 };
 

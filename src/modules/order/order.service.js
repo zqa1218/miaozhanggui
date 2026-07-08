@@ -317,9 +317,10 @@ async function createOrderV2(payload) {
 //  支付定金 (写入 pre_lock slot_booking)
 // ════════════════════════════════════════
 
-async function payDeposit(orderNo, mId) {
+async function payDeposit(orderNo, mId, userId) {
   const order = await orderRepo.findByOrderNo(orderNo);
   if (!order || order.m_id !== mId) throw new AppError(ERROR_CODES.ORDER_NOT_FOUND, 404);
+  if (userId && order.user_id && order.user_id !== userId) throw new AppError(ERROR_CODES.UNAUTHORIZED, 403, '无权操作此订单');
   if (order.status !== '待支付') throw new AppError(ERROR_CODES.STATUS_NOT_ALLOWED, 400, '仅待支付状态可付定金');
 
   const startTime = order.booking_start_time
@@ -645,9 +646,10 @@ async function archiveOrder(orderNo, type, mId) {
   return { success: true };
 }
 
-async function payFinal(orderNo, mId) {
+async function payFinal(orderNo, mId, userId) {
   const order = await orderRepo.findByOrderNo(orderNo);
   if (!order || order.m_id !== mId) throw new AppError(ERROR_CODES.ORDER_NOT_FOUND, 404);
+  if (userId && order.user_id && order.user_id !== userId) throw new AppError(ERROR_CODES.UNAUTHORIZED, 403, '无权操作此订单');
   if (!['已付定金', '已确认锁定'].includes(order.status)) {
     throw new AppError(ERROR_CODES.STATUS_NOT_ALLOWED, 400, '当前状态不可支付尾款');
   }
@@ -816,10 +818,10 @@ async function markFulfilled(orderNo, mId) {
 }
 
 /** 用户发起改期申请 */
-async function requestReschedule(orderNo, deviceId, requestedNewTime) {
+async function requestReschedule(orderNo, userId, requestedNewTime) {
   const order = await orderRepo.findByOrderNo(orderNo);
   if (!order) throw new AppError(ERROR_CODES.ORDER_NOT_FOUND, 404);
-  if (order.user_device_id !== deviceId) throw new AppError(ERROR_CODES.UNAUTHORIZED, 403);
+  if (order.user_id && order.user_id !== userId) throw new AppError(ERROR_CODES.UNAUTHORIZED, 403, '无权操作此订单');
   validateTransition(APPLICATION_TRANSITIONS, order.application_status, 'RESCHEDULE_REQUESTED', '申请状态');
 
   await knex('orders').where('order_no', orderNo).update({
@@ -921,10 +923,10 @@ async function rejectReschedule(orderNo, mId) {
 }
 
 /** 用户发起取消申请 */
-async function requestCancel(orderNo, deviceId) {
+async function requestCancel(orderNo, userId) {
   const order = await orderRepo.findByOrderNo(orderNo);
   if (!order) throw new AppError(ERROR_CODES.ORDER_NOT_FOUND, 404);
-  if (order.user_device_id !== deviceId) throw new AppError(ERROR_CODES.UNAUTHORIZED, 403);
+  if (order.user_id && order.user_id !== userId) throw new AppError(ERROR_CODES.UNAUTHORIZED, 403, '无权操作此订单');
   validateTransition(APPLICATION_TRANSITIONS, order.application_status, 'CANCEL_REQUESTED', '申请状态');
 
   await knex('orders').where('order_no', orderNo).update({

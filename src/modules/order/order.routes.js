@@ -14,12 +14,12 @@ const {
   updateStatusSchema, archiveOrderSchema,
 } = require('./order.validator');
 
-//   用户端
-router.post('/create-order', optionalClientAuth, deviceId, rateLimiter(10, 60), ctrl.createOrder);
-router.post('/create-order-v2', optionalClientAuth, deviceId, rateLimiter(10, 60), validate(createOrderV2Schema), ctrl.createOrderV2);
-router.get('/my-orders', optionalClientAuth, ctrl.getMyOrders);
-router.post('/pay-deposit', validate(payDepositSchema), ctrl.payDeposit);
-router.post('/pay-final', ctrl.payFinal);
+//   用户端（强制登录）
+router.post('/create-order', clientAuth, deviceId, rateLimiter(10, 60), ctrl.createOrder);
+router.post('/create-order-v2', clientAuth, deviceId, rateLimiter(10, 60), validate(createOrderV2Schema), ctrl.createOrderV2);
+router.get('/my-orders', clientAuth, ctrl.getMyOrders);
+router.post('/pay-deposit', clientAuth, validate(payDepositSchema), ctrl.payDeposit);
+router.post('/pay-final', clientAuth, ctrl.payFinal);
 
 //   管理端（需认证）
 router.get('/orders', auth, ctrl.getOrders);
@@ -29,7 +29,7 @@ router.get('/order-stats', auth, ctrl.getTodayStats);
 router.post('/order/confirm-lock', auth, validate(confirmLockSchema), ctrl.confirmLock);
 
 //   用户端 + 管理端通用
-router.get('/order-detail', ctrl.getOrderDetail);
+router.get('/order-detail', optionalClientAuth, ctrl.getOrderDetail);
 router.get('/booked-times-v2', ctrl.getBookedTimesV2);
 
 // ═══ 状态机 API ═══
@@ -46,8 +46,8 @@ router.post('/order/approve-cancel',     auth, validate(require('./order.validat
 router.post('/order/reject-cancel',      auth, validate(require('./order.validator').statusTransitionSchema), ctrl.rejectCancel);
 
 // 用户端：发起申请
-router.post('/order/request-reschedule', deviceId, validate(require('./order.validator').requestRescheduleSchema), ctrl.requestReschedule);
-router.post('/order/request-cancel',     deviceId, validate(require('./order.validator').requestCancelSchema),     ctrl.requestCancel);
+router.post('/order/request-reschedule', clientAuth, validate(require('./order.validator').requestRescheduleSchema), ctrl.requestReschedule);
+router.post('/order/request-cancel',     clientAuth, validate(require('./order.validator').requestCancelSchema),     ctrl.requestCancel);
 
 // 管理端：恢复已取消订单
 router.post('/order/restore', auth, validate(require('./order.validator').statusTransitionSchema), ctrl.restoreOrder);

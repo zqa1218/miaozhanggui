@@ -22,7 +22,7 @@ async function createOrder(req, res) {
 async function createOrderV2(req, res) {
   try {
     const payload = { ...req.body };
-    if (req.user && req.user.userId) payload.userId = req.user.userId;
+    payload.userId = req.user.userId;
 
     const result = await service.createOrderV2(payload);
     res.rh.success(result, '订单创建成功');
@@ -53,20 +53,12 @@ async function getOrders(req, res) {
   }
 }
 
-/** GET /my-orders — 支持 JWT 用户隔离 与 旧版 deviceId 兼容 */
+/** GET /my-orders — JWT 用户隔离 */
 async function getMyOrders(req, res) {
   try {
-    const { mId, userDeviceId } = req.query;
-
-    // ★ 新鉴权：已登录用户 → userId + mId 双重隔离
-    if (req.user && req.user.userId) {
-      if (!mId) return res.rh.fail('缺少商家ID', 400);
-      const list = await service.getMyOrdersByUser(mId, req.user.userId);
-      return res.rh.success(list);
-    }
-
-    // 旧版兼容：deviceId 查询
-    const list = await service.getMyOrders(mId, userDeviceId);
+    const { mId } = req.query;
+    if (!mId) return res.rh.fail('缺少商家ID', 400);
+    const list = await service.getMyOrdersByUser(mId, req.user.userId);
     res.rh.success(list);
   } catch (err) {
     logger.error('getMyOrders error', err);
@@ -110,10 +102,14 @@ async function getTodayStats(req, res) {
   }
 }
 
-/** GET /order-detail */
+/** GET /order-detail — 公开访问，JWT用户额外返回 isOwner */
 async function getOrderDetail(req, res) {
   try {
     const result = await service.getOrderDetail(req.query.orderNo, req.query.mId);
+    // 已登录用户 → 返回所有权信息
+    if (req.user && req.user.userId) {
+      result.isOwner = (result.userId === req.user.userId);
+    }
     res.rh.success(result);
   } catch (err) {
     if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
@@ -125,7 +121,7 @@ async function getOrderDetail(req, res) {
 /** POST /pay-deposit */
 async function payDeposit(req, res) {
   try {
-    const result = await service.payDeposit(req.body.orderNo, req.body.mId);
+    const result = await service.payDeposit(req.body.orderNo, req.body.mId, req.user.userId);
     res.rh.success(result, '定金支付确认');
   } catch (err) {
     if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
@@ -137,7 +133,7 @@ async function payDeposit(req, res) {
 /** POST /pay-final */
 async function payFinal(req, res) {
   try {
-    const result = await service.payFinal(req.body.orderNo, req.body.mId);
+    const result = await service.payFinal(req.body.orderNo, req.body.mId, req.user.userId);
     res.rh.success(result, '尾款支付确认');
   } catch (err) {
     if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
@@ -214,8 +210,7 @@ async function markFulfilled(req, res) {
 // 用户端：申请改期
 async function requestReschedule(req, res) {
   try {
-    const deviceId = req.deviceId || req.headers['x-device-id'];
-    const result = await service.requestReschedule(req.body.orderNo, deviceId, req.body.requestedNewTime);
+    const result = await service.requestReschedule(req.body.orderNo, req.user.userId, req.body.requestedNewTime);
     res.rh.success(result, '改期申请已提交');
   } catch (err) {
     if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
@@ -251,8 +246,7 @@ async function rejectReschedule(req, res) {
 // 用户端：申请取消
 async function requestCancel(req, res) {
   try {
-    const deviceId = req.deviceId || req.headers['x-device-id'];
-    const result = await service.requestCancel(req.body.orderNo, deviceId);
+    const result = await service.requestCancel(req.body.orderNo, req.user.userId);
     res.rh.success(result, '取消申请已提交');
   } catch (err) {
     if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);

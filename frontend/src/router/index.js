@@ -92,22 +92,30 @@ router.beforeEach((to, _from, next) => {
     return next('/admin/login')
   }
 
-  // [临时关闭] ★ 客户端路由守护：需要登录的页面，无 Token → 拦截到客户端登录页
-  // 恢复时取消注释以下代码块即可
-  // const requiresClientAuth = to.matched.some(r => r.meta?.requiresClientAuth)
-  // if (requiresClientAuth && !clientToken) {
-  //   const mId = to.query.mId || _from.query.mId || ''
-  //   const redirect = to.fullPath
-  //   const query = new URLSearchParams()
-  //   if (mId) query.set('mId', mId)
-  //   query.set('redirect', redirect)
-  //   return next('/login?' + query.toString())
-  // }
+  // ===== C端强制登录守卫 =====
+  // 所有非 /admin 路由均需登录，白名单：/ /login /register
+  const isAdminPath = to.path.startsWith('/admin')
+  const isLoginPage = to.path === '/login'
+  const isWelcomePage = to.path === '/'
+  const isRegisterPage = to.path === '/register'
 
-  // [临时关闭] 已登录客户端用户访问登录页且有 redirect → 直接跳回
-  // if (clientToken && to.path === '/login' && to.query.redirect) {
-  //   return next(to.query.redirect)
-  // }
+  if (!isAdminPath && !isLoginPage && !isWelcomePage && !isRegisterPage) {
+    if (!clientToken) {
+      const redirect = to.fullPath
+      const params = new URLSearchParams()
+      const mId = to.query.mId || _from.query.mId || ''
+      if (mId) params.set('mId', mId)
+      params.set('redirect', redirect)
+      return next('/login?' + params.toString())
+    }
+  }
+
+  // 已登录C端用户访问登录页 → 跳回 redirect 目标或首页
+  if (clientToken && isLoginPage) {
+    const redirect = to.query.redirect
+    if (redirect) return next(redirect)
+    return next('/studio-filter')
+  }
 
   next()
 })

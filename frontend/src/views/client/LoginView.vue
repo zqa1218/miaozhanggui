@@ -16,20 +16,18 @@ const mId = ref(route.query.mId || '')
 const redirect = ref(route.query.redirect || '')
 
 onMounted(() => {
-  if (auth.isLoggedIn && mId.value) {
+  if (auth.isLoggedIn) {
     doRedirect()
   }
 })
 
 function doRedirect() {
-  if (redirect.value) {
-    const target = redirect.value + (redirect.value.includes('?') ? '&' : '?') + 'mId=' + mId.value
-    router.replace(target)
-  } else if (mId.value) {
-    router.replace('/studios?mId=' + mId.value)
-  } else {
-    router.replace('/studios')
+  let target = redirect.value || '/studio-filter'
+  // 保护已有 mId 参数不被覆盖
+  if (mId.value && !target.includes('mId=')) {
+    target += (target.includes('?') ? '&' : '?') + 'mId=' + mId.value
   }
+  router.replace(target)
 }
 
 async function handleOAuthLogin(provider) {
@@ -56,7 +54,7 @@ async function handleOAuthLogin(provider) {
     <div class="login-box fade-in-up">
       <h2>🐱 喵喵预约</h2>
 
-      <div v-if="!mId" class="error">缺少商家ID，请从正确的下单链接进入</div>
+      <div v-if="!mId" class="warning">未检测到商家信息，登录后将跳转至浏览页</div>
 
       <div v-if="errorMsg" class="error">{{ errorMsg }}</div>
       <div v-if="successMsg" class="success">{{ successMsg }}</div>
@@ -97,6 +95,7 @@ async function handleOAuthLogin(provider) {
     #F9F8F6;
   position: relative; overflow: hidden;
 }
+.warning { color: #B8860B; font-size: 13px; text-align: center; padding: 8px; background: #FFF8E1; border-radius: 8px; margin-bottom: 8px; }
 .client-login-page::before {
   content: '';
   position: absolute; top: -40%; left: -20%;

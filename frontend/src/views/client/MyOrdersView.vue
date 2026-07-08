@@ -19,7 +19,6 @@ function toMin(t) {
 }
 
 const mId = computed(() => getQueryParam('mId') || storage.get('mzg_client_mid', ''))
-const deviceId = computed(() => storage.get('mzg_device_id', '') || ('dev_' + Date.now().toString(36)))
 
 // ── 状态配置 ──
 const statusConfig = {
@@ -87,41 +86,30 @@ const cancelledOrders = computed(() =>
 )
 
 // ── 数据加载 ──
-async function refreshOrders() {
-  if (!mId.value) return
-
-  // ★ 已登录：使用 JWT API（userId + mId 双重隔离）
-  if (auth.isLoggedIn) {
-    try {
-      const res = await fetch(`/api/my-orders?mId=${mId.value}`, {
-        headers: auth.getAuthHeaders(),
-      }).then(r => r.json())
-      if (res.success || res.code === 0) {
-        myOrders.value = res.data || []
-      }
-    } catch {}
-    return
-  }
-
-  // 未登录：旧版 deviceId 兼容
-  if (deviceId.value) {
-    await store.fetchMyOrders(mId.value, deviceId.value)
-    myOrders.value = store.myOrders || []
-  }
-}
-
 const myOrders = ref([])
 const loading = ref(false)
 
+async function refreshOrders() {
+  if (!mId.value) return
+  loading.value = true
+  try {
+    const res = await fetch(`/api/my-orders?mId=${mId.value}`, {
+      headers: auth.getAuthHeaders(),
+    }).then(r => r.json())
+    if (res.success || res.code === 0) {
+      myOrders.value = res.data || []
+    }
+  } catch {}
+  loading.value = false
+}
+
 onMounted(async () => {
-  if (mId.value && deviceId.value) {
-    storage.set('mzg_device_id', deviceId.value)
-    try {
-      const res = await fetch(`/api/settings?mId=${mId.value}`).then(r => r.json())
-      if (res.success || res.code === 0) merchantSettings.value = res.data || {}
-    } catch {}
-    await refreshOrders()
-  }
+  if (!mId.value) return
+  try {
+    const res = await fetch(`/api/settings?mId=${mId.value}`).then(r => r.json())
+    if (res.success || res.code === 0) merchantSettings.value = res.data || {}
+  } catch {}
+  await refreshOrders()
 })
 
 const refreshBus = inject('refreshBus', null)
@@ -185,11 +173,17 @@ async function submitReschedule() {
   reschedSubmitting.value = true
   reschedConflictMsg.value = ''
   try {
-    const res = await store.requestRescheduleAction({
-      orderNo: order.orderNo,
-      requestedNewTime: reschedStartTime.value,
-      userDeviceId: deviceId.value,
-    })
+    const res = await fetch('/api/order/request-reschedule', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...auth.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        orderNo: order.orderNo,
+        requestedNewTime: reschedStartTime.value,
+      }),
+    }).then(r => r.json())
     if (res.success || res.code === 0) {
       reschedModalOrder.value = null
       await refreshOrders()
@@ -214,15 +208,23 @@ async function submitCancel() {
   if (!order) return
   cancelSubmitting.value = true
   try {
-    const res = await store.requestCancelAction({
-      orderNo: order.orderNo,
-      userDeviceId: deviceId.value,
-    })
+    const res = await fetch('/api/order/request-cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...auth.getAuthHeaders(),
+      },
+      body: JSON.stringify({ orderNo: order.orderNo }),
+    }).then(r => r.json())
     if (res.success || res.code === 0) {
       cancelModalOrder.value = null
       await refreshOrders()
+    } else {
+      ElMessage.warning(res.message || '操作失败')
     }
-  } catch {}
+  } catch (e) {
+    ElMessage.error('网络错误，请稍后重试')
+  }
   cancelSubmitting.value = false
 }
 

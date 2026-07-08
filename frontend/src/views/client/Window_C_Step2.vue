@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWizardCStore } from '@/stores/wizardC'
 import { storage, getQueryParam } from '@/utils/storage'
+import http from '@/utils/http'
 import DeclarationDialog from '@/components/shared/DeclarationDialog.vue'
 
 const route = useRoute()
@@ -175,11 +176,7 @@ async function confirmPaymentAndSubmit() {
       referenceImages: referenceImages.value.length > 0 ? referenceImages.value : null,
     }
 
-    const createRes = await fetch('/api/create-order-v2', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-device-id': DEVICE_ID.value },
-      body: JSON.stringify(payload),
-    }).then(r => r.json())
+    const createRes = await http.post('/create-order-v2', payload, 'client')
 
     if (!createRes.success && createRes.code !== 0) {
       errorMsg.value = createRes.message || '订单创建失败'
@@ -190,11 +187,7 @@ async function confirmPaymentAndSubmit() {
     const orderNo = (createRes.data && createRes.data.orderNo) || ''
 
     // 2. 支付定金 → 写入 pre_lock slot (第一重锁)
-    const payRes = await fetch('/api/pay-deposit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-device-id': DEVICE_ID.value },
-      body: JSON.stringify({ orderNo, mId: mId.value }),
-    }).then(r => r.json())
+    const payRes = await http.post('/pay-deposit', { orderNo, mId: mId.value }, 'client')
 
     if (payRes.success || payRes.code === 0) {
       wizardC.setLockStatus('pre_lock')
