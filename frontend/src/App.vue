@@ -5,8 +5,9 @@
 //   3. element-bridge    —— Element Plus 运行时变量桥 + 结构覆盖
 //   4. theme             —— 语义组件层（按钮/面板/徽章/容器）
 //   5. global            —— 页面级构件与历史兼容类
-// 这五份 CSS 在 element-plus 自身的样式之后加载，因此同权重选择器本就能赢，
-// 无需依赖 !important。
+//   6. glass             —— glass 主题专属：背景层 + .glass 系列工具类
+// 这六份 CSS 在 element-plus 自身的样式之后加载，因此同权重选择器本就能赢，
+// 无需依赖 !important。glass 放最后：它的工具类需要压过组件层的同权重规则。
 //
 // 注意：L2 必须在 element-bridge 之前 —— 桥接层引用 --radius-* / --shadow-*
 // 等语义令牌，而自定义属性的解析与声明顺序无关（只与层叠结果有关），
@@ -16,6 +17,7 @@ import '@/assets/styles/tokens.semantic.css'
 import '@/assets/styles/element-bridge.css'
 import '@/assets/styles/theme.css'
 import '@/assets/styles/global.css'
+import '@/assets/styles/glass.css'
 </script>
 
 <template>

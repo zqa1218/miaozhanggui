@@ -1,0 +1,142 @@
+/* =============================================================
+   喵掌柜 · glass 主题：背景层 + 玻璃工具类
+   -------------------------------------------------------------
+   加载顺序：tokens.primitives → tokens.semantic → element-bridge → theme
+             → global → **glass**（最后，工具类需要能压过组件层的同权重规则）
+
+   为什么整个文件都限定在 `:root[data-theme="glass"]` 下：
+     1. 这三条工具类是**玻璃主题专属**的视觉配方，不是通用布局类。
+        限定作用域后 classic 页面无论怎么引用都拿不到它们 —— 比「靠约定
+        不去用」更可靠，也让 -webkit- 前缀的硬编码值在任何浏览器上都正确
+        （见下）。
+     2. 背景层只应在 glass 下存在。
+
+   ⚠ 关于 -webkit-backdrop-filter 里的字面量
+     本文件对 backdrop-filter 用变量、对 -webkit-backdrop-filter 写字面量。
+     两者在 glass 下取值相同（都是 18px / 180%），所以任何浏览器结果一致。
+     之所以能安全地写字面量，正是因为上面第 1 条：这些类只会在 glass 生效，
+     不存在「classic 下前缀属性与标准属性不一致」的窗口。
+     若日后要改玻璃模糊强度，**两处必须同步** —— check-tokens.mjs 有断言。
+   ============================================================= */
+
+/* ══════════════════════════════════════════════════════════════
+   背景层 · 光斑（body::before）
+   -------------------------------------------------------------
+   纯 CSS、零 JS、零图片请求：不占用网络，不影响 LCP（LCP 元素是 Hero 文本）。
+   position: fixed —— 它是独立合成层，滚动时既不重绘也不触发 layout，
+   这是「背景装饰不得参与滚动重绘」这条约束的实现方式。
+
+   filter: blur(80px) 只做一次光栅化（fixed 层不做滚动重绘），
+   代价是首帧多一次大半径模糊。因为 --bg-mesh 的径向渐变本身已收边到
+   transparent 70%，模糊只是把过渡再软化一档，所以移动端可安全降到 40px
+   （见文件末尾的媒体查询）—— 这是有意的降级，已记入交付说明。
+
+   有意**不做**缓慢漂移动画（设计要求里列为可选）：Hero 文本直接压在这层
+   光斑上，漂移会让文字底色的对比度随时间波动，与「文字不得压在会漂移的
+   渐变光斑上」直接冲突。静态光斑已足够，且省掉持续的合成开销。
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="glass"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--bg-mesh);
+  filter: blur(80px);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   背景层 · 蓝图网格（body::after）
+   -------------------------------------------------------------
+   1px 线 + --grid-line（蓝 7%）+ --grid-size（32px）。
+   四周用 mask-image 径向渐隐，避免出现生硬的矩形边界。
+   mask 需要 -webkit- 前缀，Safari 直到较新版本才支持无前缀写法。
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="glass"] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  /* 这里的 #000 是**遮罩值**不是颜色：遮罩里不透明=保留、透明=挖掉，
+     与主题色无关，所以不接令牌。 */
+  -webkit-mask-image: radial-gradient(ellipse 78% 68% at 50% 38%, #000 42%, transparent 100%);
+  mask-image: radial-gradient(ellipse 78% 68% at 50% 38%, #000 42%, transparent 100%);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   玻璃工具类
+   -------------------------------------------------------------
+   三档对应 --surface-glass / -strong / -quiet：
+     .glass        主力档 —— 导航条、搜索条这类「独立浮起」的面板
+     .glass-strong 高填充 —— 需要承载输入控件、文字密集的面板
+     .glass-quiet  低填充 —— 成组出现、需要更「轻」的卡片
+
+   配方里的层次（从外到内）：
+     1. border        —— 1px 冷蓝描边勾勒轮廓
+     2. border-top    —— 更亮的上沿 = 边缘受光，Liquid Glass 的关键一笔
+     3. inset 高光    —— 上沿内侧再补一道 1px 亮线，让玻璃有厚度感
+     4. box-shadow    —— 外层投影把面板从背景上抬起
+   四者缺一，玻璃就会「平」掉。
+
+   性能：backdrop-filter 只在「内容会从它下面滚过去」的元素上用，且
+   首页总数受预算约束（≤5，见 GlassHome.vue 顶部的计数表）。
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="glass"] .glass,
+:root[data-theme="glass"] .glass-strong,
+:root[data-theme="glass"] .glass-quiet {
+  border: 1px solid var(--glass-stroke);
+  border-top-color: var(--glass-edge-top);
+  border-radius: var(--radius-card);
+}
+
+:root[data-theme="glass"] .glass {
+  background: var(--surface-glass);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-2), var(--glass-highlight);
+}
+
+:root[data-theme="glass"] .glass-strong {
+  background: var(--surface-glass-strong);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-2), var(--glass-highlight);
+}
+
+:root[data-theme="glass"] .glass-quiet {
+  background: var(--surface-glass-quiet);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-1), var(--glass-highlight);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   不透明度兜底
+   不支持 backdrop-filter 时，半透明表面会让底下的网格与光斑直接穿过面板，
+   文字可读性崩掉。这里把三档统一提到近乎不透明 —— 做在组件层而不是变量层，
+   是因为只有 .glass 系列需要这个兜底，其余实色表面本就不受影响。
+   （变量层的兜底见 tokens.semantic.css，那一层管的是 --surface-* 的通用情形。）
+   ══════════════════════════════════════════════════════════════ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-theme="glass"] .glass,
+  :root[data-theme="glass"] .glass-strong,
+  :root[data-theme="glass"] .glass-quiet {
+    background: var(--a-white-96);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   移动端降级
+   80px 模糊在低端机上是首帧最大的一笔开销，而小屏上光斑的可视面积本来就小，
+   降到 40px 肉眼几乎无差。这是有意的取舍，不是遗漏。
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  :root[data-theme="glass"] body::before {
+    filter: blur(40px);
+  }
+}

@@ -14,7 +14,8 @@
  * 退出码：0 = 全部一致；1 = 有差异（CI 用）。
  */
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 
 // ───────────────────────── CSS 解析 ─────────────────────────
 // 只需处理压缩后的产物：注释已剥离，规则形如 sel{decl;decl} 或 @rule{...}。
@@ -260,6 +261,50 @@ for (const need of ['--color-primary', '--text-3', '--surface-glass', '--glass-b
   assert(`glass 块覆盖了 ${need}`, ok, ok ? 'ok' : '未找到')
 }
 
+// (d0) 源码里引用的每个令牌都必须有定义。
+//      拼错一个变量名（--brand 写成 --brands）不会报任何错，只会让整条声明
+//      在计算时失效 —— 表现为「这个组件在这个主题下没样式」，极难定位。
+{
+  const defined = new Set()
+  for (const re of afterRaw.matchAll(/(--[a-zA-Z][\w-]*)\s*:/g)) defined.add(re[1])
+
+  const sources = []
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name)
+      if (e.isDirectory()) walk(p)
+      else if (/\.(css|vue|scss)$/.test(e.name)) sources.push(p)
+    }
+  }
+  try {
+    walk(new URL('../src', import.meta.url).pathname)
+  } catch (e) {
+    /* 目录不可读则跳过 */
+  }
+
+  const used = new Map() // name -> 首个引用位置
+  for (const f of sources) {
+    const text = readFileSync(f, 'utf8')
+    // 源码里**局部定义**的令牌同样算已定义。
+    // 典型例子：Window_B_Style_Create.vue 在 .create-page 作用域内定义了
+    // --sage/--rose/--ink 等一整套自有令牌。它是死代码、不进构建产物，
+    // 所以这些名字不会出现在构建后的 CSS 里 —— 只看产物会误判为「未定义」。
+    for (const m of text.matchAll(/(--[a-zA-Z][\w-]*)\s*:/g)) defined.add(m[1])
+    for (const m of text.matchAll(/var\(\s*(--[a-zA-Z][\w-]*)/g)) {
+      if (!used.has(m[1])) used.set(m[1], f.replace(/.*\/src\//, 'src/'))
+    }
+  }
+
+  const undef = [...used.entries()].filter(([n]) => !defined.has(n))
+  assert(
+    '源码引用的令牌全部有定义',
+    undef.length === 0,
+    undef.length
+      ? undef.map(([n, f]) => `${n}（首见于 ${f}）`).join('; ')
+      : `${used.size} 个被引用的令牌均已定义`
+  )
+}
+
 // (d) 旧令牌别名必须保留 —— 改名但漏掉别名会让引用处静默失效
 //     （本轮就抓到过 --glass-hairline 漏保留，26 处引用会因此丢边框）
 for (const alias of ['--glass-hairline', '--shadow-glow', '--surface-1', '--text-sub']) {
@@ -301,6 +346,25 @@ for (const alias of ['--glass-hairline', '--shadow-glow', '--surface-1', '--text
       ? broken.map(([n, v]) => `${n} → ${v.resolved}`).join('; ')
       : `${resolvedGlass.size} 项全部解析成功`
   )
+
+  // glass.css 里 -webkit-backdrop-filter 用的是**字面量**（设计要求如此），
+  // 于是它与 --glass-blur 成了两处独立的值，会各自漂移。
+  // 这里断言两者一致 —— 否则改了令牌却忘了改前缀，Safari 上会静默用旧配方。
+  {
+    const glassCss = readFileSync(new URL('../src/assets/styles/glass.css', import.meta.url), 'utf8')
+    // 必须锚定行首：@supports 的条件里也有 `(-webkit-backdrop-filter: blur(1px))`，
+    // 不锚定会把它当成一条声明匹配进来。
+    const literals = [...glassCss.matchAll(/^[ \t]*-webkit-backdrop-filter:\s*([^;]+);/gm)].map((m) => m[1].trim())
+    const want = resolvedGlass.get('--glass-blur')
+    const uniq = [...new Set(literals)]
+    assert(
+      'glass.css 中 -webkit-backdrop-filter 的字面量与 --glass-blur 一致',
+      uniq.length > 0 && !!want && uniq.every((v) => v === want.resolved),
+      uniq.length
+        ? `字面量 ${uniq.join(' / ')}  vs  --glass-blur = ${want ? want.resolved : '未定义'}`
+        : '未找到字面量（若已全部改用 var()，请同步更新本条断言）'
+    )
+  }
 
   // 顺带抽查 glass 关键令牌的最终计算值，防止「解析成功但取错档」
   const expect = {

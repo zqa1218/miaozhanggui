@@ -1,9 +1,28 @@
 <script setup>
+import { computed, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { House, Calendar, Lock, Picture } from '@element-plus/icons-vue'
 import mascotStanding from '@/assets/images/mascot-standing.png'
+import { useTheme } from '@/composables/useTheme'
+
+/* GlassHome 按需加载，不静态 import。
+   为什么：它是 glass 专属的整页实现（约 11 KB JS + 17 KB CSS）。
+   静态引入会把这份体积压到 `/` 路由的产物里，让**默认的 classic 访客**
+   白白下载并解析。按需加载后，只有真正切到 glass 的会话才拉取这个 chunk
+   （约 17 KB，同源，实测解析完成远早于首屏绘制）。
+   副作用：glass 会话首次进入会有一瞬空白。不预留占位高度是有意的 ——
+   页面此时还没绘制任何内容，不产生布局偏移（CLS 统计的是**已绘制内容**的位移）。 */
+const GlassHome = defineAsyncComponent(() => import('@/components/home/GlassHome.vue'))
 
 const router = useRouter()
+
+/* 主题分流。
+   glass 的首页是另一套结构与配方（含顶部导航、搜索条、推荐区、Footer），
+   见 components/home/GlassHome.vue 顶部说明。
+   下面 v-else 分支是 classic 的首页 —— 它保持改造前的样子不动，
+   所以这里的判断只做「切换渲染哪一份」，不对 classic 做任何结构调整。 */
+const { theme } = useTheme()
+const isGlass = computed(() => theme.value === 'glass')
 
 function goUser() {
   router.push('/studio-filter')
@@ -15,7 +34,8 @@ function goAdmin() {
 </script>
 
 <template>
-  <div class="welcome">
+  <GlassHome v-if="isGlass" />
+  <div v-else class="welcome">
     <!-- 背景装饰：只留静态云朵。
          原先还有 5 颗无限闪烁的星星，属于「不传达任何状态的装饰性动效」，
          在工具型界面里是噪音，已移除。 -->

@@ -112,6 +112,13 @@
   --surface-2:                var(--surface-glass-strong);
   --surface-3:                var(--surface-glass-quiet);
   --surface-solid:            var(--c-warm-0);
+  /* 最深一档表面：Footer 这类需要「实心收底」的区域。
+     与玻璃互斥使用 —— 深色面上一旦再叠半透明磨砂，会又脏又糊。 */
+  --surface-deep:             var(--c-warm-800);
+  /* 深色面上的分割线：浅色面对比度够用的 --border-subtle 到这里会完全看不见 */
+  --divider-on-deep:          rgba(255, 255, 255, .18);
+  /* 遮罩/蒙层（抽屉、浮层的背景压暗层） */
+  --scrim:                    var(--a-warm-32);
 
   /* 玻璃描边与上沿高光。
      --glass-hairline 是 --glass-stroke 的**旧名**，全站 26 处引用（含 6 个组件
@@ -120,8 +127,13 @@
      所有磨砂面板直接丢掉边框。 */
   --glass-stroke:             var(--a-warm-07);
   --glass-hairline:           var(--glass-stroke);
-  --glass-edge-top:           inset 0 1px 0 var(--a-white-55);
-  --glass-highlight:          var(--glass-edge-top);
+  /* 注意二者**类型不同**，阶段 3 已拆开：
+       --glass-edge-top  是「颜色」，给 border-top-color 用（边缘受光）
+       --glass-highlight 是「完整阴影值」，给 box-shadow 用
+     阶段 1 曾让 highlight 引用 edge-top，一旦有人把 edge-top 用作颜色就会产出
+     `border-top-color: inset 0 1px 0 …` 这种无效声明。拆开后各自类型明确。 */
+  --glass-edge-top:           var(--a-white-55);
+  --glass-highlight:          inset 0 1px 0 var(--a-white-55);
 
   /* 模糊配方 —— 完整字面量，**刻意不做成 var() 嵌套**。
      原因：--glass-blur 会被用在 -webkit-backdrop-filter 里（见本文件末
@@ -356,10 +368,20 @@
   --surface-2:                var(--surface-glass-strong);
   --surface-3:                var(--surface-glass-quiet);
   --surface-solid:            var(--c-warm-0);
+  /* 最深一档表面：Footer 用。取值与 --text-1 相同但角色不同 ——
+     一个是文字色、一个是表面色，将来任一调整都不该牵动另一个。
+     与玻璃互斥使用：深色面叠半透明磨砂会又脏又糊。 */
+  --surface-deep:             #0B1B33;
+  --divider-on-deep:          rgba(255, 255, 255, .14);
+  /* 蒙层用暖褐会与冷色体系打架，glass 下改用深蓝墨 */
+  --scrim:                    rgba(11, 27, 51, .32);
 
   --glass-stroke:             var(--a-blue-14);
-  --glass-edge-top:           inset 0 1px 0 var(--a-white-90);
-  --glass-highlight:          var(--glass-edge-top);
+  /* 亮顶边：边缘受光的颜色档比 classic 更亮（.90 vs .55），
+     因为 glass 的面板更透明，需要更明确的上沿才能「立」起来。 */
+  --glass-edge-top:           var(--a-white-90);
+  /* 上沿高光阴影：取设计给定的 .55，与 --glass-edge-top 是两件事 */
+  --glass-highlight:          inset 0 1px 0 var(--a-white-55);
 
   /* ── 模糊 ──
      字面量见 classic 块的说明（-webkit-backdrop-filter 需要完整配方）。
@@ -423,16 +445,10 @@
   --grid-size:                var(--grid-32);
 }
 
-/* glass 的页面背景：把 body 的两层背景换成纯 CSS 网格。
-   这是本文件里唯一允许出现选择器的地方 —— 因为 body 不在任何组件作用域内，
-   只能由主题层接管。
-   ⚠ --grid-line / --grid-size 已定义但**本轮尚未接线**（网格覆盖层属装饰性
-      视觉产出，归下一阶段）。此处只用 --bg-mesh，见交付说明的「未做」清单。 */
-:root[data-theme="glass"] body {
-  background-image: var(--bg-mesh);
-  background-size: auto, auto, auto;
-  background-position: 0 0, 0 0, 0 0;
-}
+/* glass 的页面背景装饰（--bg-mesh 光斑 + --grid-line 蓝图网格）
+   不在这里接线 —— 它们需要独立图层（body::before / body::after）与渐隐遮罩，
+   放在 assets/styles/glass.css。本文件保持「只有变量声明」的职责。
+   此处只需让 body 自身的 background-image 为空：--bg-photo 在 glass 下是 none。 */
 
 /* ═══════════════════════════════════════════════════════════════
    降级 · 不支持 backdrop-filter

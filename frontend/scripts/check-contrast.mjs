@@ -68,24 +68,47 @@ const CLASSIC_PAGE = hex('#F9F8F6')
 const CLASSIC_PAGE_DARKEST = hex('#E9E8E6')
 
 // glass：页底 #F7FAFF 上叠 --bg-mesh 三层径向渐变。
-// 三层中心分别在 12%/8%、88%/4%、70%/92%，理论上不会同时达到峰值；
-// 但无障碍验收必须取**最不利情况**，所以这里按三层完全重叠计算（保守上界）。
-function glassBackdropWorstCase() {
-  let c = hex('#F7FAFF')
-  c = over('rgba(34,211,238,.18)', c) // accent-cyan 层
-  c = over('rgba(129,140,248,.24)', c) // accent-indigo 层
-  c = over('rgba(96,165,250,.28)', c) // brand-400 层
-  return c
-}
-// 单层峰值（更贴近真实观感，用于对照）
-function glassBackdropTypical() {
-  let c = hex('#F7FAFF')
-  c = over('rgba(96,165,250,.28)', c)
+//
+// 取「最不利底色」的方式是**按 CSS radial-gradient 的真实几何逐点采样整个视口**，
+// 而不是假设三层完全重叠。
+// 早先版本用了「三层完全重叠」的保守上界，结果是错的：三层中心分别在
+// 12%/8%、88%/4%、70%/92%，各自的椭圆半径（60%/50%、50%/45%、45%/40%）
+// 根本够不到彼此的中心，现实中不存在任何一点三层同时达到峰值。
+// 用不存在的底色去验收，只会得到一个永远失败、因而被忽略的指标。
+const MESH_STOPS = [
+  { cx: 12, cy: 8, rx: 60, ry: 50, col: [96, 165, 250], a: 0.28 }, // brand-400 层
+  { cx: 88, cy: 4, rx: 50, ry: 45, col: [129, 140, 248], a: 0.24 }, // accent-indigo 层
+  { cx: 70, cy: 92, rx: 45, ry: 40, col: [34, 211, 238], a: 0.18 }, // accent-cyan 层
+]
+const GLASS_BASE = hex('#F7FAFF')
+
+/** 给定视口百分比坐标，返回该点的合成底色 */
+function meshAt(px, py) {
+  let c = GLASS_BASE.slice()
+  for (const g of MESH_STOPS) {
+    const t = Math.hypot((px - g.cx) / g.rx, (py - g.cy) / g.ry)
+    if (t >= 0.7) continue // 渐变在 70% 处已完全透明
+    const a = g.a * (1 - t / 0.7)
+    c = c.map((v, i) => Math.round(a * g.col[i] + (1 - a) * v))
+  }
   return c
 }
 
-const GLASS_BACKDROP_WORST = glassBackdropWorstCase()
-const GLASS_BACKDROP_TYPICAL = glassBackdropTypical()
+/** 全视口采样，返回对给定前景色最不利的那一点 */
+function worstBackdropFor(fg) {
+  let worst = { ratio: Infinity, at: null, bg: null }
+  for (let y = 0; y <= 100; y += 2) {
+    for (let x = 0; x <= 100; x += 2) {
+      const bg = meshAt(x, y)
+      const r = contrast(hex(fg), bg)
+      if (r < worst.ratio) worst = { ratio: r, at: `${x}%/${y}%`, bg }
+    }
+  }
+  return worst
+}
+
+const GLASS_BACKDROP_WORST = worstBackdropFor('#4E6288').bg // 用最浅的三级文字定最不利点
+const GLASS_BACKDROP_TYPICAL = meshAt(12, 8) // 光斑 A 中心
 
 // ─────────────────────── 待测组合 ───────────────────────
 // surface 为 null 表示直接落在页面底色上
@@ -211,9 +234,40 @@ if (process.argv.includes('--sweep')) {
   }
 }
 
+// ─────────────── glass 首页背景 · 全视口采样 ───────────────
+// 首页文本直接压在 --bg-mesh 光斑上（没有面板兜底），所以必须逐点验证。
+console.log('\n\x1b[1mglass 首页背景 · 全视口逐点采样（步长 2%）\x1b[0m')
+console.log('─'.repeat(96))
+console.log(pad('文字令牌', 22) + pad('最不利位置', 14) + pad('该点底色', 12) + '最低对比度')
+const HEXPT = (c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('')
+// exempt=true 的项按 WCAG 归类为「非文本/可豁免」，只报告不判失败：
+//   --text-4 只允许用于禁用态（WCAG 明确豁免）与**纯装饰**图形；
+//   1.4.11 约束的是「理解内容所必需」的图形，纯装饰不在其列。
+// 但它在光斑峰值区确实低于 3:1，所以仍在输出里可见 —— 不隐藏，只是不误判为缺陷。
+for (const [name, fg, exempt] of [
+  ['--text-1', '#0B1B33', false],
+  ['--text-2', '#3D5372', false],
+  ['--text-3', '#4E6288', false],
+  ['--text-4（禁用/装饰）', '#71849F', true],
+]) {
+  const w = worstBackdropFor(fg)
+  const need = exempt ? AA_LARGE : AA_BODY
+  const ok = w.ratio >= need
+  if (!ok && !exempt) failures++
+  const mark = ok ? '\x1b[32mPASS\x1b[0m' : exempt ? '\x1b[2m豁免\x1b[0m' : '\x1b[31mFAIL\x1b[0m'
+  console.log(
+    pad(name, 22) + pad(w.at, 14) + pad(HEXPT(w.bg), 12) + `${w.ratio.toFixed(2)}:1  ` + mark
+  )
+}
+console.log(
+  '\x1b[2m\n  放置规则：--text-4 与装饰图形不得放在光斑峰值附近\n' +
+    '  （12%/8%、88%/4%、70%/92% 三点周边），否则会低于 3:1。\n' +
+    '  首页当前布局中这些位置由玻璃面板覆盖（面板底色更亮，对比度只会更高）。\x1b[0m'
+)
+
 console.log('\n' + '─'.repeat(96))
-console.log(`最不利 glass 页面底色（三层 mesh 完全重叠）= #${GLASS_BACKDROP_WORST.map((c) => c.toString(16).padStart(2, '0')).join('')}`)
-console.log(`典型 glass 页面底色（单层 mesh 峰值）      = #${GLASS_BACKDROP_TYPICAL.map((c) => c.toString(16).padStart(2, '0')).join('')}`)
+console.log(`最不利 glass 页面底色 = ${HEXPT(GLASS_BACKDROP_WORST)}（全视口采样得出）`)
+console.log(`光斑 A 中心底色        = ${HEXPT(GLASS_BACKDROP_TYPICAL)}`)
 if (known) {
   console.log(`\x1b[33m${known} 项为既存问题\x1b[0m（本次改造之前就存在，不计入退出码，已记入交付说明）`)
 }
