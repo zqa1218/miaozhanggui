@@ -213,7 +213,10 @@ test.describe('主题切换器', () => {
     // （为了让视觉截图稳定），而那条偏好下组件会**故意**跳过 View Transition。
     // 不覆盖的话这条用例永远测不到目标分支。
     await setup(page, { reducedMotion: 'no-preference' })
-    await page.goto('/')
+    // 再叠一层 ?fx=full：配置文件全局设了 reducedMotion: 'reduce'，
+    // 单靠 page.emulateMedia 覆盖在 WebKit 上不稳定，
+    // 而 ?fx=full 是明确的「强制满效果」开关，跨引擎行为一致。
+    await page.goto('/?fx=full')
     await page.evaluate(() => {
       window.__vtCalls = 0
       window.__vtThemeInside = null

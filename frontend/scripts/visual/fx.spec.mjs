@@ -39,6 +39,12 @@ const fxAttr = (page) => page.evaluate(() => document.documentElement.getAttribu
  * 这类「因为别的原因碰巧过了」的测试比失败更危险，所以必须用能真正改到偏好的通道。
  */
 async function emulateContrast(page, value) {
+  // Firefox / WebKit 没有 CDP —— 这是测试通道的限制，不是应用缺陷。
+  // 在那些引擎上跳过该用例，并在报告里注明「该项仅有 Chromium 证据」。
+  if (page.context().browser()?.browserType().name() !== 'chromium') {
+    test.skip(true, 'prefers-contrast 的模拟只有 Chromium 提供（CDP），其他引擎跳过')
+    return
+  }
   const cdp = await page.context().newCDPSession(page)
   await cdp.send('Emulation.setEmulatedMedia', {
     features: [{ name: 'prefers-contrast', value }],

@@ -24,6 +24,19 @@ async function stubApi(page) {
 
 const themeAttr = (page) => page.evaluate(() => document.documentElement.getAttribute('data-theme'))
 
+/**
+ * 断言当前主题 —— **必须可重试**。
+ *
+ * 不能用 `expect(await themeAttr(page)).toBe(x)`：那是一次性读取，不重试。
+ * 而主题切换在支持 View Transitions 的浏览器上会走
+ * document.startViewTransition(mutate)，**回调是异步触发的** ——
+ * 点击返回时 data-theme 还没改。Chromium 上恰好赶得上，Firefox 上赶不上，
+ * 于是表现为「只有 Firefox 失败」，很容易被误判成浏览器兼容问题。
+ * （实测：点击后 +0ms 仍是旧值，+50ms 已更新；theme:switch 事件正常派发。）
+ */
+const expectTheme = (page, value) =>
+  expect.poll(() => themeAttr(page), { timeout: 5000 }).toBe(value)
+
 test.describe('主题系统 · 默认值与异常环境', () => {
   test.skip(!DIST || DIST === '(未指定)', '未指定 DIST_DIR')
 
@@ -32,7 +45,7 @@ test.describe('主题系统 · 默认值与异常环境', () => {
     await page.goto('/?fx=full', { waitUntil: 'networkidle' })
     // 关键：内联脚本在拿不到任何偏好时**刻意不写属性**。
     // 因为 CSS 里 :root 本身就是 classic —— 这是兜底，不是省略。
-    expect(await themeAttr(page)).toBeNull()
+    await expectTheme(page, null)
     // 且渲染的确实是 classic 首页
     await expect(page.locator('.welcome')).toHaveCount(1)
   })
@@ -45,10 +58,10 @@ test.describe('主题系统 · 默认值与异常环境', () => {
       } catch (e) {}
     })
     await page.goto('/?fx=full', { waitUntil: 'networkidle' })
-    expect(await themeAttr(page)).toBe('glass')
+    await expectTheme(page, 'glass')
 
     await page.reload({ waitUntil: 'networkidle' })
-    expect(await themeAttr(page)).toBe('glass')
+    await expectTheme(page, 'glass')
     await expect(page.locator('.gh')).toHaveCount(1) // 渲染的是 glass 首页
   })
 
@@ -75,14 +88,14 @@ test.describe('主题系统 · 默认值与异常环境', () => {
     // 修复前这里渲染的是空白 —— route 的导航守卫读 token 时抛错、
     // 导航被中止、整个应用什么都不画（改前的产物同样如此，是既存缺陷）。
     await expect(page.locator('.welcome')).toHaveCount(1)
-    expect(await themeAttr(page)).toBeNull()
+    await expectTheme(page, null)
     expect(errors).toEqual([])
 
     // 此时点切换器也不该抛错。写存储会失败并退化为内存缓存，
     // 但主题应在**本次会话内**照常生效。
     await page.locator('.tsw-trigger:visible').click()
     await page.locator('[role="menuitemradio"]:visible').nth(1).click()
-    expect(await themeAttr(page)).toBe('glass')
+    await expectTheme(page, 'glass')
     expect(errors).toEqual([])
 
     // 降级必须**可观测**，不能沉默：适配器首次触发兜底时打一条 warn。
@@ -98,7 +111,7 @@ test.describe('主题系统 · 默认值与异常环境', () => {
     await page.goto('/?fx=full', { waitUntil: 'networkidle' })
 
     // 不跟随 prefers-color-scheme —— 首访仍是 classic
-    expect(await themeAttr(page)).toBeNull()
+    await expectTheme(page, null)
 
     // 且没有被浏览器的暗色原生控件污染：glass 显式声明了 color-scheme: light
     await page.addInitScript(() => {
@@ -139,11 +152,11 @@ test.describe('主题系统 · 默认值与异常环境', () => {
       } catch (e) {}
     })
     await page.goto('/?theme=glass&fx=full', { waitUntil: 'networkidle' })
-    expect(await themeAttr(page)).toBe('glass') // 查询参数赢
+    await expectTheme(page, 'glass') // 查询参数赢
 
     await page.locator('.tsw-trigger:visible').click()
     await page.locator('[role="menuitemradio"]:visible').first().click()
-    expect(await themeAttr(page)).toBe('classic')
+    await expectTheme(page, 'classic')
     // 存储里仍是原值 'classic'，没有被这次「带参数的访问」改写
     expect(await page.evaluate(() => localStorage.getItem('mzg_theme'))).toBe('classic')
   })
@@ -153,7 +166,7 @@ test.describe('主题系统 · 默认值与异常环境', () => {
     const errors = []
     page.on('pageerror', (e) => errors.push(String(e)))
     await page.goto('/?theme=evil&fx=full', { waitUntil: 'networkidle' })
-    expect(await themeAttr(page)).toBeNull()
+    await expectTheme(page, null)
     expect(errors).toEqual([])
   })
 })

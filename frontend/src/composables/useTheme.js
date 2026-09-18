@@ -66,7 +66,12 @@ const isValid = (t) => THEMES.indexOf(t) !== -1
 function readQueryOverride() {
   try {
     const m = /[?&]theme=(classic|glass)(?:&|$)/.exec(window.location.search)
-    return m ? m[1] : null
+    // 正则只是「语法筛选」，还要过 isValid 的「语义校验」。
+    // 两者当前一致，但回滚 glass 主题时正则是最容易被漏改的一处 ——
+    // 那时 ?theme=glass 会绕过 THEME_CONFIG 把页面渲染成 glass，
+    // 而切换器里已经没有这个选项，用户切不回来，也不报错。
+    // 多这一道校验，配置与正则不一致时退化为「忽略该参数」而不是沉默降级。
+    return m && isValid(m[1]) ? m[1] : null
   } catch (e) {
     return null
   }
@@ -150,6 +155,24 @@ function prefersReducedMotion() {
 }
 
 /**
+ * QA 覆盖是否要求「强制满效果」。
+ *
+ * ?fx=full 是 index.html 内联脚本解析的调试开关（见 useFx.js）。
+ * 它在这里也要生效：否则「在减少动效的机器上验证 View Transition」这件事
+ * 根本做不到 —— 而跑 CI / 跑测试的机器常常就带着这个偏好。
+ *
+ * 注意它**只影响过渡动画**这一项。降级里的其它部分（模糊半径、表面不透明度）
+ * 由 fx.css 按 data-fx 处理，与本函数无关。
+ */
+function fxForcedFull() {
+  try {
+    return document.documentElement.getAttribute('data-fx-override') === 'full'
+  } catch (e) {
+    return false
+  }
+}
+
+/**
  * 执行主题切换，可用时套一层 View Transition 做整页交叉淡入。
  *
  * 三条硬性要求：
@@ -171,7 +194,7 @@ function commit(theme) {
   const canTransition =
     typeof document !== 'undefined' &&
     typeof document.startViewTransition === 'function' &&
-    !prefersReducedMotion()
+    (fxForcedFull() || !prefersReducedMotion())
 
   if (canTransition) {
     // 若上一次过渡还没结束，startViewTransition 会先把它 skip 掉，不会叠加

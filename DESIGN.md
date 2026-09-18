@@ -181,12 +181,26 @@ L3 组件层**暂不建立**：`.panel` / `.glass-card` / `.stat-card` 的复用
 `theme.css` 的类组合表达，再抽 `--panel-bg` 只增加中间层而不减少重复。
 出现「同一组件样式需按主题给出不同配方」的真实需求时再建。
 
-加载顺序即优先级（见 `App.vue`）：primitives → semantic → element-bridge → theme → global。
-这五份在 element-plus 自身样式之后加载，同权重选择器本就能赢，无需依赖 `!important`。
+加载顺序即优先级（见 `App.vue`）：primitives → semantic → element-bridge → theme → global
+→ glass → glass-app → fx。前五份在 element-plus 自身样式之后加载，同权重选择器本就能赢，
+无需依赖 `!important`；`glass.css` / `glass-app.css` 的全部规则限定在
+`:root[data-theme="glass"]` 下，classic 页面上一条都不命中；`fx.css` 放最后，
+因为它的职责就是**推翻**前面的值（降级与无障碍偏好）。
 
 **主题快照的取法**（重要）：`:root` 与 `:root[data-theme="classic"]` **写在同一组选择器里**。
 `<html>` 上没有 `data-theme` 时（内联脚本被 CSP 拦、存储不可用、JS 崩溃）仍然渲染 classic ——
 这是兜底路径，不是冗余。`glass` 只写覆盖，不产生第二套样式表。
+
+## 文档索引
+
+| 文档 | 读者 | 内容 |
+|---|---|---|
+| `DESIGN.md`（本文）| 所有人 | 设计规范：色彩 / 字体 / 圆角 / 阴影 / 动效 / 布局 / 组件 |
+| [docs/THEMING.md](docs/THEMING.md) | 要加主题或改令牌的开发者 | 三层 token 结构、加载顺序、**新增主题的完整步骤**、硬性规则清单 |
+| [docs/UI-GLASS-GUIDE.md](docs/UI-GLASS-GUIDE.md) | 要在 glass 下做新界面的人 | 设计原则、**「什么情况下不要用玻璃」检查清单**、常见错误正反对照 |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | 想推翻某个决定的人 | 20 条取舍记录 + 被否决方案表，每条带依据 |
+| [docs/ROLLOUT.md](docs/ROLLOUT.md) | 要上线 / 回滚 / 度量的人 | 回滚的 3 种粒度、主题使用率怎么统计、下一步建议、上线检查清单 |
+| `验收报告.md` | 验收方 | 阶段 7–8 的实测结果、未通过项与处理建议 |
 
 回归护栏：`scripts/check-tokens.mjs`（令牌逐值比对 + 不变量）、
 `scripts/check-contrast.mjs`（对比度验收）。两者都可接 CI。
