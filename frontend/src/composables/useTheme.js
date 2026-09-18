@@ -186,10 +186,18 @@ function fxForcedFull() {
  *      （放了会让快照在变更前就拍完）。
  */
 function commit(theme) {
-  const mutate = () => {
-    current = theme
-    applyToDom(theme)
-  }
+  // 内部状态**同步**更新，只有 DOM 写入放进 View Transition 回调。
+  //
+  // 为什么不能把 current = theme 一起放进回调：startViewTransition 的回调是
+  // **异步**触发的（要等浏览器拍完旧快照），而 setTheme 里的 notify() 是同步调的。
+  // 这中间 Vue 会完成一次渲染 —— 首页的 isGlass 翻真、GlassHome 挂载、
+  // 它内部的 ThemeSwitcher 调 useTheme() → ref(current) 会读到**过期的** current，
+  // 于是页面已经变成 glass 而切换器仍显示「经典」，直到刷新才恢复。
+  //
+  // 实测：默认（走 VT）不一致；reduced-motion（跳过 VT）一致 —— 据此定位。
+  current = theme
+
+  const apply = () => applyToDom(theme)
 
   const canTransition =
     typeof document !== 'undefined' &&
@@ -198,9 +206,9 @@ function commit(theme) {
 
   if (canTransition) {
     // 若上一次过渡还没结束，startViewTransition 会先把它 skip 掉，不会叠加
-    document.startViewTransition(mutate)
+    document.startViewTransition(apply)
   } else {
-    mutate()
+    apply()
   }
 }
 

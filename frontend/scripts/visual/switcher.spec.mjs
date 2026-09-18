@@ -251,6 +251,40 @@ test.describe('主题切换器', () => {
     expect(await page.evaluate(() => localStorage.getItem('mzg_theme'))).toBe('classic')
   })
 
+  /**
+   * 回归：切换后**当次会话内**切换器状态必须立刻跟上，不能等刷新。
+   *
+   * 这个缺陷曾真实漏到线上：commit() 把 `current = theme` 放进了
+   * startViewTransition 的异步回调，而 setTheme 里的 notify() 是同步调的。
+   * 从 classic 切到 glass 时，Vue 会在这中间完成一次渲染 ——
+   * GlassHome 挂载、它内部的 ThemeSwitcher 首次 useTheme() 读到**过期的** current，
+   * 于是页面已经是 glass，导航条却仍显示「经典」，直到刷新才恢复。
+   *
+   * 既有用例覆盖不到它：那些用例的起点/终点都让切换器**复用已挂载的实例**
+   * （其 ref 已被 notify 更新过）。只有 classic → glass 会新建实例去读 current，
+   * 而且必须走 View Transition 分支才会暴露（reduced-motion 下 current 是同步改的）。
+   */
+  test('回归：走 View Transition 时，新挂载的切换器也要立刻反映新主题', async ({ page }) => {
+    await setup(page, { theme: 'classic' })
+    // 配置文件全局设了 reducedMotion: 'reduce'，?fx=full 才是明确的「强制满效果」开关
+    await page.goto('/?fx=full')
+    await expect(page.locator('.welcome')).toHaveCount(1)
+
+    await trigger(page).click()
+    await options(page).nth(1).click() // classic → glass
+
+    // 页面确实切到了 glass
+    await expect(page.locator('.gh')).toHaveCount(1)
+    // 且**导航条里那个刚挂载的**切换器立刻就是 glass 状态（这条断言可重试，
+    // 缺陷存在时会一直不满足直到超时 —— 这就是回归信号）
+    await expect(trigger(page)).toContainText('玻璃')
+
+    await page.waitForTimeout(600) // 等 View Transition 结束再点，避免点到快照层
+    await trigger(page).click()
+    await expect(options(page).nth(1)).toHaveAttribute('aria-checked', 'true')
+    await expect(options(page).first()).toHaveAttribute('aria-checked', 'false')
+  })
+
   test('移动端浮层内有同一个组件，且带「恢复默认」', async ({ page }) => {
     await setup(page, { theme: 'glass' })
     await page.setViewportSize({ width: 390, height: 844 })
