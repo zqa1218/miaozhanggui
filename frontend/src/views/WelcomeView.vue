@@ -6,14 +6,21 @@ import mascotStanding from '@/assets/images/mascot-standing.png'
 import { useTheme } from '@/composables/useTheme'
 import ThemeSwitcher from '@/components/common/ThemeSwitcher.vue'
 
-/* GlassHome 按需加载，不静态 import。
-   为什么：它是 glass 专属的整页实现（约 11 KB JS + 17 KB CSS）。
-   静态引入会把这份体积压到 `/` 路由的产物里，让**默认的 classic 访客**
-   白白下载并解析。按需加载后，只有真正切到 glass 的会话才拉取这个 chunk
-   （约 17 KB，同源，实测解析完成远早于首屏绘制）。
-   副作用：glass 会话首次进入会有一瞬空白。不预留占位高度是有意的 ——
-   页面此时还没绘制任何内容，不产生布局偏移（CLS 统计的是**已绘制内容**的位移）。 */
-const GlassHome = defineAsyncComponent(() => import('@/components/home/GlassHome.vue'))
+/* GlassHome 用**静态**引入。
+   ── 这是一次基于实测的推翻 ──
+   阶段 3 我把它改成了 defineAsyncComponent，理由是「约 11 KB JS + 17 KB CSS
+   不该让默认的 classic 访客白付」。那个理由在字节层面成立，但 Lighthouse
+   一跑就暴露了代价：glass 首页要多经过一次**串行**的网络往返
+   （主包 → 路由 chunk → GlassHome chunk），移动端模拟下
+   LCP 从 8.29s 涨到 10.45s，比 classic 差 26%。
+
+   性能预算写的是「LCP 不劣化」，而字节没有预算。两者冲突时按预算走。
+   而且 classic 并不因此变差：classic 的 LCP 元素是 index.html 里那张
+   闪屏图，它在路由 chunk 到达之前就已经绘制完成，与 / 路由的体积无关。
+
+   代价已量化：classic 访客在 `/` 上多下载约 9 KB JS + 20 KB CSS
+   （gzip 约 +6 KB，且可缓存）。 */
+import GlassHome from '@/components/home/GlassHome.vue'
 
 const router = useRouter()
 

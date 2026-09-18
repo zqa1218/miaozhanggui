@@ -328,6 +328,38 @@ for (const [scene, label, fg, bg, need, exempt] of APP_CASES) {
   )
 }
 
+// ─────────────── 降级路径 ───────────────
+// 降级是「观感变素」，绝不能变成「文字读不了」。
+// 三条路径都要逐条验：不支持 backdrop-filter / data-fx=reduced / prefers-contrast。
+console.log('\n\x1b[1m降级路径 · 每条都要保证文字仍然达标\x1b[0m')
+console.log('─'.repeat(96))
+console.log(pad('路径', 34) + pad('前景', 10) + pad('底色', 10) + '比值')
+
+const DEGRADE = [
+  // ① 不支持 backdrop-filter：表面提到 .96/.97（tokens.semantic.css）与 .96（fx.css 组件层）
+  ['① 无 backdrop-filter · 正文', '--text-2', '#3D5372', over('rgba(255,255,255,.96)', GLASS_BACKDROP_WORST), AA_BODY],
+  ['① 无 backdrop-filter · 三级字', '--text-3', '#4E6288', over('rgba(255,255,255,.96)', GLASS_BACKDROP_WORST), AA_BODY],
+  // ② data-fx=reduced：表面 .90 / .88
+  ['② fx=reduced · 正文', '--text-2', '#3D5372', over('rgba(255,255,255,.90)', GLASS_BACKDROP_WORST), AA_BODY],
+  ['② fx=reduced · 三级字', '--text-3', '#4E6288', over('rgba(255,255,255,.88)', GLASS_BACKDROP_WORST), AA_BODY],
+  // ③ prefers-contrast: more：表面 .99 / 三级字加深到 #3A4E6E（glass）
+  ['③ prefers-contrast · 三级字(glass)', '--text-3', '#3A4E6E', over('rgba(255,255,255,.99)', GLASS_BACKDROP_WORST), AA_BODY],
+  ['③ prefers-contrast · 三级字(classic)', '--text-3', '#4A4642', over('rgba(255,255,255,.99)', CLASSIC_PAGE_DARKEST), AA_BODY],
+  ['③ prefers-contrast · 输入框边界', '--border-input', '#5A6B85', hex('#FFFFFF'), AA_LARGE],
+  // ④ 照片上的标签：用不透明品牌底，对比度与照片无关（这是「压在照片上的文字」的正解）
+  ['④ 照片上方标签(classic)', '--text-on-primary', '#38140E', hex('#E8635C'), AA_BODY],
+  ['④ 照片上方标签(glass)', '--text-on-primary', '#FFFFFF', hex('#2563EB'), AA_BODY],
+]
+for (const [scene, label, fg, bg, need] of DEGRADE) {
+  const r = contrast(hex(fg), bg)
+  const ok = r >= need
+  if (!ok) failures++
+  console.log(
+    pad(scene, 34) + pad(label, 10) + pad(HEXPT(bg), 10) + `${r.toFixed(2)}:1  ` +
+      (ok ? '\x1b[32mPASS\x1b[0m' : '\x1b[31mFAIL\x1b[0m')
+  )
+}
+
 console.log('\n' + '─'.repeat(96))
 console.log(`最不利 glass 页面底色 = ${HEXPT(GLASS_BACKDROP_WORST)}（全视口采样得出）`)
 console.log(`光斑 A 中心底色        = ${HEXPT(GLASS_BACKDROP_TYPICAL)}`)

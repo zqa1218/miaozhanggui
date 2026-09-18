@@ -1,0 +1,180 @@
+/* =============================================================
+   喵掌柜 · 生产护栏：降级与无障碍偏好
+   -------------------------------------------------------------
+   加载顺序：… → global → glass → glass-app → **fx**（最后）
+   放最后是因为本文件的作用是「推翻前面定下的值」：
+   同为 :root 级选择器时，靠后加载才能赢。
+
+   本文件管三件事：
+     1. 不支持 backdrop-filter → 表面退到高不透明度实色
+     2. data-fx="reduced"（低端设备 / 减少动态效果 / 增强对比度）→ 减负
+     3. prefers-contrast: more → 提高不透明度与对比
+
+   ⚠ 这些降级**只影响观感，不影响信息**：
+     所有降级路径下，文字、按钮、层级、可点区域都保持原样。
+     玻璃只是舞台布景，撤掉布景不该动到演员。
+   ============================================================= */
+
+/* ══════════════════════════════════════════════════════════════
+   一、不支持 backdrop-filter
+   -------------------------------------------------------------
+   真实特性检测（@supports），不是 UA 嗅探 —— UA 会撒谎、会被改、
+   会把「套了个 Chrome 内核的浏览器」判错，而 @supports 问的是
+   「你能不能做到这件事」，那才是我们真正关心的。
+
+   视觉骨架（圆角、描边、阴影、间距）全部保留，只是不再通透。
+   变量层的兜底在 tokens.semantic.css；这里补的是组件层：
+   .glass / .glass-strong / .glass-quiet 三档统一提到 .96 以上。
+   ══════════════════════════════════════════════════════════════ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-theme='glass'] .glass,
+  :root[data-theme='glass'] .glass-strong,
+  :root[data-theme='glass'] .glass-quiet {
+    background: rgba(255, 255, 255, .96);
+  }
+  /* 背景装饰里的光斑靠 blur 才柔和；没有 blur 时渐变边缘会发硬，
+     直接把模糊层关掉、让原本就收边到 transparent 的渐变自己承担过渡。 */
+  :root[data-theme='glass'] body::before {
+    filter: none;
+    opacity: .7;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   二、data-fx="reduced"
+   -------------------------------------------------------------
+   由 index.html 的内联脚本在首帧前设置（避免降级本身造成闪烁），
+   运行时由 composables/useFx.js 跟随媒体查询变化更新。
+
+   触发条件（任一）：
+     · 用户系统偏好 prefers-reduced-motion: reduce
+     · 用户系统偏好 prefers-contrast: more
+     · 低端设备启发式：navigator.hardwareConcurrency ≤ 4 或 deviceMemory ≤ 4
+       ⚠ 这是**启发式**，不是精确判定：
+         deviceMemory 只有 Chromium 系支持，Firefox/Safari 上读不到，
+         此时只看 hardwareConcurrency；而它反映的是逻辑核数，
+         不等于实际算力（一台被限频的 8 核机器会漏判）。
+         所以这里的原则是**只做减负不做禁用** —— 判错了最坏情况是
+         「本来能跑满效果的设备少了一点模糊」，而不是「本来跑不动的设备
+         直接崩」。方向选错代价小，这才是启发式能用的前提。
+
+   与 prefers-reduced-motion 的区别：后者是用户的**明确指令**，
+   归 theme.css 的全局块处理（动画时长压到 .01ms）；
+   这里处理的是「省资源」，包括连续动画与模糊开销。
+   两者会叠加，不冲突。
+   ══════════════════════════════════════════════════════════════ */
+:root[data-fx='reduced'] {
+  /* 模糊半径降到约 1/3、饱和减半：保留「通透」的方向感，去掉最贵的那部分 */
+  --glass-blur: saturate(120%) blur(6px);
+  --glass-blur-light: saturate(110%) blur(4px);
+  /* 半透明档整体上提，减少「背景在动、文字跟着晃」的观感 */
+  --surface-glass: rgba(255, 255, 255, .90);
+  --surface-glass-quiet: rgba(255, 255, 255, .88);
+  --surface-1: var(--surface-glass);
+  --surface-3: var(--surface-glass-quiet);
+  /* 阴影从双层收敛为单层：每多一层阴影就多一次绘制 */
+  --shadow-2: 0 2px 8px rgba(15, 42, 90, .10);
+  --shadow-3: 0 8px 24px rgba(15, 42, 90, .14);
+}
+
+/* 光斑层：80px → 20px。它是首帧最大的一笔光栅化开销。 */
+:root[data-fx='reduced'][data-theme='glass'] body::before {
+  filter: blur(20px);
+}
+
+/* 减层：成组出现、且**没有内容从它下面滚过**的玻璃容器直接改实色。
+   模糊在这些元素上是纯开销 —— 它们背后是平滑渐变，模糊与否肉眼几乎无差，
+   但每个都要建一个合成层。 */
+:root[data-fx='reduced'][data-theme='glass'] .glass-quiet,
+:root[data-fx='reduced'][data-theme='glass'] .glass-card,
+:root[data-fx='reduced'][data-theme='glass'] .glass-panel,
+:root[data-fx='reduced'][data-theme='glass'] .loose-card,
+:root[data-fx='reduced'][data-theme='glass'] .section {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--surface-solid);
+}
+
+/* 关闭**连续**动画。它们是持续消耗，且不传达状态：
+     · 骨架呼吸 —— 表达「还在加载」，但在低端机上它自己就是卡顿来源
+     · 加载插画旋转 —— 同上，改为静态指示（文案仍在，信息不丢）
+     · 筛选进度条 —— 改为静态满条
+   短过渡（120–200ms 的颜色/位移）保留：它们只有一次，不影响资源占用。 */
+:root[data-fx='reduced'] .sk,
+:root[data-fx='reduced'] .gh-sk,
+:root[data-fx='reduced'] .skeleton {
+  animation: none;
+  opacity: .8;
+}
+:root[data-fx='reduced'] .is-spinning {
+  animation: none;
+}
+:root[data-fx='reduced'] .filter-progress__bar {
+  animation: none;
+  transform: none;
+  opacity: .55;
+}
+/* 卡片上浮是装饰性位移，减负时去掉；hover 的颜色变化保留（那是状态反馈） */
+@media (hover: hover) {
+  :root[data-fx='reduced'] .gh-feature:hover,
+  :root[data-fx='reduced'] .gh-card:hover,
+  :root[data-fx='reduced'] .glass-card:hover,
+  :root[data-fx='reduced'] .loose-card:hover,
+  :root[data-fx='reduced'] .project-card:hover,
+  :root[data-fx='reduced'] .stat-card:hover {
+    transform: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   三、prefers-contrast: more
+   -------------------------------------------------------------
+   用户明确要求「更高的对比度」。这里做两件事：
+     1. 表面提到近乎不透明 —— 文字底色的不确定性是玻璃主题最大的可比度风险
+     2. 加深三级文字与边框 —— 它们在默认档是「刚好达标」，不是「宽裕」
+   注意是**提高**而非重做配色：品牌色、语义色不动，只收敛不确定性。
+   ══════════════════════════════════════════════════════════════ */
+@media (prefers-contrast: more) {
+  :root,
+  :root[data-theme='classic'],
+  :root[data-theme='glass'] {
+    --surface-glass: rgba(255, 255, 255, .99);
+    --surface-glass-strong: #FFFFFF;
+    --surface-glass-quiet: rgba(255, 255, 255, .97);
+    --surface-1: var(--surface-glass);
+    --surface-2: var(--surface-glass-strong);
+    --surface-3: var(--surface-glass-quiet);
+    --glass-blur: none;
+    --glass-blur-light: none;
+  }
+  /* ⚠ 特异性陷阱（本块初版就踩了，测试抓出来的）：
+     tokens.semantic.css 里主题块的选择器是 `:root[data-theme="glass"]`（0,2,0），
+     而 `:root` 只有 (0,1,0)。所以这里**不能**图省事写成 `:root { --text-3: … }`
+     —— 媒体查询确实命中了，值却被主题块压过去，表现为「偏好打开了但什么都没变」，
+     而且不报任何错。必须写回到与主题块**同级**的特异性。 */
+  :root[data-theme='glass'] {
+    /* 三级文字加深：默认档 6.13:1 已是「刚好达标」，这里给到 8.4:1 */
+    --text-3: #3A4E6E;
+    --text-placeholder: #3A4E6E;
+    --border-color: rgba(37, 99, 235, .45);
+    --border-input: #5A6B85;
+  }
+  /* classic 与「无 data-theme 兜底」两条路径都要覆盖：
+     前者给 classic 用户加深，后者兜住「内联脚本没跑成」的场景。 */
+  :root[data-theme='classic'],
+  :root {
+    --text-3: #4A4642;
+    --text-placeholder: #4A4642;
+    --border-color: #B4AEA6;
+    --border-input: #8A837C;
+  }
+  /* 焦点环加粗到 3px：这是「键盘用户能不能看见自己在哪」的最后一层保险 */
+  :root a:focus-visible,
+  :root button:focus-visible,
+  :root input:focus-visible,
+  :root select:focus-visible,
+  :root textarea:focus-visible,
+  :root [tabindex]:focus-visible {
+    outline-width: 3px !important;
+  }
+}

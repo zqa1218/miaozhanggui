@@ -24,6 +24,46 @@
         } catch (e) {
           /* 静默退到 classic：什么都不做即可 */
         }
+
+        /* 生产护栏：降级判定。也必须在这里做 —— 放到组件里会让降级本身
+           造成一次闪烁（先按满效果渲染、再突然变素），比不降级更糟。 */
+        try {
+          var fx = false
+          /* QA 覆盖：?fx=full 强制满效果、?fx=reduced 强制降级。
+             存在的理由和 ?theme= 一样 —— 视觉回归要在**满效果**下取基线，
+             而跑 CI 的机器常常核数很少（本机就是 2 核），
+             启发式会一律判成低端，于是基线记录的全是降级态的外观。
+             优先级最高，且不写入任何存储。 */
+          var fxOverride = null
+          try {
+            var fm = /[?&]fx=(full|reduced)(?:&|$)/.exec(window.location.search)
+            if (fm) fxOverride = fm[1]
+          } catch (e) {}
+          if (fxOverride) {
+            if (fxOverride === 'reduced') document.documentElement.setAttribute('data-fx', 'reduced')
+            document.documentElement.setAttribute('data-fx-override', fxOverride)
+            return
+          }
+          try {
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) fx = true
+            if (window.matchMedia('(prefers-contrast: more)').matches) fx = true
+          } catch (e) {}
+          if (!fx) {
+            /* 低端设备**启发式**（见 assets/styles/fx.css 的说明）：
+               deviceMemory 只有 Chromium 系支持，读不到时只看 CPU 核数。
+               只做减负不做禁用 —— 判错的最坏结果是「好设备少了一点模糊」，
+               而不是「差设备直接崩」，方向选错代价小，启发式才敢用。 */
+            var cores = navigator.hardwareConcurrency
+            var mem = navigator.deviceMemory
+            var lowEnd =
+              (typeof cores === 'number' && cores > 0 && cores <= 4) ||
+              (typeof mem === 'number' && mem > 0 && mem <= 4)
+            if (lowEnd) fx = true
+          }
+          if (fx) document.documentElement.setAttribute('data-fx', 'reduced')
+        } catch (e) {
+          /* 判定失败就不降级：满效果是可接受的默认 */
+        }
       })()
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

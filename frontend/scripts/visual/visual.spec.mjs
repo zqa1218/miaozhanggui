@@ -136,7 +136,12 @@ for (const vp of VIEWPORTS) {
 
       await stubApi(page)
 
-      await page.goto(r.path, { waitUntil: 'networkidle' })
+      // fx=full：强制满效果。
+      // 跑 CI 的机器核数往往很少（本机 2 核），低端启发式会一律判成降级，
+      // 于是基线记录的全是降级态 —— 而我们要冻结的是**设计本身的**外观。
+      // 降级态另有专门的功能测试覆盖（见 switcher.spec.mjs 的 fx 用例）。
+      const url = r.path + (r.path.includes('?') ? '&' : '?') + 'fx=full'
+      await page.goto(url, { waitUntil: 'networkidle' })
       // 字体就绪后再截：无 Inter 时回退字体在容器内是一致的，
       // 但字体加载完成的时机不同会让文字宽度抖动
       await page.evaluate(() => document.fonts.ready)

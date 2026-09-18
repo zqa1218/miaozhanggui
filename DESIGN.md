@@ -242,6 +242,34 @@ L3 组件层**暂不建立**：`.panel` / `.glass-card` / `.stat-card` 的复用
 组件内用 `?raw` 内联而非 `<img>`，这样能继承页面字体、与全站排版一致。
 若要彻底消除字体依赖，需在设计软件里把文字转为路径后重新导出。
 
+## 生产护栏（阶段 6）
+
+### 降级矩阵
+
+| 条件 | 判定方式 | 表现 |
+|---|---|---|
+| 不支持 `backdrop-filter` | `@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))` | 表面提到 `.96–.97`，圆角/描边/阴影/间距全部保留；光斑层去掉 blur 并降到 `opacity: .7`（无 blur 时渐变收边本来就在做过渡） |
+| `prefers-reduced-motion: reduce` | 媒体查询（JS + CSS 双侧） | `data-fx="reduced"`；theme.css 全局把过渡压到 `.01ms`；View Transition 完全不调用（不是把时长调 0） |
+| `prefers-contrast: more` | 媒体查询 | `data-fx="reduced"`；表面提到 `.97–.99`；glass 三级文字 `#4E6288 → #3A4E6E`（8.42:1）；classic 三级文字 `→ #4A4642`；焦点环加粗到 3px |
+| 低端设备**启发式** | `navigator.hardwareConcurrency ≤ 4` 或 `deviceMemory ≤ 4` | `data-fx="reduced"`：模糊半径 18→6px、光斑 80→20px、成组玻璃容器改实色、关闭连续动画（骨架呼吸/插画旋转/进度条） |
+| QA 覆盖 | `?fx=full` / `?fx=reduced` | 强制指定，优先级最高，不写入存储。视觉回归基线用 `?fx=full` 取（CI 机器核数往往很少，启发式会一律判降级） |
+
+**启发式只做减负不做禁用**：`deviceMemory` 只有 Chromium 系支持，读不到时只剩 CPU 核数一个信号，而核数不等于算力（限频的 8 核会漏判）。之所以敢用，是因为判错的代价是「好设备少了一点模糊」而不是「差设备直接崩」。
+
+### 无障碍
+
+- **焦点可见性**：所有交互元素显式 2px 品牌色 + 2px 偏移；`prefers-contrast: more` 下 3px。**不得只写 `outline: none` 而不补替代环** —— 阶段 6 的键盘路径测试抓出两处（Hero 搜索框输入、品牌链接）。
+- **装饰层**：`body::before` / `body::after` 是伪元素，不生成 DOM 节点，天然不进无障碍树；有 DOM 的装饰节点（品牌标、装饰云、骨架屏、字段分隔线）一律 `aria-hidden="true"`。
+- **照片上压文字**：一律用**不透明**底（`.cover-tag` 用 `--color-primary`），不依赖 `backdrop-filter`。这样文字对比度与照片内容无关 —— 靠模糊层压照片，同一段文字在不同照片上的对比度会剧烈波动。当前实测 5.00:1（classic）/ 5.17:1（glass）。
+- 具体的对比度实测值由 `scripts/check-contrast.mjs` 输出，覆盖默认档、三条降级路径、后台/表格/灯箱。
+
+### 性能
+
+- `backdrop-filter` 只用在**小面积、数量有限**的容器上：首页 5 个（导航 + 搜索条 + 3 张能力卡），后台登录后为 0。
+- 滚动观测（`scripts/visual/scroll-perf.mjs`，390×844、CDP CPU 降速 4×）：glass 首页在**1535px 的真实滚动**下帧间隔 p50/p95 = 16.7ms、最长帧 16.8ms、长帧占比 0%。contrast：classic 首页只可滚 103px，样本不足以比较。
+- **两次被实测推翻的假设**（记录在案，避免后人重复试探）：`blur(80px)` 光斑与 `backdrop-filter` 层数都**不是** TBT 的主要来源。glass 首页比 classic 多出的约 200–400ms 主线程开销来自页面本身更大（DOM 约 5 倍、自带 CSS），不是特效。
+- 图片：工作室封面外层锁 `aspect-ratio: 4/3` + `loading="lazy"` + `decoding="async"`，CLS 实测 0.0000。**未加 `srcset`/`sizes`**：后端只存一份上传图，没有多分辨率变体，加占位参数只会发出 404 请求。
+
 ## 已知的豁免与遗留
 
 以下项目**未达 4.5:1 但属于 WCAG 明确豁免**，不是缺陷：

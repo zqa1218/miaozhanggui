@@ -177,7 +177,39 @@ const beforeBase = beforeGroups.get('(无条件)') || new Map()
 const afterBase = afterGroups.get('(无条件)') || new Map()
 after = resolveTokens(afterBase)
 
+/**
+ * 只对**两边都存在**的条件块做严格比对。
+ *
+ * 为什么不能拿「只在改造后存在的条件块」去和未覆盖的基表比：
+ * 那样比出来的是「这个新条件块自己做了什么」，而不是「原有行为有没有被改」——
+ * 每一条覆盖都会被报成差异，噪声淹没信号。
+ *
+ * 但这里有个必须显式说明的边界：新条件块**可能确实会改变 classic**。
+ * 本项目的实例是 @media (prefers-contrast: more) —— 用户在系统里要求更高
+ * 对比度时，classic 的三级文字会被加深。那是阶段 6 明确要求的无障碍改进，
+ * 不是回归。所以新增条件块单列出来供人工确认，而不是自动判定。
+ */
+const newConds = []
 for (const cond of conds) {
+  const inBefore = cond === '(无条件)' || beforeGroups.has(cond)
+  const inAfter = cond === '(无条件)' || afterGroups.has(cond)
+
+  if (inAfter && !inBefore) {
+    // 新增条件块：列出它改了哪些令牌，不计入差异
+    const aMap = effectiveTokens(afterBase, afterGroups.get(cond))
+    const changed = [...aMap.entries()].filter(([k, v]) => {
+      const base = after.get(k)
+      return base && base.resolved !== v.resolved
+    })
+    newConds.push([cond, changed.length])
+    continue
+  }
+  if (!inAfter) {
+    diffs++
+    console.log(`\x1b[31m[条件块被删除]\x1b[0m ${cond}`)
+    continue
+  }
+
   const bMap = cond === '(无条件)' ? resolveTokens(beforeBase) : effectiveTokens(beforeBase, beforeGroups.get(cond))
   const aMap = cond === '(无条件)' ? after : effectiveTokens(afterBase, afterGroups.get(cond))
   for (const [k, v] of bMap) beforeFlat.set(k, v)
@@ -203,6 +235,13 @@ for (const cond of conds) {
   if (groupDiffs === 0) console.log(`\x1b[32m[一致]\x1b[0m ${cond} —— 有效值 ${bMap.size} 项全部相同`)
 
   for (const name of [...aMap.keys()].filter((k) => !bMap.has(k))) addedAll.push([name, aMap.get(name).resolved, cond])
+}
+
+if (newConds.length) {
+  console.log('\n\x1b[36m[新增条件块]\x1b[0m 以下 at-rule 条件在改造前不存在，需人工确认其影响范围：')
+  for (const [cond, n] of newConds) {
+    console.log(`  · ${cond}  —— 覆盖了 ${n} 项令牌`)
+  }
 }
 
 console.log('─'.repeat(80))

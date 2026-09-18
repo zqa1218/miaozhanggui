@@ -340,6 +340,13 @@ function goStudio(id) {
   color: var(--text-1);
   flex-shrink: 0;
 }
+/* 品牌链接也要有显式焦点环。浏览器默认的 outline:auto 在 Chromium 上是
+   1px 的自动描边，落在磨砂玻璃上不够明确 —— 键盘用户会看不到自己在哪。 */
+.gh-brand:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
 .gh-brand__mark { display: inline-flex; width: 28px; height: 28px; line-height: 0; }
 .gh-brand__mark :deep(svg) { width: 100%; height: 100%; display: block; }
 .gh-brand__name { font-size: 17px; font-weight: 800; letter-spacing: .04em; }
@@ -513,6 +520,15 @@ function goStudio(id) {
   text-overflow: ellipsis;
 }
 .gh-field__input::placeholder { color: var(--text-3); font-weight: 500; }
+
+/* ⚠ 输入框上写了 outline:none，就必须补一个替代的焦点环 ——
+   否则键盘用户看不到焦点在哪（这是阶段 3 漏掉的，被焦点可见性测试抓出来）。
+   环画在 input 自身而不是外层 .gh-field 上：不依赖 :has()，所有浏览器一致。 */
+.gh-field__input:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+  border-radius: var(--radius-xs);
+}
 .gh-field:focus-within { background: var(--surface-solid); border-radius: var(--radius-md); }
 .gh-field:focus-within .gh-field__label { color: var(--brand); }
 
