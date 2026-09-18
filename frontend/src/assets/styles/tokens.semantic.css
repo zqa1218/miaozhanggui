@@ -84,7 +84,6 @@
      与 --color-primary 同值。存在的意义是让 glass 主题与后续组件
      有一组「不绑死色相」的名字可用。 */
   --brand:                    var(--color-primary);
-  --brand-contrast:           var(--text-on-primary);
 
   /* ── 文字层级 ──
      --text-4 是唯一例外：只允许用于 disabled（WCAG 明确豁免）
@@ -119,6 +118,21 @@
   --divider-on-deep:          rgba(255, 255, 255, .18);
   /* 遮罩/蒙层（抽屉、浮层的背景压暗层） */
   --scrim:                    var(--a-warm-32);
+
+  /* ── 数据表格 · 四档底色 + 两级分隔线 ──
+     原先这些值散落在 glass-app.css 的规则里写死（#EAF2FE/#DBE7FA/#F4F7FC…），
+     属于「组件里写死色值」。抽成令牌后，主题差异由变量吸收，
+     规则本身只剩结构（行高、对齐、sticky），这才是分层的意义。 */
+  --table-head-bg:            var(--bg-table-stripe);
+  --table-hover-bg:           var(--color-primary-tint);
+  --table-zebra-bg:           var(--bg-table-stripe);
+  --table-row-border:         var(--border-subtle);
+  /* 后台页底：比卡片深一档，白色卡片才有边界感 */
+  --admin-bg:                 var(--bg-page);
+  /* 聚焦时的外发光（第二层，配合 1px 实环使用） */
+  --focus-glow:               0 0 0 4px rgba(232, 99, 92, .18);
+  /* 骨架屏色块 */
+  --skeleton-bg:              var(--color-neutral-tint);
 
   /* 玻璃描边与上沿高光。
      --glass-hairline 是 --glass-stroke 的**旧名**，全站 26 处引用（含 6 个组件
@@ -195,7 +209,6 @@
   --shadow-glow:              var(--sh-coral-ring);  /* 原为 28px 光晕，收敛为 focus ring */
 
   /* 新增：焦点环规范名 */
-  --focus-ring:               var(--sh-coral-ring);
 
   /* 旧名直通（theme.css / global.css 内部有引用） */
   --shadow-xs:                var(--shadow-1);
@@ -360,7 +373,6 @@
      所以 glass 可以维持「品牌底 + 白字」这个行业惯用搭配。 */
   --text-on-primary:          #FFFFFF;
   --brand:                    var(--color-primary);
-  --brand-contrast:           var(--text-on-primary);
 
   /* ── 玻璃表面 ──
      沿用设计给定的高填充配方（浅底场景不照抄深底的 12%）。 */
@@ -379,6 +391,18 @@
   --divider-on-deep:          rgba(255, 255, 255, .14);
   /* 蒙层用暖褐会与冷色体系打架，glass 下改用深蓝墨 */
   --scrim:                    rgba(11, 27, 51, .32);
+
+  /* 数据表格：四档底色 + 两级分隔线。
+     hover 用**不透明实色**而不是 rgba 叠加 —— 行本身可能已有半透明底，
+     再叠一层 rgba 高亮，最终色随上下文变化，对比度无法预算。
+     实测 hover 行上的正文 6.96:1、三级字 5.44:1。 */
+  --table-head-bg:            #F4F7FC;
+  --table-hover-bg:           #EAF2FE;
+  --table-zebra-bg:           #F7FAFE;
+  --table-row-border:         #EAF0FA;
+  --admin-bg:                 #F4F7FC;
+  --focus-glow:               0 0 0 4px rgba(37, 99, 235, .18);
+  --skeleton-bg:              #E8EFF9;
 
   /* ── 中性 / 禁用 ──
      这四项目阶段 3 起一直漏在 classic 的暖灰上没有覆盖，直到视觉基线里
@@ -448,7 +472,6 @@
   --shadow-glass:             var(--shadow-2), var(--glass-highlight);
   --shadow-primary:           0 8px 24px rgba(37, 99, 235, .24);
   --shadow-glow:              0 0 0 3px rgba(37, 99, 235, .28);
-  --focus-ring:               var(--shadow-glow);
 
   /* ── 背景装饰 · 纯 CSS ──
      不用图片、不用 canvas、不用 WebGL：

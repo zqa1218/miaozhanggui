@@ -10,27 +10,79 @@
 // ---- 内部实现：浏览器端使用 localStorage ----
 // 移植微信小程序时替换为 wx.*Storage* 系列 API
 
+/**
+ * 存储不可用时的内存兜底。
+ *
+ * ⚠ 这是一个**既存缺陷的修复**，不是新功能：
+ *   本模块原先直接调用 localStorage 且没有任何保护。而路由的导航守卫
+ *   每次跳转都会调 storage.get() 读 token —— 于是只要 localStorage 抛错
+ *   （Safari 无痕模式、禁用了 Cookie、沙箱 iframe、企业策略），
+ *   守卫就抛异常、导航被中止、**整个应用白屏**。
+ *   实测：修复前 /tmp/mz-dist-before 与改造后的产物在同样条件下都渲染空白。
+ *
+ * 为什么不是单纯 try/catch 吞掉：
+ *   吞掉之后 storage.set() 后再 get() 会拿到 null，登录态在同一次会话内就丢了，
+ *   用户会看到「刚登录完又被踢回登录页」这种更费解的现象。
+ *   内存兜底保证**本次会话内**读写自洽，只是刷新后不再保持 ——
+ *   这是能给出的最好降级，且只影响那些本来完全用不了存储的用户。
+ *
+ * 只能降级、不能沉默：首次触发会打一条 warn，方便排查。
+ */
+const _memory = new Map();
+let _warned = false;
+
+function _storageUnavailable(err) {
+  if (!_warned) {
+    _warned = true;
+    // 只警告一次，避免每次读写都刷屏
+    console.warn(
+      '[storage] 本地存储不可用，已退化为内存缓存：本次会话内读写正常，刷新后不保留。原因：',
+      err && err.message ? err.message : err
+    );
+  }
+}
+
 const _engine = {
   get(key) {
-    const raw = localStorage.getItem(key);
-    if (raw === null) return null;
     try {
-      return JSON.parse(raw);
-    } catch {
-      return raw;
+      const raw = localStorage.getItem(key);
+      if (raw === null) return null;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return raw;
+      }
+    } catch (err) {
+      _storageUnavailable(err);
+      return _memory.has(key) ? _memory.get(key) : null;
     }
   },
 
   set(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (err) {
+      _storageUnavailable(err);
+      _memory.set(key, value);
+    }
   },
 
   remove(key) {
-    localStorage.removeItem(key);
+    try {
+      localStorage.removeItem(key);
+    } catch (err) {
+      _storageUnavailable(err);
+      _memory.delete(key);
+    }
   },
 
   clear() {
-    localStorage.clear();
+    try {
+      localStorage.clear();
+    } catch (err) {
+      _storageUnavailable(err);
+      _memory.clear();
+    }
   },
 };
 
