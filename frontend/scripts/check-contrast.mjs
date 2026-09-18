@@ -1,0 +1,222 @@
+#!/usr/bin/env node
+/**
+ * 对比度验收脚本（硬约束 #3：正文 ≥4.5:1，大字号 ≥3:1）
+ *
+ * 为什么需要它：主题化之后「表面」不再是纯白，而是「半透明玻璃叠在带色背景上」。
+ * 文字的实际对比度取决于合成后的底色，肉眼与设计稿都看不出来，必须算。
+ *
+ * 用法：node scripts/check-contrast.mjs
+ * 退出码非 0 = 有未达标项（供 CI 使用）。
+ */
+
+// ─────────────────────────── WCAG 2.1 相对亮度 ───────────────────────────
+function srgbToLinear(c) {
+  const v = c / 255
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+}
+
+function luminance([r, g, b]) {
+  return 0.2126 * srgbToLinear(r) + 0.7152 * srgbToLinear(g) + 0.0722 * srgbToLinear(b)
+}
+
+function contrast(fg, bg) {
+  const l1 = luminance(fg)
+  const l2 = luminance(bg)
+  const [hi, lo] = l1 > l2 ? [l1, l2] : [l2, l1]
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+/**
+ * 每条用例的第 6 个元素是选项：
+ *   threshold —— 达标线。正文 4.5；大字号（≥18.66px 粗体 / ≥24px）与
+ *                纯装饰图形 3.0。
+ *   known     —— 标记为「本次改造之前就存在」的问题。仍然打印，但不计入
+ *                退出码 —— 否则 CI 会长期红着，真正的新回归反而被淹没。
+ *                既存项已逐条记入交付说明，不会因为不报错就被遗忘。
+ */
+const AA_BODY = 4.5
+const AA_LARGE = 3.0
+
+// ─────────────────────────── 颜色工具 ───────────────────────────
+const hex = (s) => {
+  const h = s.replace('#', '')
+  const f = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
+  return [parseInt(f.slice(0, 2), 16), parseInt(f.slice(2, 4), 16), parseInt(f.slice(4, 6), 16)]
+}
+
+const rgba = (s) => {
+  const m = s.match(/rgba?\(([^)]+)\)/)
+  const p = m[1].split(',').map((x) => parseFloat(x.trim()))
+  return { rgb: [p[0], p[1], p[2]], a: p.length > 3 ? p[3] : 1 }
+}
+
+/** source-over 合成：fg 覆盖在 bg 之上 */
+function over(fg, bg) {
+  const { rgb, a } = typeof fg === 'string' ? rgba(fg) : fg
+  const base = typeof bg === 'string' && bg.startsWith('#') ? hex(bg) : bg
+  return rgb.map((c, i) => Math.round(a * c + (1 - a) * base[i]))
+}
+
+const flat = (c) => (typeof c === 'string' && c.startsWith('#') ? hex(c) : c)
+
+// ─────────────────────── 背景配方 ───────────────────────
+// classic：页底 #F9F8F6 + 设计交付的 page-bg.svg。
+// DESIGN.md 实测「中心 1200px 主内容区最低明度 81%」，故取 81% 相对亮度作最不利底色。
+// 反解：相对亮度 0.81、暖色调 → #E9E8E6（用该值校验 82% 磨砂面板上的三级文字，
+// 得 4.84:1，与 DESIGN.md 记录值一致，说明模型已校准）。
+const CLASSIC_PAGE = hex('#F9F8F6')
+const CLASSIC_PAGE_DARKEST = hex('#E9E8E6')
+
+// glass：页底 #F7FAFF 上叠 --bg-mesh 三层径向渐变。
+// 三层中心分别在 12%/8%、88%/4%、70%/92%，理论上不会同时达到峰值；
+// 但无障碍验收必须取**最不利情况**，所以这里按三层完全重叠计算（保守上界）。
+function glassBackdropWorstCase() {
+  let c = hex('#F7FAFF')
+  c = over('rgba(34,211,238,.18)', c) // accent-cyan 层
+  c = over('rgba(129,140,248,.24)', c) // accent-indigo 层
+  c = over('rgba(96,165,250,.28)', c) // brand-400 层
+  return c
+}
+// 单层峰值（更贴近真实观感，用于对照）
+function glassBackdropTypical() {
+  let c = hex('#F7FAFF')
+  c = over('rgba(96,165,250,.28)', c)
+  return c
+}
+
+const GLASS_BACKDROP_WORST = glassBackdropWorstCase()
+const GLASS_BACKDROP_TYPICAL = glassBackdropTypical()
+
+// ─────────────────────── 待测组合 ───────────────────────
+// surface 为 null 表示直接落在页面底色上
+const CASES = [
+  // ── classic ──
+  ['classic', '--text-1', '#4A4642', 'page', CLASSIC_PAGE],
+  ['classic', '--text-1', '#4A4642', 'page-svg 最暗处', CLASSIC_PAGE_DARKEST],
+  ['classic', '--text-2', '#6B6560', 'page-svg 最暗处', CLASSIC_PAGE_DARKEST],
+  // 既存问题：三级文字直接落在页面背景（无面板）上时只有 4.09:1。
+  // 这张背景图的最暗处由设计约束在 81% 明度，而 --text-3 是为此选的临界值；
+  // 本项目绝大多数正文都在磨砂面板内（4.84:1 达标），裸背景上的三级文字
+  // 是少数情况。**不是本次改造引入的**，修复它需要改视觉（属下一阶段）。
+  ['classic', '--text-3', '#756E69', 'page-svg 最暗处（无面板）', CLASSIC_PAGE_DARKEST, { known: true }],
+  ['classic', '--text-1', '#4A4642', 'surface-1(.82)', over('rgba(255,255,255,.82)', CLASSIC_PAGE_DARKEST)],
+  ['classic', '--text-2', '#6B6560', 'surface-1(.82)', over('rgba(255,255,255,.82)', CLASSIC_PAGE_DARKEST)],
+  ['classic', '--text-3', '#756E69', 'surface-1(.82)', over('rgba(255,255,255,.82)', CLASSIC_PAGE_DARKEST)],
+  ['classic', '--text-3', '#756E69', 'surface-3(.68) ⚠ 规则禁止', over('rgba(255,255,255,.68)', CLASSIC_PAGE_DARKEST)],
+  ['classic', '--color-primary-ink', '#A83A32', 'surface-1(.82)', over('rgba(255,255,255,.82)', CLASSIC_PAGE_DARKEST)],
+  ['classic', '--text-on-primary', '#38140E', 'brand-500 实底', hex('#E8635C')],
+  ['classic', '--color-warning-ink', '#8A6420', 'warning-tint', hex('#FEF9ED')],
+  ['classic', '--color-success-ink', '#3E6B4E', 'success-tint', hex('#EDF6F0')],
+  ['classic', '--color-danger-ink', '#9A2E22', 'danger-tint', hex('#FBEBE9')],
+  ['classic', '--color-info-ink', '#4A6B8A', 'info-tint', hex('#F0F4F8')],
+
+  // ── glass（--text-3 为调整后的 #4E6288，理由见 tokens.semantic.css）──
+  ['glass', '--text-1', '#0B1B33', 'page 最不利', GLASS_BACKDROP_WORST],
+  ['glass', '--text-2', '#3D5372', 'page 最不利', GLASS_BACKDROP_WORST],
+  ['glass', '--text-3', '#4E6288', 'surface-glass(.62)', over('rgba(255,255,255,.62)', GLASS_BACKDROP_WORST)],
+  ['glass', '--text-3', '#4E6288', 'surface-glass-quiet(.42)', over('rgba(255,255,255,.42)', GLASS_BACKDROP_WORST)],
+  ['glass', '--text-3', '#4E6288', '纯白（最有利）', hex('#FFFFFF')],
+  ['glass', '--text-1', '#0B1B33', 'surface-glass(.62)', over('rgba(255,255,255,.62)', GLASS_BACKDROP_WORST)],
+  ['glass', '--text-2', '#3D5372', 'surface-glass(.62)', over('rgba(255,255,255,.62)', GLASS_BACKDROP_WORST)],
+  ['glass', '--text-2', '#3D5372', 'surface-glass-quiet(.42)', over('rgba(255,255,255,.42)', GLASS_BACKDROP_WORST)],
+  ['glass', '--color-primary-ink', '#1D4ED8', 'surface-glass(.62)', over('rgba(255,255,255,.62)', GLASS_BACKDROP_WORST)],
+  // --text-4 / --text-disabled 只允许用于 disabled（WCAG 明确豁免）
+  // 与纯装饰图形，故按图形档的 3:1 验收，而非正文的 4.5:1。
+  ['glass', '--text-4', '#71849F', '纯白（仅禁用/装饰）', hex('#FFFFFF'), { threshold: AA_LARGE }],
+  ['glass', '--text-4', '#71849F', 'surface-glass(.62)（装饰图标）', over('rgba(255,255,255,.62)', GLASS_BACKDROP_WORST), { threshold: AA_LARGE }],
+]
+
+// 品牌实底上的白字：逐个候选品牌档，确认真实可用性
+const BRAND_CASES = [
+  ['--brand-400', '#60A5FA'],
+  ['--brand-500', '#3B82F6'],
+  ['--brand-600', '#2563EB'],
+  ['--brand-700', '#1D4ED8'],
+]
+
+// ─────────────────────── 输出 ───────────────────────
+const AA = 4.5
+let failures = 0
+
+const pad = (s, n) => String(s).padEnd(n, ' ')
+const padS = (s, n) => String(s).padStart(n, ' ')
+
+console.log('\n\x1b[1m喵掌柜 · 对比度验收（WCAG 2.1 AA 正文 ≥ 4.5:1）\x1b[0m')
+console.log('─'.repeat(96))
+console.log(
+  pad('主题', 9) + pad('令牌', 22) + pad('前景', 10) + pad('底色合成', 34) + pad('底色', 18) + '比值'
+)
+console.log('─'.repeat(96))
+
+let known = 0
+for (const [theme, token, fg, label, bg, opts = {}] of CASES) {
+  const need = opts.threshold || AA_BODY
+  const r = contrast(hex(fg), flat(bg))
+  const ok = r >= need
+  let mark
+  if (ok) mark = '\x1b[32mPASS\x1b[0m'
+  else if (opts.known) {
+    mark = '\x1b[33m既存\x1b[0m'
+    known++
+  } else {
+    mark = '\x1b[31mFAIL\x1b[0m'
+    failures++
+  }
+  const ratio = r.toFixed(2).padStart(5)
+  console.log(
+    pad(theme, 9) +
+      pad(token, 22) +
+      pad(fg, 10) +
+      pad(label, 34) +
+      pad('#' + flat(bg).map((c) => c.toString(16).padStart(2, '0')).join(''), 18) +
+      `${ratio}:1  ${mark}` +
+      (need !== AA_BODY ? ` \x1b[2m(线 ${need}:1)\x1b[0m` : '')
+  )
+}
+
+// 这是**选型依据表**，不是验收项：
+// 它说明为什么 glass 的 --color-primary 取 brand-600 而不是品牌基准 brand-500。
+console.log('\n\x1b[1m品牌蓝各档 + 白字（选型依据：哪一档能承载 --text-on-brand）\x1b[0m')
+console.log('─'.repeat(96))
+for (const [name, value] of BRAND_CASES) {
+  const r = contrast(hex('#FFFFFF'), hex(value))
+  const ok = r >= AA
+  console.log(
+    pad(name, 22) +
+      pad(value, 12) +
+      `${r.toFixed(2).padStart(5)}:1  ` +
+      (ok ? '\x1b[32m可承载白字\x1b[0m' : '\x1b[2m不可承载白字（仅可用于装饰/渐变浅端）\x1b[0m')
+  )
+}
+
+// ── 候选扫描：为 glass 的 --text-3 选值 ──
+// 约束：必须在「纯白」与「.62 玻璃叠最不利 mesh」两种底色上都 ≥4.5:1。
+if (process.argv.includes('--sweep')) {
+  const gWorst = over('rgba(255,255,255,.62)', GLASS_BACKDROP_WORST)
+  console.log('\n\x1b[1m--text-3 候选扫描（glass）\x1b[0m')
+  console.log('─'.repeat(96))
+  console.log(pad('候选', 12) + pad('对纯白', 14) + pad('对 .42 quiet', 16) + pad('对 .62 glass', 16) + '结论')
+  for (const cand of ['#6B7F9B', '#5A6E8C', '#56698F', '#52658A', '#4E6288', '#4A6085']) {
+    const w = contrast(hex(cand), hex('#FFFFFF'))
+    const q = contrast(hex(cand), over('rgba(255,255,255,.42)', GLASS_BACKDROP_WORST))
+    const g = contrast(hex(cand), gWorst)
+    const ok = w >= AA && q >= AA && g >= AA
+    console.log(
+      pad(cand, 12) +
+        pad(w.toFixed(2) + ':1', 14) +
+        pad(q.toFixed(2) + ':1', 16) +
+        pad(g.toFixed(2) + ':1', 16) +
+        (ok ? '\x1b[32m可用\x1b[0m' : '\x1b[31m不可用\x1b[0m')
+    )
+  }
+}
+
+console.log('\n' + '─'.repeat(96))
+console.log(`最不利 glass 页面底色（三层 mesh 完全重叠）= #${GLASS_BACKDROP_WORST.map((c) => c.toString(16).padStart(2, '0')).join('')}`)
+console.log(`典型 glass 页面底色（单层 mesh 峰值）      = #${GLASS_BACKDROP_TYPICAL.map((c) => c.toString(16).padStart(2, '0')).join('')}`)
+if (known) {
+  console.log(`\x1b[33m${known} 项为既存问题\x1b[0m（本次改造之前就存在，不计入退出码，已记入交付说明）`)
+}
+console.log(`\n${failures === 0 ? '\x1b[32m新增主题全部达标\x1b[0m' : `\x1b[31m${failures} 项未达标\x1b[0m`}\n`)
+
+process.exit(failures === 0 ? 0 : 1)

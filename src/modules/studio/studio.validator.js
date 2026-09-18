@@ -39,6 +39,17 @@ const createStudioSchema = Joi.object({
     'any.required': '工作结束时间必填',
   }),
   intervalRestTime: Joi.number().integer().min(0).default(0),
+  // 预约时间模式：time_axis=连续时间轴(默认) | fixed_slot=固定档位
+  timeMode: Joi.string().valid('time_axis', 'fixed_slot').default('time_axis'),
+  slotDuration: Joi.when('timeMode', {
+    is: 'fixed_slot',
+    then: Joi.number().integer().min(5).max(480).required().messages({
+      'any.required': '固定档位模式必须填写档位时长',
+      'number.min': '档位时长不能少于 5 分钟',
+      'number.max': '档位时长不能超过 480 分钟',
+    }),
+    otherwise: Joi.number().integer().min(5).max(480).default(30),
+  }),
   restSlots: Joi.array().items(Joi.object({
     start_time: Joi.string().pattern(TIME_PATTERN).allow('').optional(),
     end_time: Joi.string().pattern(TIME_PATTERN).allow('').optional(),
@@ -101,6 +112,8 @@ const updateStudioSchema = Joi.object({
   baseStartTime: Joi.string().pattern(TIME_PATTERN).optional(),
   baseEndTime: Joi.string().pattern(TIME_PATTERN).optional(),
   intervalRestTime: Joi.number().integer().min(0).optional(),
+  timeMode: Joi.string().valid('time_axis', 'fixed_slot').optional(),
+  slotDuration: Joi.number().integer().min(5).max(480).optional(),
   restSlots: Joi.array().items(Joi.object({
     start_time: Joi.string().pattern(TIME_PATTERN).allow('').optional(),
     end_time: Joi.string().pattern(TIME_PATTERN).allow('').optional(),

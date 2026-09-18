@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { adminApi } from '@/api/adminApi'
+import AppIllustration from '@/components/shared/AppIllustration.vue'
 
 const logs = ref([])
 const loading = ref(true)
@@ -29,7 +30,10 @@ async function clearAll() {
       <button class="btn-secondary" @click="clearAll" style="font-size:11px;padding:4px 12px;color:var(--danger);">清空日志</button>
     </h2>
     <div v-if="loading" class="empty-state">加载中...</div>
-    <div v-else-if="logs.length === 0" class="empty-state">暂无日志</div>
+    <div v-else-if="logs.length === 0" class="empty-state">
+      <AppIllustration name="empty-no-logs" :width="160" />
+      <p>暂无日志</p>
+    </div>
     <div v-else v-for="l in logs" :key="l.id" class="section" style="padding:8px 14px;margin:6px 14px;">
       <span style="color:var(--sub);font-size:11px;margin-right:8px;">{{ l.created_at }}</span>
       <span style="font-size:13px;">{{ l.action }}</span>

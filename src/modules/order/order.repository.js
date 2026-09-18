@@ -92,6 +92,69 @@ function findByUser(mId, userId) {
     .orderBy('created_at', 'desc');
 }
 
+/** JWT 用户分页查订单 — 可跨商户（不传 mId 则查全部归属） */
+function findByUserPaginated(userId, { mId, status, page = 1, pageSize = 20 } = {}) {
+  let base = knex(TABLE).where('user_id', userId);
+  if (mId) base = base.where('m_id', mId);
+  if (status) base = base.where('status', status);
+  return Promise.all([
+    base.clone().count('* as total').first(),
+    base.clone()
+      .orderBy('created_at', 'desc')
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+  ]).then(([countRow, rows]) => ({
+    total: parseInt(countRow.total) || 0,
+    rows,
+    page,
+    pageSize,
+  }));
+}
+
+/** 幂等键查询 */
+function findByIdempotencyKey(key) {
+  if (!key) return Promise.resolve(null);
+  return knex(TABLE).where('idempotency_key', key).first();
+}
+
+// ─── 订单状态时间线 ───
+
+function insertStatusLog(trx, data) {
+  const q = knex('order_status_logs');
+  return (trx ? q.transacting(trx) : q).insert(data);
+}
+
+function findStatusLogsByOrderNo(orderNo) {
+  return knex('order_status_logs')
+    .where('order_no', orderNo)
+    .orderBy('created_at', 'asc')
+    .orderBy('id', 'asc');
+}
+
+// ─── 支付流水 ───
+
+function insertPayment(trx, data) {
+  const q = knex('order_payments');
+  return (trx ? q.transacting(trx) : q).insert(data);
+}
+
+function findPaymentByType(orderNo, type, trx) {
+  const q = knex('order_payments');
+  return (trx ? q.transacting(trx) : q).where({ order_no: orderNo, type }).first();
+}
+
+function updatePayment(trx, id, data) {
+  const q = knex('order_payments');
+  return (trx ? q.transacting(trx) : q).where('id', id).update(data);
+}
+
+function findPaymentsByOrderNo(orderNo) {
+  return knex('order_payments')
+    .where('order_no', orderNo)
+    .orderBy('created_at', 'asc')
+    .orderBy('id', 'asc');
+}
+
 function getStatsByMerchant(mId) {
   return knex(TABLE)
     .where('m_id', mId)
@@ -132,7 +195,10 @@ function rejectRefund(orderNo, reason) {
 }
 
 function getTodayStats(mId) {
-  const today = new Date().toISOString().slice(0, 10);
+  // ★ 用本地时区取"今天"。原先用 toISOString() 是 UTC 日期，北京时间 00:00–08:00
+  //   之间会取到昨天，「今日营收」卡片整晚显示的是前一天的数。
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return knex(TABLE)
     .where({ m_id: mId, order_date: today })
     .whereNotIn('status', ['已取消', '已退款取消'])
@@ -161,7 +227,10 @@ function clearCompletedByMerchant(mId) {
 
 module.exports = {
   create, findByOrderNo, findByMerchant, findByDevice, findByUser,
+  findByUserPaginated, findByIdempotencyKey,
   updateStatus, updateStatusSimple, updateDateTimes, updateRefundInfo, rejectRefund,
   findByMerchantPaginated, getStatsByMerchant, getTodayStats, updateRejectReason,
   deleteByOrderNo, clearCompletedByMerchant,
+  insertStatusLog, findStatusLogsByOrderNo,
+  insertPayment, findPaymentByType, updatePayment, findPaymentsByOrderNo,
 };

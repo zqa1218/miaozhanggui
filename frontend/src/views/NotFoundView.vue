@@ -9,7 +9,7 @@
 
 <style scoped>
 .not-found {
-  text-align: center; padding: 120px 20px; color: #8e8ea0;
+  text-align: center; padding: 120px 20px; color: var(--text-3);
 }
 .not-found i { font-size: 56px; margin-bottom: 16px; display: block; color: #a08080; }
 .not-found h2 { font-size: 48px; font-weight: 800; margin: 0; color: #3a3a4a; }

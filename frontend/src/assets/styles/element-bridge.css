@@ -1,0 +1,361 @@
+/* =============================================================
+   喵掌柜 · Element Plus 桥接层
+   -------------------------------------------------------------
+   本文件是全项目**唯一**允许出现 --el-* 变量和 .el-* 覆盖的地方。
+
+   规则（改本文件前先读）：
+   1. tokens.css 只放变量，禁止选择器；theme.css/global.css 禁止写 --el-*。
+   2. 能用 SCSS 变量解决的（色阶 / 尺寸 / 内边距 / 圆角 / 阴影）一律走
+      element-override.scss，不要在这里用 !important 硬覆盖。
+   3. 保留 !important 的条目都写明了理由；新增前先问「不加能不能赢」。
+      （App.vue 的 CSS 在 element-plus 之后加载，同权重选择器本就能赢。）
+
+   与改造前的关键差异：
+   - 删除了 `.el-button { padding: 10px 28px !important }` 与尺寸类覆盖。
+     这三条把 EP 的 size 档位全部钉死，57 处 size="small" 因此失效。
+   - 删除了 theme.css 里的 11 条 --el-* 声明（与 SCSS 层数值打架）。
+   ============================================================= */
+
+:root {
+  /* ══════════════════════════════════════════════════════════
+     组件级圆角（EP 没有对应 SCSS map 的部分）
+     ══════════════════════════════════════════════════════════ */
+  --el-card-border-radius:       var(--radius-card);
+  --el-dialog-border-radius:     var(--radius-modal);
+  --el-popover-border-radius:    var(--radius-lg);
+  --el-message-border-radius:    var(--radius-md);
+  --el-messagebox-border-radius: var(--radius-modal);
+  --el-input-border-radius:      var(--radius-input);
+  --el-tag-border-radius:        var(--radius-pill);
+  --el-drawer-padding-primary:   var(--space-6);
+
+  /* ══════════════════════════════════════════════════════════
+     中性色：接到我们的暖灰令牌，避免 EP 默认的冷灰和米白底打架
+     ══════════════════════════════════════════════════════════ */
+  --el-text-color-primary:      var(--text-1);
+  --el-text-color-regular:      var(--text-2);
+  --el-text-color-secondary:    var(--text-3);
+  --el-text-color-placeholder:  var(--text-placeholder);
+  --el-text-color-disabled:     var(--text-disabled);
+
+  --el-border-color:            var(--border-color);
+  --el-border-color-light:      var(--border-subtle);
+  --el-border-color-lighter:    var(--border-subtle);
+  --el-border-color-extra-light: var(--border-subtle);
+
+  --el-fill-color-blank:        var(--surface-solid);
+  --el-fill-color-light:        var(--color-neutral-tint);
+  --el-fill-color-lighter:      var(--bg-table-stripe);
+
+  --el-bg-color:                var(--surface-solid);
+  --el-bg-color-page:           var(--bg-page);
+  --el-bg-color-overlay:        var(--surface-solid);
+
+  --el-box-shadow:              var(--shadow-2);
+  --el-box-shadow-light:        var(--shadow-1);
+  --el-box-shadow-lighter:      var(--shadow-1);
+  --el-box-shadow-dark:         var(--shadow-3);
+
+  --el-mask-color:              rgba(74, 70, 66, .32);
+  --el-mask-color-extra-light:  rgba(74, 70, 66, .16);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   浮层容器 · 弹窗 / 抽屉 / 气泡 / 下拉 / 日期面板
+   ══════════════════════════════════════════════════════════════ */
+.el-dialog,
+.el-drawer__body,
+.el-popover.el-popper,
+.el-message-box,
+.el-dropdown-menu,
+.el-select-dropdown,
+.el-picker-panel,
+.el-notification {
+  background: var(--surface-solid) !important;
+  border: 1px solid var(--glass-hairline) !important;
+  box-shadow: var(--shadow-3) !important;
+}
+.el-dialog,
+.el-message-box { border-radius: var(--radius-modal) !important; }
+.el-popover.el-popper,
+.el-dropdown-menu,
+.el-select-dropdown,
+.el-picker-panel { border-radius: var(--radius-lg) !important; }
+.el-notification { border-radius: var(--radius-lg) !important; }
+
+.el-dialog__header,
+.el-drawer__header {
+  border-bottom: 1px solid var(--border-subtle) !important;
+  padding: var(--space-5) var(--space-6) var(--space-4) !important;
+  margin-bottom: 0 !important;
+}
+.el-dialog__title {
+  font-weight: 700 !important;
+  color: var(--text-1) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   卡片 / 表格
+   ══════════════════════════════════════════════════════════════ */
+.el-card {
+  background: var(--surface-solid) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-1) !important;
+  border: 1px solid var(--glass-hairline) !important;
+}
+.el-card__body { padding: var(--space-6); }
+
+.el-table {
+  background: var(--surface-solid) !important;
+  border-radius: var(--radius-card) !important;
+  overflow: hidden;
+  --el-table-border-color: var(--border-subtle);
+  --el-table-header-bg-color: var(--bg-table-stripe);
+  --el-table-row-hover-bg-color: var(--color-primary-tint);
+}
+.el-table th.el-table__cell {
+  background: var(--bg-table-stripe) !important;
+  color: var(--text-3) !important;
+  font-weight: 700;
+  font-size: 12px;
+}
+.el-table td.el-table__cell { color: var(--text-2); }
+.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell {
+  background: var(--color-primary-tint) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   表单控件
+   ══════════════════════════════════════════════════════════════ */
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select .el-input__wrapper {
+  background: var(--surface-solid) !important;
+  box-shadow: 0 0 0 1px var(--border-color) inset !important;
+  border-radius: var(--radius-input) !important;
+  transition: box-shadow var(--duration-1) var(--ease-out) !important;
+}
+.el-input__wrapper:hover,
+.el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--color-primary-line) inset !important;
+}
+.el-input__wrapper:focus,
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--color-primary) inset, var(--shadow-glow) !important;
+}
+/* EP 用 box-shadow 模拟边框，所以「边框色」必须跟着改，不能只改 border */
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder { color: var(--text-placeholder); }
+
+.el-checkbox__inner { border-radius: var(--radius-xs) !important; }
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--text-on-primary) !important;
+}
+.el-radio__input.is-checked .el-radio__inner {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+.el-radio__inner { border-color: var(--border-strong) !important; }
+.el-switch.is-checked .el-switch__core {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+.el-input-number__decrease,
+.el-input-number__increase {
+  background: var(--color-neutral-tint) !important;
+  color: var(--text-2) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   按钮
+   注意：这里**只**改视觉（颜色/过渡/字重），绝不碰 padding 与 height ——
+   尺寸归 element-override.scss 的 SCSS 变量管，一碰就又回到 size 失效的老问题。
+   ══════════════════════════════════════════════════════════════ */
+/* 按钮圆角桥接 —— 本文件里唯一一处「新增能力」而非「修正视觉」。
+   为什么必须在这里做：EP 把 $button-border-radius: 9999px 编译成了**字面量**
+   （构建产物中即 `.el-button{...border-radius:9999px}`，不是 var()），
+   运行时切换主题改不动它。而 --radius-btn 是语义令牌：
+   glass 主题把它从 9999px 改成 12px（方圆角）。
+   不桥接的话，glass 下会出现「自绘 .btn 是圆角矩形、EP 按钮仍是胶囊」
+   两套体系并存。
+
+   为什么对 classic 零影响：--radius-btn 在 classic 下 = var(--radius-pill) = 9999px，
+   与编译期字面量**完全相等**，本规则只是把同一个值换了个来源。
+   刻意不加 !important —— 本文件在 element-plus 之后加载，同权重选择器本就能赢；
+   第二条选择器与 EP 的 `.el-button-group>.el-button:first-child:last-child`
+   同特异性，靠加载顺序取胜。
+
+   有意不处理 .el-button.is-round / .is-circle：它们分别走
+   --el-border-radius-round 与 50%，是使用方**显式**要求的形状，主题不该覆盖。
+   代价是 glass 下带 round 属性的按钮仍是胶囊 —— 已记入交付说明的已知限制。 */
+.el-button,
+.el-button-group > .el-button:first-child:last-child {
+  border-radius: var(--radius-btn);
+}
+
+.el-button {
+  font-weight: 600 !important;
+  letter-spacing: .02em;
+  transition: background-color var(--duration-1) var(--ease-out),
+              border-color var(--duration-1) var(--ease-out),
+              color var(--duration-1) var(--ease-out),
+              box-shadow var(--duration-2) var(--ease-out),
+              transform var(--duration-1) var(--ease-out) !important;
+}
+.el-button:not(.is-disabled):hover { transform: translateY(-1px); }
+.el-button:not(.is-disabled):active { transform: none; }
+.el-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.el-button--primary {
+  background: var(--color-primary-gradient) !important;
+  border: none !important;
+  color: var(--text-on-primary) !important;   /* 白字在暖杏上只有 2.03:1，改用深暖墨 5.89:1 */
+  box-shadow: var(--shadow-primary) !important;
+}
+.el-button--primary:not(.is-disabled):hover {
+  background: linear-gradient(135deg, #ED7C76 0%, #F0968F 100%) !important;
+  box-shadow: 0 6px 18px rgba(232, 99, 92, .32) !important;
+}
+.el-button--default {
+  background: var(--surface-solid) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-1) !important;
+}
+.el-button--default:not(.is-disabled):hover {
+  background: var(--color-primary-tint) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary-ink) !important;
+}
+.el-button--success {
+  background: var(--color-success-tint) !important;
+  border: 1px solid rgba(168,216,185,.40) !important;
+  color: var(--color-success-ink) !important;
+  box-shadow: none !important;
+}
+.el-button--warning {
+  background: var(--color-warning-tint) !important;
+  border: 1px solid rgba(249,224,160,.55) !important;
+  color: var(--color-warning-ink) !important;
+  box-shadow: none !important;
+}
+.el-button--danger {
+  background: var(--color-danger-tint) !important;
+  border: 1px solid rgba(239,168,168,.32) !important;
+  color: var(--color-danger-ink) !important;
+  box-shadow: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   标签
+   ══════════════════════════════════════════════════════════════ */
+.el-tag {
+  border: none !important;
+  font-weight: 600;
+}
+.el-tag--default { background: var(--color-neutral-tint) !important; color: var(--color-neutral-ink) !important; }
+.el-tag--primary { background: var(--color-primary-tint) !important; color: var(--color-primary-ink) !important; }
+.el-tag--success { background: var(--color-success-tint) !important; color: var(--color-success-ink) !important; }
+.el-tag--warning { background: var(--color-warning-tint) !important; color: var(--color-warning-ink) !important; }
+.el-tag--danger  { background: var(--color-danger-tint)  !important; color: var(--color-danger-ink)  !important; }
+.el-tag--info    { background: var(--color-info-tint)    !important; color: var(--color-info-ink)    !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   导航 / 标签页 / 分页 / 分割线
+   ══════════════════════════════════════════════════════════════ */
+.el-tabs__item { transition: color var(--duration-1) var(--ease-out) !important; }
+.el-tabs__item.is-active { color: var(--color-primary-ink) !important; font-weight: 700; }
+.el-tabs__nav-wrap::after { background-color: var(--border-subtle) !important; height: 1px !important; }
+.el-tabs__active-bar { background-color: var(--color-primary) !important; border-radius: var(--radius-pill); }
+
+.el-menu { background: transparent !important; border-right: none !important; }
+.el-menu-item {
+  border-radius: var(--radius-md) !important;
+  margin: var(--space-1) var(--space-3) !important;
+  padding: 0 var(--space-5) !important;
+  color: var(--text-2) !important;
+  transition: background-color var(--duration-1) var(--ease-out),
+              color var(--duration-1) var(--ease-out) !important;
+}
+.el-menu-item:hover { background: var(--color-primary-soft) !important; color: var(--text-1) !important; }
+.el-menu-item.is-active {
+  background: var(--color-primary-soft) !important;
+  color: var(--color-primary-ink) !important;
+  font-weight: 700;
+}
+
+.el-pagination .btn-prev, .el-pagination .btn-next, .el-pagination .el-pager li {
+  border-radius: var(--radius-sm) !important;
+  transition: background-color var(--duration-1) var(--ease-out) !important;
+}
+.el-pagination .el-pager li.is-active {
+  background: var(--color-primary) !important;
+  color: var(--text-on-primary) !important;
+}
+
+.el-divider__text {
+  color: var(--text-3) !important;
+  font-weight: 600;
+  background: transparent !important;
+}
+.el-divider--horizontal { border-top-color: var(--border-subtle) !important; }
+
+/* 下拉项 */
+.el-select-dropdown__item.is-hovering,
+.el-dropdown-menu__item:not(.is-disabled):hover {
+  background: var(--color-primary-tint) !important;
+  color: var(--color-primary-ink) !important;
+}
+.el-select-dropdown__item.is-selected {
+  color: var(--color-primary-ink) !important;
+  font-weight: 700;
+}
+
+/* 消息提示 */
+.el-message {
+  background: var(--surface-solid) !important;
+  border: 1px solid var(--glass-hairline) !important;
+  box-shadow: var(--shadow-2) !important;
+}
+
+/* 步骤条 */
+.el-step__title.is-process { color: var(--color-primary-ink) !important; font-weight: 700; }
+.el-step__head.is-process { color: var(--color-primary) !important; border-color: var(--color-primary) !important; }
+
+/* ─── 图标基线对齐 ───
+   el-icon 的 SVG 默认撑满行高，在中文行内会比文字高出一截。 */
+.el-icon { vertical-align: -0.15em; }
+
+/* ══════════════════════════════════════════════════════════════
+   移动端触控目标
+   注意只抬「非 small」按钮到 40px；small 保持 32px 以免破坏
+   表格/工具栏里的紧凑排布（它有 min-width 保证横向可点）。
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .el-button { min-width: 44px; }
+  .el-button:not(.el-button--small) { min-height: 40px; }
+  .el-button--small { min-height: 32px; padding-left: 12px !important; padding-right: 12px !important; }
+  .el-dialog { width: 94% !important; max-width: 100% !important; margin-top: 5vh !important; }
+  .el-dialog__body { padding: var(--space-4) !important; }
+  .el-dialog__header { padding: var(--space-4) var(--space-4) var(--space-3) !important; }
+  .el-dialog__footer { padding: var(--space-3) var(--space-4) var(--space-4) !important; }
+  .el-form-item { display: block !important; margin-bottom: var(--space-4); }
+  .el-form-item__label {
+    width: 100% !important; text-align: left !important;
+    margin-bottom: 4px; padding-bottom: 0;
+  }
+  .el-form-item__content { margin-left: 0 !important; }
+  .el-date-picker, .el-select, .el-input-number, .el-time-select, .el-cascader {
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .el-dialog { width: 85% !important; }
+  .el-form-item__label { width: 100px !important; }
+}

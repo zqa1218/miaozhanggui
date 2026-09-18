@@ -34,7 +34,7 @@ async function markOne(n) {
       <strong>{{ n.title }}</strong>
       <span :class="'tag tag-' + ({info:'blue',success:'green',warning:'orange',danger:'red'}[n.type]||'blue')" style="margin-left:6px;">{{ n.type }}</span>
       <div style="font-size:12px;color:var(--sub);">{{ n.content }}</div>
-      <div style="font-size:10px;color:#aaa;">{{ n.created_at }}</div>
+      <div style="font-size:10px;color:var(--text-3);">{{ n.created_at }}</div>
     </div>
   </div>
 </template>

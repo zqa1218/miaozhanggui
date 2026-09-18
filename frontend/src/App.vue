@@ -1,4 +1,19 @@
 <script setup>
+// 样式加载顺序即优先级，不要调换：
+//   1. tokens.primitives —— L1 原语：原子值，永不随主题变
+//   2. tokens.semantic   —— L2 语义：classic 快照 + glass 覆盖 + 降级块
+//   3. element-bridge    —— Element Plus 运行时变量桥 + 结构覆盖
+//   4. theme             —— 语义组件层（按钮/面板/徽章/容器）
+//   5. global            —— 页面级构件与历史兼容类
+// 这五份 CSS 在 element-plus 自身的样式之后加载，因此同权重选择器本就能赢，
+// 无需依赖 !important。
+//
+// 注意：L2 必须在 element-bridge 之前 —— 桥接层引用 --radius-* / --shadow-*
+// 等语义令牌，而自定义属性的解析与声明顺序无关（只与层叠结果有关），
+// 但保持「先定义后引用」的顺序能让 devtools 的 computed 面板更易读。
+import '@/assets/styles/tokens.primitives.css'
+import '@/assets/styles/tokens.semantic.css'
+import '@/assets/styles/element-bridge.css'
 import '@/assets/styles/theme.css'
 import '@/assets/styles/global.css'
 </script>

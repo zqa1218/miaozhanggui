@@ -48,4 +48,30 @@ async function me(req, res) {
   }
 }
 
-module.exports = { login, bind, me };
+/** POST /client/auth/mp-login — 微信小程序登录（快速注册） */
+async function mpLogin(req, res) {
+  try {
+    const { code, nickname, avatar } = req.body;
+    const result = await service.mpLogin(code, { nickname, avatar });
+    res.rh.success(result, result.isNew ? '注册成功' : '登录成功');
+  } catch (err) {
+    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
+    logger.error('[ClientAuth] mpLogin error:', err);
+    res.rh.error('小程序登录失败');
+  }
+}
+
+/** POST /client/auth/mp-phone — 绑定手机号（需登录） */
+async function mpPhone(req, res) {
+  try {
+    const { code } = req.body;
+    const result = await service.mpPhone(req.user.userId, code);
+    res.rh.success(result, '手机号绑定成功');
+  } catch (err) {
+    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
+    logger.error('[ClientAuth] mpPhone error:', err);
+    res.rh.error('绑定手机号失败');
+  }
+}
+
+module.exports = { login, bind, me, mpLogin, mpPhone };

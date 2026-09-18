@@ -3,12 +3,12 @@
     <div v-if="order.viewingOrder" class="section">
       <div class="order-title">{{ order.viewingOrder.studioTitle }}</div>
       <div class="order-meta">
-        <p v-if="order.viewingOrder.roleName"><i class="fa-solid fa-user"></i> 角色: {{ order.viewingOrder.roleName }}</p>
-        <p><i class="fa-regular fa-calendar"></i> {{ order.viewingOrder.date }}</p>
-        <p><i class="fa-regular fa-clock"></i> {{ order.viewingOrder.bookingStartTime || order.viewingOrder.times?.join(',') }}
+        <p v-if="order.viewingOrder.roleName"><el-icon><User /></el-icon> 角色: {{ order.viewingOrder.roleName }}</p>
+        <p><el-icon><Calendar /></el-icon> {{ order.viewingOrder.date }}</p>
+        <p><el-icon><Clock /></el-icon> {{ order.viewingOrder.bookingStartTime || order.viewingOrder.times?.join(',') }}
            <template v-if="order.viewingOrder.bookingEndTime"> - {{ order.viewingOrder.bookingEndTime }}</template>
         </p>
-        <p v-if="order.viewingOrder.contactNote"><i class="fa-solid fa-note-sticky"></i> {{ order.viewingOrder.contactNote }}</p>
+        <p v-if="order.viewingOrder.contactNote"><el-icon><Tickets /></el-icon> {{ order.viewingOrder.contactNote }}</p>
         <p v-if="order.viewingOrder.addonTotal > 0">附加项目: +¥{{ order.viewingOrder.addonTotal }} ({{ (order.viewingOrder.selectedAddonIds || []).length }} 项)</p>
         <p>总价: ¥{{ order.viewingOrder.totalPrice }} | 定金: ¥{{ order.viewingOrder.depositAmount }}</p>
       </div>
@@ -32,6 +32,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { User, Calendar, Clock, Tickets } from '@element-plus/icons-vue'
 import { useOrderStore } from '@/stores/order'
 
 const route = useRoute()
@@ -60,14 +61,9 @@ const steps = computed(() => {
 
 <style scoped>
 .order-detail-view { position: relative; z-index: 1; }
-.section {
-  background: rgba(255,255,255,0.72); backdrop-filter: blur(12px);
-  margin: 10px 14px; border-radius: 18px; padding: 16px;
-  box-shadow: 0 4px 20px rgba(120,130,125,0.04);
-  border: 1px solid rgba(180,185,182,0.18);
-}
+/* .section 的玻璃外观已由 theme.css 统一定义。此处不再重定义。 */
 .order-title { font-size: 18px; font-weight: 700; }
-.order-meta { margin-top: 8px; font-size: 13px; color: #8e8ea0; line-height: 1.8; }
+.order-meta { margin-top: 8px; font-size: 13px; color: var(--text-3); line-height: 1.8; }
 .order-status { margin-top: 10px; }
 .tag {
   font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600;
@@ -76,11 +72,11 @@ const steps = computed(() => {
 .tag-blue { background: #edf2f6; color: #5a7a96; }
 .tag-green { background: #eaf0eb; color: #4a6e52; }
 .tag-red { background: #f5ecec; color: #a05050; }
-.tag-gray { background: #f2f3f2; color: #888; }
+.tag-gray { background: #f2f3f2; color: var(--text-3); }
 .order-progress { display: flex; align-items: center; gap: 2px; margin-top: 12px; }
 .order-progress .dot { width: 8px; height: 8px; border-radius: 50%; background: #e0e0e0; }
 .order-progress .dot.done { background: #7ba882; }
-.order-progress .dot.current { background: #5a7a65; box-shadow: 0 0 6px rgba(125,158,138,0.4); }
+.order-progress .dot.current { background: var(--color-primary-ink); box-shadow: 0 0 6px rgba(125,158,138,0.4); }
 .order-progress .line { flex: 1; height: 2px; background: #e0e0e0; min-width: 12px; }
 .order-progress .line.done { background: #7ba882; }
 </style>

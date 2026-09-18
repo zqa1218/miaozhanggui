@@ -129,21 +129,21 @@ async function handleArchive(orderNo) {
 
 <style scoped>
 .section-box {
-  background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 16px;
-  border: 1px solid #F0EDE8; box-shadow: 0 2px 8px rgba(0,0,0,.03);
+  background: var(--surface-solid); border-radius: 16px; padding: 20px; margin-bottom: 16px;
+  border: 1px solid var(--border-subtle); box-shadow: 0 2px 8px rgba(0,0,0,.03);
 }
-.section-box h3 { margin: 0 0 12px; font-size: 16px; display: flex; align-items: center; gap: 8px; color: #4A4A4A; }
-.loading-wrap { text-align: center; padding: 40px; color: #8E8E8E; }
+.section-box h3 { margin: 0 0 12px; font-size: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-1); }
+.loading-wrap { text-align: center; padding: 40px; color: var(--text-3); }
 .tab-nav {
   display: flex; gap: 4px; margin-bottom: 14px; flex-wrap: wrap;
-  background: #F4F2EE; border-radius: 16px; padding: 5px;
+  background: var(--color-disabled-bg); border-radius: 16px; padding: 5px;
 }
 .tab-nav span {
   padding: 9px 18px; border-radius: 14px; font-size: 13px; font-weight: 600;
-  cursor: pointer; color: #8E8E8E; transition: 0.2s;
+  cursor: pointer; color: var(--text-3); transition: 0.2s;
 }
-.tab-nav span.active { background: #fff; color: #D4893E; box-shadow: 0 2px 10px rgba(244,164,96,0.12); }
-.order-card { padding: 16px; margin-bottom: 12px; border-radius: 16px; border: 1px solid #F0EDE8; border-left: 5px solid #F4A460; background: #fff; }
+.tab-nav span.active { background: var(--surface-solid); color: var(--color-primary-ink); box-shadow: 0 2px 10px rgba(var(--color-primary-rgb), 0.12); }
+.order-card { padding: 16px; margin-bottom: 12px; border-radius: 16px; border: 1px solid var(--border-subtle); border-left: 5px solid var(--color-primary); background: var(--surface-solid); }
 .order-card.status-待支付 { border-left-color: #F9E0A0; }
 .order-card.status-已付定金 { border-left-color: #E0CDB0; }
 .order-card.status-已确认锁定 { border-left-color: #A9C1D9; }
@@ -151,18 +151,18 @@ async function handleArchive(orderNo) {
 .order-card.status-已结清 { border-left-color: #A8D8B9; }
 .order-card.status-退款审核中 { border-left-color: #EFA8A8; }
 .order-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.role-badge { font-size: 12px; background: #FEF7EF; color: #D4893E; padding: 4px 10px; border-radius: 10px; margin-left: 6px; font-weight: 500; }
-.order-id { font-size: 12px; color: #8E8E8E; margin-left: 8px; }
-.order-meta { display: flex; gap: 16px; font-size: 13px; color: #8E8E8E; flex-wrap: wrap; }
+.role-badge { font-size: 12px; background: var(--color-primary-tint); color: var(--color-primary-ink); padding: 4px 10px; border-radius: 10px; margin-left: 6px; font-weight: 500; }
+.order-id { font-size: 12px; color: var(--text-3); margin-left: 8px; }
+.order-meta { display: flex; gap: 16px; font-size: 13px; color: var(--text-3); flex-wrap: wrap; }
 .tag {
   font-size: 11px; padding: 3px 10px; border-radius: 14px; font-weight: 600;
 }
-.tag-orange { background: #FEFBF6; color: #B8933E; }
-.tag-blue { background: #F0F4F8; color: #5A7A9A; }
-.tag-green { background: #EDF6F0; color: #5A8A6A; }
-.tag-red { background: #FDF2F2; color: #C87878; }
-.tag-gray { background: #F4F2EE; color: #888; }
+.tag-orange { background: var(--color-primary-tint); color: var(--color-warning-ink); }
+.tag-blue { background: var(--color-sky-light); color: var(--color-info-ink); }
+.tag-green { background: var(--color-mint-light); color: var(--color-success-ink); }
+.tag-red { background: var(--color-danger-tint); color: var(--color-danger-ink); }
+.tag-gray { background: var(--color-disabled-bg); color: var(--text-3); }
 .order-actions { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
 .refunding-hint { font-size: 13px; color: #a05050; }
-.empty-state { text-align: center; padding: 60px 0; color: #b8bdb9; }
+.empty-state { text-align: center; padding: 60px 0; color: var(--text-3); }
 </style>

@@ -14,6 +14,7 @@ const logRoutes = require('../modules/log/log.routes');
 const notificationRoutes = require('../modules/notification/notification.routes');
 const uploadRoutes = require('../modules/upload/upload.routes');
 const styleRoutes = require('../modules/style/style.routes');
+const clientOrderRoutes = require('../modules/client-order/clientOrder.routes');
 
 //   全局健康检查
 router.get('/health', (_req, res) => {
@@ -34,5 +35,6 @@ router.use('/', logRoutes);
 router.use('/', notificationRoutes);
 router.use('/', uploadRoutes);
 router.use('/', styleRoutes);
+router.use('/', clientOrderRoutes);
 
 module.exports = router;

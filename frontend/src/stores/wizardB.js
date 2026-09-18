@@ -22,6 +22,9 @@ export const useWizardBStore = defineStore('wizardB', () => {
   const baseEndTime   = ref('18:00')
   const restSlots     = ref([])       // [{ start_time, end_time, day_of_week, reason }]
   const intervalRestTime = ref(15)
+  // 预约时间模式：time_axis=连续时间轴(默认) | fixed_slot=固定档位（一档=一单）
+  const timeMode      = ref('time_axis')
+  const slotDuration  = ref(30)
 
   // ============ Step3 产出 ============
   const isStyleEnabled    = ref(false)
@@ -53,6 +56,8 @@ export const useWizardBStore = defineStore('wizardB', () => {
       baseStartTime: baseStartTime.value,
       baseEndTime: baseEndTime.value,
       intervalRestTime: intervalRestTime.value,
+      timeMode: timeMode.value,
+      slotDuration: slotDuration.value,
       restSlots: restSlots.value,
 
       isStyleEnabled: isStyleEnabled.value,
@@ -104,6 +109,7 @@ export const useWizardBStore = defineStore('wizardB', () => {
     detailImgUrls.value = []; selectedDates.value = []; isAllTimeOpen.value = false; dailyHours.value = {}
     baseStartTime.value = '09:00'; baseEndTime.value = '18:00'
     restSlots.value = []; intervalRestTime.value = 15
+    timeMode.value = 'time_axis'; slotDuration.value = 30
     isStyleEnabled.value = false; selectedStyleIds.value = []
     isExperienceEnabled.value = false; noviceSingleAddTime.value = 20
     hasPackage.value = false
@@ -115,6 +121,7 @@ export const useWizardBStore = defineStore('wizardB', () => {
   return {
     title, description, city, coverUrl, detailImgUrls, selectedDates, isAllTimeOpen,
     dailyHours, baseStartTime, baseEndTime, restSlots, intervalRestTime,
+    timeMode, slotDuration,
     isStyleEnabled, selectedStyleIds,
     isExperienceEnabled, noviceSingleAddTime,
     hasPackage, pricingModel, singlePrice, packagePrice, packageSessionCount,

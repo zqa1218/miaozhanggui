@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { Clock, LocationInformation } from '@element-plus/icons-vue'
+import AppIllustration from '@/components/shared/AppIllustration.vue'
+import placeholder4x3 from '@/assets/images/placeholder-4x3.svg'
 
 const router = useRouter()
 
@@ -74,7 +77,7 @@ function goBooking(studio) {
     <!-- 筛选栏 -->
     <div class="filter-bar">
       <div class="filter-row">
-        <label class="filter-label">📅 日期</label>
+        <label class="filter-label">日期</label>
         <el-date-picker
           v-model="selectedDate"
           type="date"
@@ -103,20 +106,21 @@ function goBooking(studio) {
 
     <!-- 加载中 -->
     <div v-if="loading" class="empty-state">
-      <span class="empty-icon">⏳</span>
+      <!-- 加载态插画：按设计说明用 CSS 旋转，不引入 Lottie -->
+      <AppIllustration name="empty-loading" :width="160" class="is-spinning" />
       <p>正在寻找有空档的工作室...</p>
     </div>
 
     <!-- 网络错误 -->
     <div v-else-if="errorMsg" class="empty-state">
-      <span class="empty-icon">📡</span>
+      <AppIllustration name="empty-network-error" :width="160" />
       <p>{{ errorMsg }}</p>
       <button class="btn-clear" @click="fetchAvailable">重试</button>
     </div>
 
     <!-- 空结果 -->
     <div v-else-if="!studioList.length" class="empty-state">
-      <span class="empty-icon">📅</span>
+      <AppIllustration name="empty-no-studio" :width="160" />
       <p>{{ selectedDate }} 暂无可用工作室</p>
       <p class="empty-hint">试试选择其他日期吧~</p>
     </div>
@@ -141,9 +145,7 @@ function goBooking(studio) {
               :alt="studio.title"
               class="cover-img"
             />
-            <div v-else class="cover-ph">
-              <span>📸</span>
-            </div>
+            <img v-else :src="placeholder4x3" alt="" class="cover-img" />
             <span v-if="studio.isStyleEnabled" class="cover-tag">多样式</span>
           </div>
 
@@ -152,9 +154,11 @@ function goBooking(studio) {
             <p v-if="studio.description" class="card-desc">{{ studio.description }}</p>
 
             <div class="card-meta">
-              <span v-if="studio.city" class="meta-item">📍 {{ studio.city }}</span>
+              <span v-if="studio.city" class="meta-item">
+                <el-icon><LocationInformation /></el-icon>{{ studio.city }}
+              </span>
               <span v-if="studio.baseStartTime" class="meta-item">
-                🕐 {{ studio.baseStartTime }}—{{ studio.baseEndTime }}
+                <el-icon><Clock /></el-icon>{{ studio.baseStartTime }}—{{ studio.baseEndTime }}
               </span>
             </div>
 
@@ -176,30 +180,37 @@ function goBooking(studio) {
 
 <style scoped>
 .filter-page {
-  max-width: 1280px;
+  max-width: var(--w-wide);
   margin: 0 auto;
-  padding-bottom: 24px;
+  padding-bottom: var(--space-6);
 }
 
-/* ── 筛选栏 ── */
+/* ── 筛选栏 ──
+   原为 Material 玫红→紫渐变（#fce4ec → #f3e5f5）。C 端首屏是全站最该体现
+   品牌的地方，这里却与暖杏体系完全断裂，改为暖杏调的磨砂面板。 */
 .filter-bar {
-  background: linear-gradient(135deg, #fce4ec, #f3e5f5);
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 16px rgba(173, 20, 87, 0.08);
+  background: linear-gradient(135deg,
+              var(--color-primary-tint) 0%,
+              var(--surface-1) 60%);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-hairline);
+  border-radius: var(--radius-panel);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-2), var(--glass-highlight);
 }
 
 .filter-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .filter-label {
   font-size: 15px;
   font-weight: 600;
-  color: #7b1fa2;
+  color: var(--color-primary-ink);
   white-space: nowrap;
 }
 
@@ -213,65 +224,67 @@ function goBooking(studio) {
 
 .result-count {
   font-size: 14px;
-  color: #9e9e9e;
-  margin-bottom: 16px;
+  color: var(--text-3);
+  margin-bottom: var(--space-4);
   padding-left: 4px;
 }
 
 .result-count strong {
-  color: #ad1457;
+  color: var(--color-primary-ink);
   font-weight: 700;
 }
 
 /* ── 空状态 ── */
 .empty-state {
   text-align: center;
-  padding: 80px 20px;
-  color: #9e9e9e;
+  padding: 64px 20px;
+  color: var(--text-3);
 }
 
 .empty-icon {
-  font-size: 56px;
   display: block;
-  margin-bottom: 16px;
-  opacity: 0.6;
+  margin-bottom: var(--space-4);
+  font-size: 48px;
+  color: var(--color-primary-dark);
 }
 
 .empty-state p {
   font-size: 16px;
-  margin: 0 0 8px;
-  color: #757575;
+  margin: 0 0 var(--space-2);
+  color: var(--text-3);
 }
 
 .empty-hint {
   font-size: 14px;
-  color: #bdbdbd;
-  margin-bottom: 16px;
+  color: var(--text-3);
+  margin-bottom: var(--space-4);
 }
 
 .btn-clear {
-  margin-top: 12px;
-  padding: 8px 20px;
-  border-radius: 20px;
-  border: 1px solid #e1bee7;
-  background: rgba(255, 255, 255, 0.7);
-  color: #7b1fa2;
+  margin-top: var(--space-3);
+  height: 34px; padding: 0 20px;
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--color-primary-line);
+  background: var(--surface-solid);
+  color: var(--color-primary-ink);
+  font-family: inherit;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-1) var(--ease-out),
+              border-color var(--duration-1) var(--ease-out);
 }
 
 .btn-clear:hover {
-  background: #fff;
-  border-color: #ce93d8;
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
 }
 
 /* ── 卡片宫格 ── */
 .studio-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 @media (max-width: 1024px) {
@@ -279,26 +292,30 @@ function goBooking(studio) {
 }
 
 @media (max-width: 768px) {
-  .studio-grid { grid-template-columns: 1fr; gap: 16px; }
+  .studio-grid { grid-template-columns: 1fr; gap: var(--space-4); }
   .filter-row { flex-direction: column; align-items: flex-start; }
   .filter-date, .filter-city { width: 100%; }
 }
 
-/* ── glass-card ── */
+/* ── glass-card ──
+   宫格卡片刻意「不加」backdrop-filter：一屏 20 张卡意味着 20 次离屏模糊，
+   移动端必掉帧。半透明靠 --surface-1 的 alpha 合成实现，GPU 成本为零。 */
 .glass-card {
-  background: #fff;
-  border-radius: 20px;
+  background: var(--surface-1);
+  border: 1px solid var(--glass-hairline);
+  border-radius: var(--radius-card);
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-1);
   cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
+  transition: transform var(--duration-2) var(--ease-out),
+              box-shadow var(--duration-2) var(--ease-out);
   display: flex;
   flex-direction: column;
 }
 
 .glass-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-3);
 }
 
 /* ── 封面图 ── */
@@ -307,7 +324,7 @@ function goBooking(studio) {
   width: 100%;
   aspect-ratio: 4/3;
   overflow: hidden;
-  background: linear-gradient(135deg, #FEFBF6, #F0F4F8);
+  background: linear-gradient(135deg, var(--color-primary-tint), var(--color-sky-light));
 }
 
 .cover-img {
@@ -317,11 +334,11 @@ function goBooking(studio) {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform var(--duration-3) var(--ease-out);
 }
 
 .glass-card:hover .cover-img {
-  transform: scale(1.06);
+  transform: scale(1.04);
 }
 
 .cover-ph {
@@ -329,71 +346,74 @@ function goBooking(studio) {
   top: 0; left: 0;
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 48px; opacity: 0.4;
+  font-size: 40px; color: var(--color-primary-dark);
 }
 
 .cover-tag {
-  position: absolute; top: 12px; right: 12px;
-  font-size: 10px; font-weight: 700;
-  padding: 4px 12px; border-radius: 20px;
-  background: rgba(244, 164, 96, 0.7); color: #fff; z-index: 2;
+  position: absolute; top: 10px; right: 10px;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+  background: var(--color-primary); color: var(--text-on-primary); z-index: 2;
 }
 
 /* ── 信息区 ── */
 .card-body {
-  padding: 16px 16px 8px;
+  padding: var(--space-4) var(--space-4) var(--space-2);
   flex: 1;
   display: flex; flex-direction: column; gap: 6px;
 }
 
 .card-title {
-  font-size: 15px; font-weight: 700; color: #4A4A4A;
+  font-size: 15px; font-weight: 700; color: var(--text-1);
   display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 .card-desc {
-  font-size: 12px; color: #8E8E8E; margin: 0;
+  font-size: 12px; color: var(--text-3); margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 .card-meta {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  font-size: 12px; color: #8b8d91;
+  display: flex; flex-wrap: wrap; gap: var(--space-2);
+  font-size: 12px; color: var(--text-3);
 }
 
-.meta-item { display: inline-flex; align-items: center; gap: 3px; }
+.meta-item { display: inline-flex; align-items: center; gap: 4px; }
 
 /* Chips */
 .card-chips {
   display: flex; flex-wrap: wrap; gap: 6px;
-  margin-top: auto; padding-top: 8px;
+  margin-top: auto; padding-top: var(--space-2);
 }
 
 .chip {
-  font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; padding: 3px 10px; border-radius: var(--radius-pill);
   font-weight: 600; white-space: nowrap;
 }
 
-.chip-price { background: rgba(244,164,96,0.12); color: #D4893E; }
-.chip-pkg   { background: rgba(169,193,217,0.14); color: #5A7A9A; }
-.chip-deposit { color: #8E8E8E; }
+.chip-price { background: var(--color-primary-tint); color: var(--color-primary-ink); }
+.chip-pkg   { background: var(--color-info-tint);    color: var(--color-info-ink); }
+.chip-deposit { color: var(--text-3); }
 
-/* ── 底部按钮 ── */
-.card-footer { padding: 8px 16px 14px; }
+/* ── 底部按钮 ──
+   原为 Material 粉紫渐变（#f48fb1 → #ce93d8），是全站最显眼的跑偏点。 */
+.card-footer { padding: var(--space-2) var(--space-4) var(--space-4); }
 
 .btn-book {
-  width: 100%; padding: 12px 0; border: none;
-  border-radius: 24px; font-size: 14px; font-weight: 700; cursor: pointer;
-  background: linear-gradient(135deg, #f48fb1, #ce93d8);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(244, 143, 177, 0.3);
-  transition: all 0.25s ease;
+  width: 100%; height: 38px; border: none;
+  border-radius: var(--radius-btn);
+  font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  background: var(--color-primary-gradient);
+  color: var(--text-on-primary);
+  box-shadow: var(--shadow-primary);
+  transition: box-shadow var(--duration-2) var(--ease-out),
+              transform var(--duration-1) var(--ease-out);
 }
 
 .btn-book:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(244, 143, 177, 0.4);
+  box-shadow: 0 6px 18px rgba(var(--color-primary-rgb), .30);
 }
 </style>

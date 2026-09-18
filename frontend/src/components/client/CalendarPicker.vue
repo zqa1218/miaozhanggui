@@ -114,7 +114,7 @@ function selectDay(day) {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.4);
-  padding: 7px 16px; border-radius: 20px; color: #5a7a65;
+  padding: 7px 16px; border-radius: 20px; color: var(--color-primary-ink);
   font-weight: 700; cursor: pointer; font-size: 13px;
   transition: all 0.15s;
 }
@@ -133,14 +133,14 @@ function selectDay(day) {
 }
 .cal-day:hover { background: rgba(232,240,235,0.4); }
 .cal-day.today {
-  font-weight: 700; color: #5a7a65;
+  font-weight: 700; color: var(--color-primary-ink);
   background: rgba(90,122,101,0.06);
 }
 .cal-day.selected {
   background: linear-gradient(135deg, rgba(138,171,150,0.8), rgba(155,184,166,0.8));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: #fff; font-weight: 700;
+  color: var(--text-on-primary); font-weight: 700;
   box-shadow: 0 4px 16px rgba(125,158,138,0.3);
   border: 1px solid rgba(255,255,255,0.3);
 }

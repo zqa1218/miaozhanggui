@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storage } from '@/utils/storage'
 import { ElMessage } from 'element-plus'
+import SvgIcon from '@/components/shared/SvgIcon.vue'
 
 const router = useRouter()
 
@@ -139,10 +140,10 @@ onMounted(() => {
       <!-- 左侧菜单 -->
       <div class="sa-sidebar">
         <div :class="['sa-menu-item', { active: activeMenu === 'merchants' }]" @click="activeMenu = 'merchants'">
-          📊 商家管理
+          <SvgIcon name="icon-dashboard" :size="18" />商家管理
         </div>
         <div :class="['sa-menu-item', { active: activeMenu === 'codes' }]" @click="activeMenu = 'codes'">
-          🎫 邀请码生成
+          <SvgIcon name="icon-ticket" :size="18" />邀请码生成
         </div>
       </div>
 
@@ -175,7 +176,7 @@ onMounted(() => {
                   <td>{{ m.shop_name }}</td>
                   <td>
                     <span v-if="m.invitation_code" class="code-tag">{{ m.invitation_code }}</span>
-                    <span v-else style="color:#ccc;">—</span>
+                    <span v-else style="color:var(--text-4);">—</span>
                   </td>
                   <td>{{ m.created_at ? m.created_at.slice(0, 19) : '—' }}</td>
                 </tr>
@@ -201,7 +202,7 @@ onMounted(() => {
             <div class="code-card-grid">
               <div v-for="code in newCodes" :key="code" class="code-card">
                 <div class="code-text">{{ code }}</div>
-                <el-button size="small" type="primary" @click="copyInviteLink(code)">📋 复制邀请链接</el-button>
+                <el-button size="small" type="primary" @click="copyInviteLink(code)"><SvgIcon name="icon-copy" :size="14" />复制邀请链接</el-button>
               </div>
             </div>
           </div>
@@ -228,7 +229,7 @@ onMounted(() => {
                   <td>{{ c.used_by_m_id || '—' }}</td>
                   <td>{{ c.used_at ? c.used_at.slice(0, 19) : '—' }}</td>
                   <td>
-                    <el-button v-if="!c.is_used" size="small" @click="copyInviteLink(c.code)">📋 复制</el-button>
+                    <el-button v-if="!c.is_used" size="small" @click="copyInviteLink(c.code)"><SvgIcon name="icon-copy" :size="14" />复制</el-button>
                   </td>
                 </tr>
               </tbody>
@@ -241,61 +242,62 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.super-admin { min-height:100vh;min-height:100dvh; background:#F9F8F6; }
+/* 透明：让 body 上的页面背景图透出来 */
+.super-admin { min-height:100vh;min-height:100dvh; background:transparent; }
 .sa-header {
   display:flex; justify-content:space-between; align-items:center;
-  padding:16px 32px; background:#fff; border-bottom:1px solid #F0EDE8;
+  padding:16px 32px; background: var(--surface-solid); border-bottom:1px solid var(--border-subtle);
   box-shadow:0 2px 12px rgba(0,0,0,.04);
 }
-.sa-title { font-size:18px; font-weight:700; color:#4A4A4A; }
-.btn-logout { padding:8px 20px; border:1px solid #E8E5DF; border-radius:20px; background:#fff; cursor:pointer; font-size:13px; color:#8E8E8E; }
-.btn-logout:hover { background:#FEF7EF; border-color:#F4A460; color:#D4893E; }
+.sa-title { font-size:18px; font-weight:700; color:var(--text-1); }
+.btn-logout { padding:8px 20px; border:1px solid var(--border-color); border-radius:20px; background: var(--surface-solid); cursor:pointer; font-size:13px; color:var(--text-3); }
+.btn-logout:hover { background:var(--color-primary-tint); border-color:var(--color-primary); color: var(--color-primary-ink); }
 
 .sa-body { display:flex; min-height:calc(100vh - 65px); }
 .sa-sidebar {
-  width:220px; background:#fff; border-right:1px solid #F0EDE8;
+  width:220px; background: var(--surface-solid); border-right:1px solid var(--border-subtle);
   padding:20px 0; flex-shrink:0;
 }
 .sa-menu-item {
-  padding:14px 24px; font-size:14px; font-weight:600; color:#8E8E8E;
+  padding:14px 24px; font-size:14px; font-weight:600; color:var(--text-3);
   cursor:pointer; transition:all .15s;
 }
-.sa-menu-item:hover { color:#D4893E; background:#FEF7EF; }
-.sa-menu-item.active { color:#D4893E; background:#FEF7EF; border-right:3px solid #F4A460; }
+.sa-menu-item:hover { color: var(--color-primary-ink); background:var(--color-primary-tint); }
+.sa-menu-item.active { color: var(--color-primary-ink); background:var(--color-primary-tint); border-right:3px solid var(--color-primary); }
 
 .sa-content { flex:1; padding:28px 36px; overflow-y:auto; }
 
 /* KPI 卡片 */
 .kpi-card {
-  background:linear-gradient(135deg, #FEF7EF, #FFF);
+  background:linear-gradient(135deg, var(--color-primary-tint), #FFF);
   border-radius:24px; padding:32px 40px; box-shadow:0 4px 20px rgba(0,0,0,.04);
   text-align:center; border:1px solid #F0E8D8;
 }
-.kpi-value { font-size:56px; font-weight:800; color:#D4893E; line-height:1.2; }
-.kpi-label { font-size:15px; color:#8E8E8E; margin-top:8px; font-weight:600; }
+.kpi-value { font-size:56px; font-weight:800; color: var(--color-primary-ink); line-height:1.2; }
+.kpi-label { font-size:15px; color:var(--text-3); margin-top:8px; font-weight:600; }
 
-.section-title { font-size:16px; font-weight:700; color:#4A4A4A; margin-bottom:4px; }
+.section-title { font-size:16px; font-weight:700; color:var(--text-1); margin-bottom:4px; }
 
 /* 表格 */
-.table-wrap { overflow-x:auto; background:#fff; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,.03); }
+.table-wrap { overflow-x:auto; background: var(--surface-solid); border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,.03); }
 .data-table { width:100%; border-collapse:collapse; font-size:13px; }
-.data-table th { background:#FAFAFA; padding:12px 16px; text-align:left; font-weight:600; color:#8E8E8E; border-bottom:1px solid #F0EDE8; }
-.data-table td { padding:12px 16px; border-bottom:1px solid #F8F6F3; color:#4A4A4A; }
+.data-table th { background:#FAFAFA; padding:12px 16px; text-align:left; font-weight:600; color:var(--text-3); border-bottom:1px solid var(--border-subtle); }
+.data-table td { padding:12px 16px; border-bottom:1px solid #F8F6F3; color:var(--text-1); }
 .data-table code { font-size:11px; background:#F8F6F3; padding:2px 6px; border-radius:4px; }
-.code-tag { font-size:11px; background:#EDF6F0; color:#5A8A6A; padding:2px 8px; border-radius:4px; font-family:monospace; }
+.code-tag { font-size:11px; background:var(--color-mint-light); color:var(--color-success-ink); padding:2px 8px; border-radius:4px; font-family:monospace; }
 
 /* 邀请码卡片 */
 .code-card-grid { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
 .code-card {
-  background:#fff; border:1px solid #F0EDE8; border-radius:16px;
+  background: var(--surface-solid); border:1px solid var(--border-subtle); border-radius:16px;
   padding:16px 20px; display:flex; align-items:center; gap:16px;
   box-shadow:0 2px 8px rgba(0,0,0,.03);
 }
-.code-text { font-size:20px; font-weight:800; color:#4A4A4A; font-family:'SF Mono','Cascadia Code',monospace; letter-spacing:2px; }
+.code-text { font-size:20px; font-weight:800; color:var(--text-1); font-family:'SF Mono','Cascadia Code',monospace; letter-spacing:2px; }
 
 /* 状态徽章 */
-.badge-used { font-size:11px; padding:3px 10px; border-radius:10px; background:rgba(180,180,190,.12); color:#888; font-weight:600; }
-.badge-valid { font-size:11px; padding:3px 10px; border-radius:10px; background:rgba(168,216,185,.20); color:#5A8A6A; font-weight:600; }
+.badge-used { font-size:11px; padding:3px 10px; border-radius:10px; background:rgba(180,180,190,.12); color:var(--text-3); font-weight:600; }
+.badge-valid { font-size:11px; padding:3px 10px; border-radius:10px; background:rgba(168,216,185,.20); color:var(--color-success-ink); font-weight:600; }
 .row-used { opacity:.60; }
 
 /* 响应式 */

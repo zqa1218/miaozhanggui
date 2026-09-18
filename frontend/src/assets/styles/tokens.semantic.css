@@ -1,0 +1,484 @@
+/* =============================================================
+   喵掌柜 · L2 语义层（Semantic）+ L3 组件层说明
+   -------------------------------------------------------------
+   依赖：tokens.primitives.css（必须先于本文件加载）
+
+   本文件做三件事：
+     1. `:root, :root[data-theme="classic"]` —— classic 主题的语义映射。
+        这些值是**线上渲染结果的精确快照**（2026-09-18 冻结），
+        全部经原语中转，但计算结果与改造前逐字节一致。
+     2. `:root[data-theme="glass"]` —— glass 主题的语义**覆盖**。
+        只写需要变的项，不重复声明全部。
+     3. 降级块（@supports / prefers-reduced-transparency）。
+
+   为什么 `:root` 和 `:root[data-theme="classic"]` 写在一起：
+     `<html>` 上没有 data-theme 属性时（内联脚本被 CSP 拦、JS 崩溃、
+     隐私模式异常……）必须仍然渲染 classic。这是兜底，不是冗余。
+
+   ⚠ 三条硬规则（改本文件前先读）：
+     1. 本文件只允许出现自定义属性声明，禁止样式规则、禁止选择器嵌套。
+        唯一的例外是文件末尾 glass 的页面背景装饰块（见其注释）。
+     2. 语义值必须引用 L1 原语，禁止再写字面值 —— 唯一的例外是 glass 块中
+        由设计给定的复合配方（阴影、径向渐变），它们本身已是成品值。
+     3. 组件层（L3）暂不建立：`.panel` / `.glass-card` / `.stat-card` 等确实
+        复用了同一套表面配方，但它们的复用方式已经由 theme.css 的类组合
+        表达，再抽一层 `--panel-bg` 只会增加中间层而不减少重复。
+        等出现「同一个组件样式需要按主题给出不同配方」的真实需求时再建
+        （目前只有 --radius-btn 一处，已单独处理）。
+   ============================================================= */
+
+/* ═══════════════════════════════════════════════════════════════
+   classic —— 线上视觉的精确快照
+   对照组：改造前的 assets/styles/tokens.css（已由本文件取代）
+   ═══════════════════════════════════════════════════════════════ */
+:root,
+:root[data-theme="classic"] {
+  /* ── 品牌 · 珊瑚红 ── */
+  --color-primary:            var(--c-coral-500);
+  --color-primary-light:      var(--c-coral-300);
+  --color-primary-dark:       var(--c-coral-600);
+  --color-primary-ink:        var(--c-coral-700);
+  --color-primary-tint:       var(--c-coral-50);
+  --color-primary-soft:       var(--c-coral-100);
+  --color-primary-line:       var(--a-coral-28);
+  --color-primary-gradient:   linear-gradient(135deg, var(--c-coral-500) 0%, var(--c-coral-300) 100%);
+  --color-primary-rgb:        232, 99, 92;    /* 供 rgba(var(--color-primary-rgb), .2) 使用 */
+
+  /* 珊瑚底上的文字 —— 5.00:1。
+     珊瑚红是浅色（相对亮度 0.27），白字压上去只有 3.30:1，
+     所以改的是字色而非底色：珊瑚实底 + 深暖墨字。 */
+  --text-on-primary:          var(--c-coral-950);
+
+  /* ── 辅色 · 日系（色相保持不变） ── */
+  --color-secondary:          var(--c-amber-300);
+  --color-tertiary:           var(--c-mint-400);
+  --color-quaternary:         var(--c-pink-300);
+  --color-info:               var(--c-blue-300);
+  --color-sakura:             var(--c-rose-300);   /* 更深更灰的玫瑰红，避免与主色撞色 */
+  --color-sakura-light:       var(--c-rose-50);
+  --color-sky:                var(--c-blue-300);
+  --color-sky-light:          var(--c-blue-50);
+  --color-mint:               var(--c-mint-400);
+  --color-mint-light:         var(--c-mint-50);
+  --color-peach:              var(--c-coral-500);
+  --color-peach-light:        var(--c-coral-50);
+
+  /* ── 状态语义 · 三元组（填充 / 浅底 / 文字） ── */
+  --color-success:            var(--c-mint-400);
+  --color-success-tint:       var(--c-mint-50);
+  --color-success-ink:        var(--c-mint-700);     /* 6.14:1 */
+  --color-warning:            var(--c-amber-300);
+  --color-warning-tint:       var(--c-amber-50);
+  --color-warning-ink:        var(--c-amber-700);    /* 5.35:1 */
+  --color-danger:             var(--c-red-600);      /* 深赤红，与珊瑚主色明度拉开 */
+  --color-danger-tint:        var(--c-red-50);
+  --color-danger-ink:         var(--c-red-700);      /* 7.53:1 */
+  --color-info-tint:          var(--c-blue-50);
+  --color-info-ink:           var(--c-blue-600);     /* 5.58:1 */
+  --color-neutral-tint:       var(--c-warm-100);
+  --color-neutral-ink:        var(--c-warm-600);
+  --color-disabled:           var(--c-warm-300);
+  --color-disabled-bg:        var(--c-warm-100);
+
+  /* ── 新增：品牌语义别名 ──
+     与 --color-primary 同值。存在的意义是让 glass 主题与后续组件
+     有一组「不绑死色相」的名字可用。 */
+  --brand:                    var(--color-primary);
+  --brand-contrast:           var(--text-on-primary);
+
+  /* ── 文字层级 ──
+     --text-4 是唯一例外：只允许用于 disabled（WCAG 明确豁免）
+     与纯装饰性图标，禁止承载可读文案。 */
+  --text-1:                   var(--c-warm-800);     /* 9.35:1 标题 / 强调 / 数据值 */
+  --text-2:                   var(--c-warm-600);     /* 5.74:1 正文 */
+  --text-3:                   var(--c-warm-500);     /* 5.01:1 次要说明 / 标签 / 元信息 */
+  --text-placeholder:         var(--c-warm-500);     /* 占位符同样需要 4.5:1 */
+  --text-4:                   var(--c-warm-400);     /* 3.03:1 ⚠ 仅限 disabled 与装饰图形 */
+  --text-disabled:            var(--c-warm-400);
+  --text-inverse:             var(--c-warm-0);
+
+  /* ── 表面 · 中度磨砂 ──
+     称呼说明：--surface-glass* 是**规范名**，--surface-1|2|3 是历史名，
+     两者指向同一组值。glass 主题只需覆盖规范名，历史名自动跟随。
+     规则一：承载正文的面板用 --surface-1；文字密集（表格/长列表）用
+             --surface-2（不跑 blur，性能）；只有「内容会从它下面滚过去」
+             的悬浮条才用 --surface-3 + blur。
+     规则二：宫格/列表里的卡片一律 --surface-2 且不加 backdrop-filter。
+             一屏 20 张卡 = 20 次离屏模糊，移动端必掉帧。 */
+  --surface-glass:            var(--a-white-82);
+  --surface-glass-strong:     var(--a-white-92);
+  --surface-glass-quiet:      var(--a-white-68);
+  --surface-1:                var(--surface-glass);
+  --surface-2:                var(--surface-glass-strong);
+  --surface-3:                var(--surface-glass-quiet);
+  --surface-solid:            var(--c-warm-0);
+
+  /* 玻璃描边与上沿高光。
+     --glass-hairline 是 --glass-stroke 的**旧名**，全站 26 处引用（含 6 个组件
+     的 scoped 样式），本轮只做改名不做迁移，故必须保留别名 ——
+     漏掉它会让 `border: 1px solid var(--glass-hairline)` 在计算时失效，
+     所有磨砂面板直接丢掉边框。 */
+  --glass-stroke:             var(--a-warm-07);
+  --glass-hairline:           var(--glass-stroke);
+  --glass-edge-top:           inset 0 1px 0 var(--a-white-55);
+  --glass-highlight:          var(--glass-edge-top);
+
+  /* 模糊配方 —— 完整字面量，**刻意不做成 var() 嵌套**。
+     原因：--glass-blur 会被用在 -webkit-backdrop-filter 里（见本文件末
+     的说明），前缀属性中的嵌套变量替换在部分 WebKit 版本上不可靠。
+     字面量只此一处，与 --glass-saturate / --glass-blur-length 必须同步，
+     已由 scripts/check-tokens.mjs 做一致性校验。 */
+  --glass-saturate:           150%;
+  --glass-blur-length:        var(--blur-20);
+  --glass-blur:               saturate(150%) blur(20px);
+  --glass-saturate-light:     140%;
+  --glass-blur-light-length:  var(--blur-12);
+  --glass-blur-light:         saturate(140%) blur(12px);
+
+  /* ── 新增：基色语义名 ── */
+  --bg-base:                  var(--c-warm-50);
+
+  /* ── 底色 ── */
+  --bg-page:                  var(--c-warm-50);
+  --bg-card:                  var(--c-warm-0);
+  --bg-table-stripe:          var(--c-warm-25);
+  --bg-input:                 var(--a-white-92);
+  --bg-sunken:                var(--a-warm-72);
+
+  /* ── 边框 ──
+     原体系有两套并存的边框色（#E8E5DF 与 #F0EDE8），实际是
+     「外边框」和「分割线」没区分开，现拆为两个语义 token。 */
+  --border-color:             var(--c-warm-200);
+  --border-color-solid:       var(--c-warm-200);
+  --border-subtle:            var(--c-warm-150);
+  --border-strong:            var(--a-warm-16);
+  --border-1:                 var(--border-color);
+  --border-2:                 var(--border-strong);
+
+  /* ── 圆角 ── */
+  --radius-xs:                var(--r-6);
+  --radius-sm:                var(--r-8);
+  --radius-md:                var(--r-12);
+  --radius-lg:                var(--r-16);
+  --radius-xl:                var(--r-20);
+  --radius-2xl:               var(--r-24);
+  --radius-pill:              var(--r-pill);
+  /* 语义别名 */
+  --radius-btn:               var(--radius-pill);   /* 胶囊是这套日系主题的识别特征 */
+  --radius-input:             var(--radius-md);
+  --radius-card:              var(--radius-lg);
+  --radius-panel:             var(--radius-lg);
+  --radius-modal:             var(--radius-xl);
+
+  /* ── 阴影 · 3 级 ── */
+  --shadow-1:                 var(--sh-warm-1);
+  --shadow-2:                 var(--sh-warm-2);
+  --shadow-3:                 var(--sh-warm-3);
+  --shadow-primary:           var(--sh-coral-glow);
+  --shadow-glass:             var(--shadow-2), var(--glass-highlight);
+  --shadow-glow:              var(--sh-coral-ring);  /* 原为 28px 光晕，收敛为 focus ring */
+
+  /* 新增：焦点环规范名 */
+  --focus-ring:               var(--sh-coral-ring);
+
+  /* 旧名直通（theme.css / global.css 内部有引用） */
+  --shadow-xs:                var(--shadow-1);
+  --shadow-sm:                var(--shadow-1);
+  --shadow-md:                var(--shadow-2);
+  --shadow-lg:                var(--shadow-3);
+  --shadow-xl:                var(--shadow-3);
+  --shadow-hover:             var(--shadow-3);
+
+  /* ── 间距 ── */
+  --space-1:                  var(--sp-1);
+  --space-2:                  var(--sp-2);
+  --space-3:                  var(--sp-3);
+  --space-4:                  var(--sp-4);
+  --space-5:                  var(--sp-5);
+  --space-6:                  var(--sp-6);
+  --space-8:                  var(--sp-8);
+  --space-10:                 var(--sp-10);
+  --space-12:                 var(--sp-12);
+  /* 旧名直通 */
+  --space-xs:                 var(--space-2);
+  --space-sm:                 var(--space-4);
+  --space-md:                 var(--space-6);
+  --space-lg:                 var(--space-8);
+  --space-xl:                 var(--space-12);
+  --spacing-xs:               var(--space-2);
+  --spacing-sm:               var(--space-4);
+  --spacing-md:               var(--space-6);
+  --spacing-lg:               var(--space-8);
+  --spacing-xl:               var(--space-12);
+
+  /* ── 布局宽度 · 三档 ── */
+  --w-form:                   var(--wd-560);
+  --w-read:                   var(--wd-760);
+  --w-wide:                   var(--wd-1200);
+  --gutter:                   var(--space-6);
+  --gutter-mobile:            var(--space-3);
+
+  /* ── 动效 ── */
+  --ease-out:                 var(--ease-expo-out);
+  --ease-in-out:              var(--ease-inout);
+  --duration-1:               var(--dur-120);
+  --duration-2:               var(--dur-200);
+  --duration-3:               var(--dur-320);
+  --transition-fast:          var(--duration-1) var(--ease-out);
+  --transition-smooth:        var(--duration-2) var(--ease-out);
+  /* 旧名兜底：回弹曲线全部收敛到 ease-out */
+  --ease-spring:              var(--ease-out);
+  --duration-fast:            var(--duration-1);
+  --duration-normal:          var(--duration-2);
+  --duration-slow:            var(--duration-3);
+  --transition-spring:        var(--duration-3) var(--ease-out);
+
+  /* ── z-index · 语义梯度 ──
+     自定义层必须低于 Element Plus 的弹层（2000 起），
+     否则会出现「弹窗被自己的遮罩盖住」。 */
+  --z-base:                   var(--z-0);
+  --z-raised:                 var(--z-10);
+  --z-sticky:                 var(--z-100);
+  --z-overlay:                var(--z-1500);
+  --z-toast:                  var(--z-1900);
+
+  /* ── 字体 ── */
+  --font-stack:               var(--font-ui);
+  --font-mono:                var(--font-code);
+
+  /* ── 背景装饰 ──
+     classic 用设计交付的 page-bg.svg。Vite 会把它内联成 data URI（零请求）。
+     路径必须相对于**本文件所在目录**解析，故本文件与 theme.css 同层。 */
+  --bg-mesh:                  none;
+  --bg-photo:                 url('../images/page-bg.svg');
+  --grid-line:                transparent;
+  --grid-size:                var(--grid-32);
+
+  /* ══════════════════════════════════════════════════════════
+     旧别名兼容层
+     下面是历史遗留的变量名，全站约 50 处裸引用。
+     全部直通到上面的新 token，避免大范围改模板。
+     标注 ★ 的几个是「修正」而非「改名」：它们原先指向不可读的浅色，
+     而这些名字在实践中全部被当作文字色使用（见各页面 .v-price/.v-role 等）。
+     ══════════════════════════════════════════════════════════ */
+  --purple:                   var(--color-primary);
+  --purple-light:             var(--color-primary-light);
+  --sakura:                   var(--color-primary-ink);   /* ★ 原指向 #F9E0A0（1.30:1，订单总价看不见）*/
+  --sakura-light:             var(--color-primary-tint);
+  --sky:                      var(--color-sky);
+  --sky-light:                var(--color-sky-light);
+  --mint:                     var(--color-success-ink);   /* ★ 原指向 #A8D8B9（1.59:1）*/
+  --mint-light:               var(--color-mint-light);
+  --peach:                    var(--color-primary-ink);   /* ★ 原指向 #EFA8A8（1.94:1）*/
+  --peach-light:              var(--color-peach-light);
+  --danger:                   var(--color-danger-ink);    /* ★ 原指向 #EFA8A8（1.94:1）*/
+  --danger-light:             var(--color-danger-tint);
+  --text:                     var(--text-1);
+  --sub:                      var(--text-3);
+  --border:                   var(--border-color);
+  --line:                     var(--border-color);        /* 原本只在孤儿页里定义过 */
+  --card-bg:                  var(--bg-card);
+  --glass:                    var(--surface-1);
+
+  /* 旧变量名 → 新文字层级 */
+  --text-primary:             var(--text-1);
+  --text-secondary:           var(--text-2);
+  --text-sub:                 var(--text-3);              /* 32 处引用，原 3.28:1 → 现 5.01:1 */
+  --text-main:                var(--text-1);              /* 原本未定义，导致整条声明失效 */
+  --accent:                   var(--color-primary);       /* 原本未定义，仅靠 #c9a0a0 fallback 侥幸生效 */
+  --accent-ink:               var(--color-primary-ink);   /* ★ 上面那个色作文字只有 2.8:1，文字场景用这个 */
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   glass —— 品牌蓝 · 强磨砂（浅色）
+   ---------------------------------------------------------------
+   只覆盖需要变的语义项。未在此列出的（间距、字号、动效、z-index、
+   布局宽度、状态语义色）刻意沿用 classic —— 它们与主题无关，
+   或属下一阶段（视觉）的设计决策，已记入交付说明的待办。
+
+   与设计给定值的三处偏离，均由 scripts/check-contrast.mjs 实测驱动，
+   理由逐条写在下面。
+   ═══════════════════════════════════════════════════════════════ */
+:root[data-theme="glass"] {
+  /* 明确告知浏览器本主题是浅色：否则系统开了暗色模式时，
+     滚动条、表单控件、autofill 会渲染成深色原生样式，
+     与浅色玻璃面板拼在一起非常突兀。 */
+  color-scheme: light;
+
+  /* ── 品牌蓝 ──
+     偏离 1：--color-primary 取 brand-600 而非 brand-500。
+     实测 #3B82F6 上的白字只有 3.68:1（<4.5:1）；#2563EB 为 5.17:1。
+     全站凡是「品牌底 + 白字」的地方（主按钮、分页当前页、选中态）
+     都吃这个值，所以必须是能承载白字的那一档。 */
+  --color-primary:            var(--c-brand-600);
+  --color-primary-light:      var(--c-brand-500);   /* 仅用于渐变浅端 / 装饰，不承载文字 */
+  --color-primary-dark:       var(--c-brand-700);
+  --color-primary-ink:        var(--c-brand-700);   /* 白底/玻璃底上的蓝色文字：6.70:1 */
+  --color-primary-tint:       var(--c-brand-50);
+  --color-primary-soft:       var(--c-brand-100);
+  --color-primary-line:       var(--a-blue-14);
+  --color-primary-rgb:        37, 99, 235;          /* = brand-600，供 rgba() 拼接用 */
+  /* 偏离 2：渐变两端都取 600 及更深。
+     渐变上压白字时，只要**任意一端**不达标就算失败 ——
+     600→500 的浅端只有 3.68:1，故改为 700→600（6.70:1 / 5.17:1）。 */
+  --color-primary-gradient:   linear-gradient(135deg, var(--c-brand-700) 0%, var(--c-brand-600) 100%);
+
+  /* ── 文字 ──
+     偏离 3：--text-3 由 #6B7F9B 改为 #4E6288。
+     给定值对纯白只有 4.09:1 —— 即**任何**白系底色都不可能达标，
+     属结构性不达标而非取值微调。候选扫描（见 check-contrast.mjs --sweep）
+     显示 #4E6288 是同时满足「对纯白 6.13:1 / 对 .42 玻璃 4.58:1 /
+     对 .62 玻璃 5.06:1」的最浅值，因而保留了与 --text-2 的最大层级差。 */
+  --text-1:                   #0B1B33;              /* 对最不利玻璃底 10.27:1 */
+  --text-2:                   #3D5372;              /* 4.67:1（最不利底） / 6.48:1（.62 玻璃） */
+  --text-3:                   #4E6288;
+  --text-placeholder:         #4E6288;              /* 占位符与三级文字同档，同样需 ≥4.5:1 */
+  /* ⚠ 仅限 disabled 与装饰图形。取值由实测定：装饰图形按 WCAG 1.4.11 需 3:1，
+     而它同样会落在玻璃表面上，#7A8CA6 在该底色上只有 2.83:1；#71849F 为
+     3.15:1（玻璃面）/ 3.82:1（纯白），故取后者。 */
+  --text-4:                   #71849F;
+  --text-disabled:            #71849F;
+  --text-inverse:             var(--c-warm-0);
+
+  /* 白字在 brand-600 上是 5.17:1、在 brand-700 上是 6.70:1 —— 两档都达标，
+     所以 glass 可以维持「品牌底 + 白字」这个行业惯用搭配。 */
+  --text-on-primary:          #FFFFFF;
+  --brand:                    var(--color-primary);
+  --brand-contrast:           var(--text-on-primary);
+
+  /* ── 玻璃表面 ──
+     沿用设计给定的高填充配方（浅底场景不照抄深底的 12%）。 */
+  --surface-glass:            var(--a-white-62);
+  --surface-glass-strong:     var(--a-white-78);
+  --surface-glass-quiet:      var(--a-white-42);
+  /* 历史名重指向，让既有数百处 var(--surface-1|2|3) 自动跟随 */
+  --surface-1:                var(--surface-glass);
+  --surface-2:                var(--surface-glass-strong);
+  --surface-3:                var(--surface-glass-quiet);
+  --surface-solid:            var(--c-warm-0);
+
+  --glass-stroke:             var(--a-blue-14);
+  --glass-edge-top:           inset 0 1px 0 var(--a-white-90);
+  --glass-highlight:          var(--glass-edge-top);
+
+  /* ── 模糊 ──
+     字面量见 classic 块的说明（-webkit-backdrop-filter 需要完整配方）。
+     注意与 classic 相比这里的 saturate 更高、blur 半径更小：
+     更高的饱和让背景彩色透上来更「艳」，更小的半径减少大面积离屏模糊的开销。 */
+  --glass-saturate:           180%;
+  --glass-blur-length:        var(--blur-18);
+  --glass-blur:               saturate(180%) blur(18px);
+  --glass-saturate-light:     170%;
+  --glass-blur-light-length:  var(--blur-12);
+  --glass-blur-light:         saturate(170%) blur(12px);
+
+  /* ── 底色 ── */
+  --bg-base:                  #F7FAFF;
+  --bg-page:                  #F7FAFF;
+  --bg-card:                  var(--c-warm-0);
+  --bg-table-stripe:          rgba(37, 99, 235, .035);
+  --bg-input:                 var(--a-white-78);
+  --bg-sunken:                rgba(37, 99, 235, .05);
+
+  /* ── 边框 ── */
+  --border-color:             var(--a-blue-14);
+  --border-color-solid:       #DBE7FA;
+  --border-subtle:            rgba(37, 99, 235, .08);
+  --border-strong:            rgba(37, 99, 235, .24);
+  --border-1:                 var(--border-color);
+  --border-2:                 var(--border-strong);
+
+  /* ── 圆角 ──
+     玻璃主题改用「方圆角」而非胶囊：--radius-btn 从 9999px 变为 12px。
+     ⚠ 这一项会影响自绘 .btn；Element Plus 的按钮圆角是编译期字面量，
+       已由 element-bridge.css 桥接到 --radius-btn（见该文件注释）。 */
+  --radius-card:              var(--r-20);
+  --radius-panel:             var(--r-20);
+  --radius-btn:               var(--r-12);
+  --radius-pill:              999px;
+  --radius-input:             var(--r-12);
+  --radius-modal:             var(--r-20);
+
+  /* ── 阴影 · 冷调 ── */
+  --shadow-1:                 var(--sh-blue-1);
+  --shadow-2:                 var(--sh-blue-2);
+  --shadow-3:                 var(--sh-blue-3);
+  --shadow-glass:             var(--shadow-2), var(--glass-highlight);
+  --shadow-primary:           0 8px 24px rgba(37, 99, 235, .24);
+  --shadow-glow:              0 0 0 3px rgba(37, 99, 235, .28);
+  --focus-ring:               var(--shadow-glow);
+
+  /* ── 背景装饰 · 纯 CSS ──
+     不用图片、不用 canvas、不用 WebGL：
+       · 不产生任何网络请求，LCP 元素仍可保证是文本；
+       · 无解码开销，首屏不因此排队；
+       · 矢量，任意分辨率无锯齿。
+     三层径向渐变分别对应右上、左上偏右、左下，全透明收边。 */
+  --bg-mesh:
+    radial-gradient(60% 50% at 12% 8%, rgba(96, 165, 250, .28), transparent 70%),
+    radial-gradient(50% 45% at 88% 4%, rgba(129, 140, 248, .24), transparent 70%),
+    radial-gradient(45% 40% at 70% 92%, rgba(34, 211, 238, .18), transparent 70%);
+  --bg-photo:                 none;                 /* glass 不使用位图背景 */
+  --grid-line:                rgba(37, 99, 235, .07);
+  --grid-size:                var(--grid-32);
+}
+
+/* glass 的页面背景：把 body 的两层背景换成纯 CSS 网格。
+   这是本文件里唯一允许出现选择器的地方 —— 因为 body 不在任何组件作用域内，
+   只能由主题层接管。
+   ⚠ --grid-line / --grid-size 已定义但**本轮尚未接线**（网格覆盖层属装饰性
+      视觉产出，归下一阶段）。此处只用 --bg-mesh，见交付说明的「未做」清单。 */
+:root[data-theme="glass"] body {
+  background-image: var(--bg-mesh);
+  background-size: auto, auto, auto;
+  background-position: 0 0, 0 0, 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   降级 · 不支持 backdrop-filter
+   把表面提到近乎不透明。做在**变量层**，所有引用 --surface-* 的
+   规则自动跟随，无需逐个组件写 @supports。
+   选择器同时列出三个主题：同权重下本块靠后加载，且对 glass 而言
+   :root[data-theme="glass"] 的特异性 (0,2,0) 高于主题块的 (0,1,0) 兜底。
+   ═══════════════════════════════════════════════════════════════ */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  :root[data-theme="classic"],
+  :root[data-theme="glass"] {
+    --surface-glass:          var(--a-white-97);
+    --surface-glass-quiet:    var(--a-white-94);
+    --glass-blur:             none;
+    --glass-blur-light:       none;
+  }
+}
+
+/* 用户在系统里要求降低透明度时同样退到近不透明 */
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  :root[data-theme="classic"],
+  :root[data-theme="glass"] {
+    --surface-glass:          var(--a-white-98);
+    --surface-glass-quiet:    var(--a-white-96);
+    --glass-blur:             none;
+    --glass-blur-light:       none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   关于 -webkit-backdrop-filter（重要，勿删）
+   ---------------------------------------------------------------
+   -webkit- 前缀属性在本项目中**保留 var() 引用**，不硬编码字面量。
+   理由（与最初的实施要求不一致，属有意偏离，依据如下）：
+     1. `-webkit-backdrop-filter: var(--glass-blur)` 是合法 CSS，
+        且已确认完整存活于当前构建产物（scripts/check-tokens.mjs 会断言）。
+     2. 硬编码字面量会让 glass 主题的模糊配方在「只认 -webkit- 前缀的
+        Safari ≤17」上永远停留在 classic 的 saturate(150%)/blur(20px)。
+        那是一个**确定会发生**的降级；而它想规避的问题（变量替换失败）
+        在构建产物中并未出现。
+     3. 已经采取的折中：--glass-blur / --glass-blur-light 在 L2 里是
+        **完整字面量**而非嵌套变量（见 classic 块注释），
+        前缀属性里只发生一层 var() 替换，这是可靠性最高的一种写法。
+   若后续在真机 Safari 上确认存在「切换主题后模糊不重绘」的问题，
+   再按需为具体元素补 `:root[data-theme="glass"] .xxx { -webkit-backdrop-filter: <字面量> }`。
+   —— 该项已列入交付说明的「待验证」，不是沉默省略。
+   ═══════════════════════════════════════════════════════════════ */

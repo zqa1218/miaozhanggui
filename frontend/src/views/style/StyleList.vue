@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStyleStore } from '@/stores/style'
 import { storage, getQueryParam } from '@/utils/storage'
+import placeholder1x1 from '@/assets/images/placeholder-1x1.svg'
 
 const router = useRouter()
 const styleStore = useStyleStore()
@@ -29,7 +30,7 @@ function goCreate() {
 </script>
 
 <template>
-  <div class="style-list fade-in-up" style="padding:16px;max-width:800px;margin:0 auto;">
+  <div class="style-list fade-in-up page page--read">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <button class="btn-secondary btn-sm" @click="router.push('/admin/orders')" style="flex-shrink:0;">← 返回后台</button>
       <h1 style="font-size:20px;flex:1;">&#x1F3A8; 预设库</h1>
@@ -45,12 +46,12 @@ function goCreate() {
 
     <div v-else class="section" v-for="s in styles" :key="s.id" style="padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">
       <img v-if="s.styleCoverUrl" :src="s.styleCoverUrl" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:10px;" />
-      <div v-else style="width:56px;height:56px;border-radius:10px;background:var(--purple-light);display:flex;align-items:center;justify-content:center;font-size:20px;">&#x1F3A8;</div>
+      <img v-else :src="placeholder1x1" alt="" style="width:56px;height:56px;border-radius:var(--radius-sm);object-fit:cover;flex-shrink:0;" />
       <div style="flex:1;min-width:0;">
         <div style="font-size:14px;font-weight:700;">{{ s.styleName }}</div>
         <div style="font-size:12px;color:var(--sub);margin-top:2px;">
-          <span style="color:var(--purple);font-weight:600;">&yen;{{ s.singlePrice || 0 }}/张</span>
-          <span v-if="s.hasPackage" style="color:var(--mint);margin-left:4px;">
+          <span style="color: var(--color-primary-ink);font-weight:600;">&yen;{{ s.singlePrice || 0 }}/张</span>
+          <span v-if="s.hasPackage" style="color: var(--color-success-ink);margin-left:4px;">
             &middot; 套餐&yen;{{ s.packagePrice }}
           </span>
         </div>

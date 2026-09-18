@@ -1,7 +1,24 @@
+// =============================================================
+// 喵掌柜 · Element Plus 编译期配置（SCSS 变量层）
+// -------------------------------------------------------------
+// 职责边界（重要）：
+//   本文件 = 只用 SCSS 变量能解决的（色阶 / 尺寸 / 内边距 / 圆角 / 阴影）。
+//   运行时 --el-* CSS 变量补丁 → element-bridge.css
+//   组件结构微调（背景、边框、分隔线）→ element-bridge.css
+//
+// 为什么尺寸必须在这一层解决：
+//   原先 global.css 用 `.el-button { padding: 10px 28px !important }` 硬覆盖，
+//   把 Element Plus 所有 size 档位的内边距一起钉死，导致 57 处
+//   <el-button size="small"> 视觉上和 large 一样大。
+//   改回 SCSS 变量后，各 size 档位重新各归其位。
+// =============================================================
+
 @forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  // ─── 品牌色阶 ───
+  // 主色珊瑚红 #E8635C。EP 会由此自动生成 light-3/5/7/8/9 色阶。
   $colors: (
     'primary': (
-      'base': #F4A460,
+      'base': #E8635C,
     ),
     'success': (
       'base': #A8D8B9,
@@ -16,23 +33,64 @@
       'base': #A9C1D9,
     ),
   ),
-  $border-radius: (
-    'base': 14px,
-    'small': 10px,
-    'round': 28px,
-    'circle': 50%,
+
+  // ─── 组件高度梯度 ───
+  // $input-height 会 merge 本表，所以输入框 / 选择器 / 按钮高度一起生效。
+  // 比 EP 默认（40/32/24）大、比改造前（48/40/32）小一档 —— 目标是「更紧凑高效」。
+  $common-component-size: (
+    'large': 44px,
+    'default': 36px,
+    'small': 30px,
   ),
+
+  // ─── 按钮内边距 ───
+  $button-padding-vertical: (
+    'large': 11px,
+    'default': 8px,
+    'small': 6px,
+  ),
+  $button-padding-horizontal: (
+    'large': 22px,
+    'default': 18px,
+    'small': 14px,
+  ),
+  $button-font-size: (
+    'large': 15px,
+    'default': 14px,
+    'small': 13px,
+  ),
+
+  // ─── 圆角 ───
+  // 与 tokens.css 的 --radius-* 梯度对齐：
+  //   base 12 ↔ --radius-md    small 8 ↔ --radius-sm
+  // 按钮单独走 $button-border-radius（见下），保持胶囊形态。
+  $border-radius: (
+    'base': 12px,
+    'small': 8px,
+    'round': 9999px,
+    'circle': 100%,
+  ),
+  // 胶囊按钮是这套日系主题的识别特征，三个尺寸档统一胶囊。
+  $button-border-radius: (
+    'large': 9999px,
+    'default': 9999px,
+    'small': 9999px,
+  ),
+
+  // ─── 阴影 ───
+  // 只保留 EP 自己内部需要的层级；暖色调阴影由 tokens.css 的 --shadow-* 提供，
+  // 经 element-bridge.css 映射到 --el-box-shadow*。
+  $box-shadow: (
+    'base': (0 2px 6px rgba(74, 70, 66, .05), 0 8px 24px rgba(74, 70, 66, .06)),
+    'light': (0 1px 2px rgba(74, 70, 66, .04), 0 1px 3px rgba(74, 70, 66, .06)),
+    'lighter': (0 1px 2px rgba(74, 70, 66, .04)),
+    'dark': (0 4px 12px rgba(74, 70, 66, .07), 0 18px 44px rgba(74, 70, 66, .10)),
+  ),
+
+  // ─── 背景 ───
   $bg-color: (
     '': #F9F8F6,
     'page': #F9F8F6,
     'overlay': #FFFFFF,
-  ),
-  $box-shadow: (
-    'base': 0 4px 16px rgba(0, 0, 0, 0.04),
-  ),
-  $common-component-size: (
-    'default': 40px,
-    'large': 48px,
-    'small': 32px,
   ),
 );

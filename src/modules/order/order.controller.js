@@ -285,16 +285,21 @@ async function rejectCancel(req, res) {
   }
 }
 
-/** GET /order/import-template — 下载订单导入空白模板 */
+/**
+ * GET /order/import-template — 下载固定档位导入空白模板
+ * 必填 mId + studioId + date：模板是按「某项目某一天」生成的，
+ * 第一列直接列出当天还空着的档位。
+ */
 async function downloadImportTemplate(req, res) {
   try {
-    const excelHelper = require('../../shared/utils/excelHelper');
-    const buffer = excelHelper.generateOrderTemplateBuffer();
+    const { mId, studioId, date } = req.query;
+    if (!mId) return res.rh.fail('缺少 mId', 400);
+    const { buffer, filename } = await service.buildSlotImportTemplate(mId, studioId, date);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename*=UTF-8\'\'%E9%A2%84%E7%BA%A6%E8%AE%A2%E5%8D%95%E5%AF%BC%E5%85%A5%E6%A8%A1%E6%9D%BF.xlsx');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
     res.send(buffer);
   } catch (err) {
-    console.error('downloadImportTemplate error:', err.message, err.stack);
+    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
     logger.error('downloadImportTemplate error', err);
     res.rh.error('下载模板失败: ' + err.message);
   }
@@ -319,15 +324,19 @@ async function exportOrders(req, res) {
   }
 }
 
-/** POST /order/import — Excel 批量导入订单 */
+/** POST /order/import — Excel 批量导入订单（仅固定档位项目） */
 async function importOrders(req, res) {
   try {
     if (!req.file) return res.rh.fail('请选择 Excel 文件', 400);
     const mId = req.user.mId;
-    const result = await service.importOrders(req.file.path, req.file.originalname, mId);
+    const studioId = Number(req.body.studioId) || null;
+    const date = String(req.body.date || '').slice(0, 10);
+    const result = await service.importOrders(req.file.path, req.file.originalname, mId, { studioId, date });
     res.rh.success(result);
   } catch (err) {
-    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400);
+    // details 是逐行错误 [{row, errors[]}]，前端拿它渲染成表格；
+    // 旧实现把所有行号拼成一个长字符串，手机上根本读不完。
+    if (err.isOperational) return res.rh.fail(err.message, err.statusCode || 400, err.details || null);
     logger.error('importOrders error', err);
     res.rh.error('导入失败: ' + (err.message || '未知错误'));
   }

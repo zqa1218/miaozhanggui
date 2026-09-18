@@ -128,8 +128,8 @@ function removeDate(date) {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #F4F2EE;
-  color: #B0B0B0;
+  background: var(--color-disabled-bg);
+  color: var(--text-3);
   font-size: 11px;
   font-weight: 700;
   cursor: help;
@@ -141,10 +141,10 @@ function removeDate(date) {
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
-  background: #EDF6F0;
+  background: var(--color-mint-light);
   border: 1px solid rgba(168,216,185,0.30);
   border-radius: 10px;
-  color: #5A8A6A;
+  color: var(--color-success-ink);
   font-size: 14px;
   font-weight: 500;
   margin-top: 8px;
@@ -157,8 +157,8 @@ function removeDate(date) {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #A8D8B9;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-success-ink);
   font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
@@ -179,7 +179,7 @@ function removeDate(date) {
 
 .field-hint {
   font-size: 12px;
-  color: #B0B0B0;
+  color: var(--text-3);
 }
 
 @media (max-width: 768px) {

@@ -2,6 +2,9 @@
 import { ref, computed, onMounted, onUnmounted, watch, reactive, inject } from 'vue'
 import { storage } from '@/utils/storage'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft, ArrowRight, Histogram } from '@element-plus/icons-vue'
+import SvgIcon from '@/components/shared/SvgIcon.vue'
+import AppIllustration from '@/components/shared/AppIllustration.vue'
 
 function getToken() { return storage.get('mzg_admin_token', '') }
 
@@ -190,10 +193,11 @@ function showCurrentMonth() {
   const now = new Date()
   calYear.value = now.getFullYear()
   calMonth.value = now.getMonth() + 1
-  // 当月第一天
-  const firstDay = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-01'
-  dateFilter.value = firstDay
-  calSelectedDate.value = firstDay
+  // 默认选中"今天"而不是当月 1 号：商家打开后台要看的是今天的排期，
+  // 而 1 号通常一单都没有，排期看板会呈现为一条没有任何内容的空条。
+  const today = todayStr()
+  dateFilter.value = today
+  calSelectedDate.value = today
   page.value = 1
   fetchOrders()
   loadTimeline()
@@ -201,9 +205,10 @@ function showCurrentMonth() {
 async function loadCalendarDates() {
   calLoading.value = true
   try {
-    const y = calYear.value, m = calMonth.value
-    const startDate = `${y}-${String(m).padStart(2, '0')}-01`
-    const res = await apiFetch(`/api/orders?mId=${mId.value}&page=1&pageSize=200&date=${startDate}`)
+    // 取整月范围。原先传的是 `date=当月1号`，只返回 1 号当天的订单，
+    // 日历上"有单"的小圆点因此常年为空，商家没法从日历找到有排期的日子。
+    const { start: startDate, end: endDate } = getMonthRange()
+    const res = await apiFetch(`/api/orders?mId=${mId.value}&page=1&pageSize=100&startDate=${startDate}&endDate=${endDate}`)
     if ((res.success || res.code === 0) && res.data?.list) {
       const dates = new Set()
       res.data.list.forEach(o => { const d = o.date || (o.created_at ? o.created_at.slice(0, 10) : ''); if (d) dates.add(d) })
@@ -344,61 +349,98 @@ function doSearch() { page.value = 1; fetchOrders() }
 // ─── ★ 24h 排期时间轴 ───
 const timelineSegments = ref([])
 const timelineRange = ref({ start: '09:00', end: '21:00' })
+const timelineError = ref('')
+// 当天是否真的有任何占用（预约或休息）。全空时时间条只剩一个"空闲"块，
+// 需要额外一句话说明"不是坏了，是这天没人约"。
+const timelineBusy = computed(() => timelineSegments.value.some(s => s.type !== 'free'))
+
+/** 小时刻度。跨度大时自动降为 2h/3h 一档，避免手机上标签互相压住。 */
+const timelineTicks = computed(() => {
+  const s = toMin(timelineRange.value.start)
+  const e = toMin(timelineRange.value.end)
+  const total = e - s
+  if (total <= 0) return []
+  const step = total > 900 ? 180 : total > 600 ? 120 : 60
+  const ticks = []
+  for (let m = Math.ceil(s / step) * step; m <= e; m += step) {
+    ticks.push({ label: toTime(m), left: (m - s) / total * 100 })
+  }
+  return ticks
+})
+
 async function loadTimeline() {
-  timelineSegments.value = []
-  if (!calSelectedDate.value || !mId.value) return
+  if (!calSelectedDate.value || !mId.value) { timelineSegments.value = []; return }
+  const date = calSelectedDate.value
+  // 注意：这里不清空 timelineSegments。30 秒轮询每次都清空会让面板整个
+  // 卸载再挂载，商家看到时间条不停闪烁。新数据到了再整体替换。
   try {
-    const res = await apiFetch(`/api/booked-times-v2?mId=${mId.value}&date=${calSelectedDate.value}`)
+    const res = await apiFetch(`/api/booked-times-v2?mId=${mId.value}&date=${date}`)
+    if (date !== calSelectedDate.value) return          // 已切到别的日期，丢弃过期响应
+    if (res.success === false && res.data == null) throw new Error(res.message || '加载排期失败')
     const data = (res.data || res)
-    const booked = data.bookedRanges || []
-    const rests = data.restRanges || []
     timelineRange.value = { start: data.baseStartTime || '09:00', end: data.baseEndTime || '21:00' }
-    buildTimelineSegments(timelineRange.value.start, timelineRange.value.end, rests, booked)
+    buildTimelineSegments(timelineRange.value.start, timelineRange.value.end, data.restRanges || [], data.bookedRanges || [])
+    timelineError.value = ''
   } catch (e) {
+    if (date !== calSelectedDate.value) return
+    timelineSegments.value = []
+    timelineError.value = e.message || '加载排期失败'
     console.error('[loadTimeline] 加载排期失败:', e.message)
   }
 }
 function buildTimelineSegments(baseStart, baseEnd, rests, booked) {
-  const totalMin = toMin(baseEnd) - toMin(baseStart)
+  const baseS = toMin(baseStart)
+  const baseE = toMin(baseEnd)
+  const totalMin = baseE - baseS
   if (totalMin <= 0) { timelineSegments.value = []; return }
+
+  // 区间裁剪到营业时间；起止倒挂或完全落在营业时间外的直接丢弃
+  const clip = (r) => {
+    const s = Math.max(toMin(r.start), baseS)
+    const e = Math.min(toMin(r.end), baseE)
+    return e > s ? { s, e } : null
+  }
+  const freeSeg = (from, to) => ({
+    type: 'free', w: (to - from) / totalMin * 100,
+    label: '空闲', tooltip: toTime(from) + '-' + toTime(to) + ' 空闲',
+  })
 
   const items = []
   // 固定休息时段（商家设置）
   for (const r of rests) {
-    items.push({ s: Math.max(toMin(r.start), toMin(baseStart)), e: Math.min(toMin(r.end), toMin(baseEnd)), type: 'rest', label: r.start + '-' + r.end })
+    const c = clip(r)
+    if (c) items.push({ s: c.s, e: c.e, type: 'rest', label: '休息 ' + toTime(c.s) + '-' + toTime(c.e) })
   }
   // 已预约时段：按 restMinutes 拆分为拍摄段 + 休息段
   for (const b of booked) {
-    const s = Math.max(toMin(b.start), toMin(baseStart))
-    const e = Math.min(toMin(b.end), toMin(baseEnd))
+    const c = clip(b)
+    if (!c) continue
     const restMin = b.restMinutes || 0
-    if (restMin > 0 && e - s > restMin) {
-      // 拆分：拍摄段
-      const shootEnd = e - restMin
-      items.push({ s, e: shootEnd, type: b.lockType || 'pre_lock', label: ((b.roleName||'') + ' ' + toTime(s) + '-' + toTime(shootEnd)).trim(), orderNo: b.orderNo })
-      // 休息段：琥珀虚线
-      items.push({ s: shootEnd, e, type: 'rest_tail', label: '休息 ' + restMin + 'min', orderNo: b.orderNo })
+    if (restMin > 0 && c.e - c.s > restMin) {
+      const shootEnd = c.e - restMin
+      items.push({ s: c.s, e: shootEnd, type: b.lockType || 'pre_lock', label: toTime(c.s) + '-' + toTime(shootEnd), orderNo: b.orderNo })
+      // 拍摄后的自动休息段
+      items.push({ s: shootEnd, e: c.e, type: 'rest_tail', label: '休息 ' + restMin + 'min', orderNo: b.orderNo })
     } else {
-      const label = (b.roleName || '') + ' ' + toTime(s) + '-' + toTime(e)
-      items.push({ s, e, type: b.lockType || 'pre_lock', label: label.trim(), orderNo: b.orderNo })
+      items.push({ s: c.s, e: c.e, type: b.lockType || 'pre_lock', label: toTime(c.s) + '-' + toTime(c.e), orderNo: b.orderNo })
     }
   }
+  // 游标法：重叠区间（商家级看板会同时包含多个项目的占位）自然合并成并集，
+  // 被完全覆盖的段直接从结果里消失。
   items.sort((a, b) => a.s - b.s)
   const result = []
-  let cursor = toMin(baseStart)
+  let cursor = baseS
   for (const it of items) {
     if (it.e <= cursor) continue
     const segStart = Math.max(it.s, cursor)
-    if (segStart > cursor) {
-      result.push({ type: 'free', w: (segStart - cursor) / totalMin * 100, label: '', tooltip: toTime(cursor) + '-' + toTime(segStart) })
-    }
-    result.push({ type: it.type, w: (it.e - segStart) / totalMin * 100, label: it.label, tooltip: it.label + (it.orderNo ? ' (' + it.orderNo + ')' : '') })
+    if (segStart > cursor) result.push(freeSeg(cursor, segStart))
+    result.push({
+      type: it.type, w: (it.e - segStart) / totalMin * 100, label: it.label,
+      tooltip: toTime(segStart) + '-' + toTime(it.e) + ' ' + it.label + (it.orderNo ? ' (' + it.orderNo + ')' : ''),
+    })
     cursor = it.e
   }
-  const endMin = toMin(baseEnd)
-  if (cursor < endMin) {
-    result.push({ type: 'free', w: (endMin - cursor) / totalMin * 100, label: '', tooltip: toTime(cursor) + '-' + baseEnd })
-  }
+  if (cursor < baseE) result.push(freeSeg(cursor, baseE))
   timelineSegments.value = result
 }
 watch(calSelectedDate, () => { loadTimeline() })
@@ -547,46 +589,100 @@ const importing = ref(false)
 
 function triggerImport() { importFileInput.value?.click() }
 
-async function handleImportFile(e) {
-  const file = e.target.files[0]
-  if (!file) return
-  if (!/\.xlsx?$/i.test(file.name)) { ElMessage.warning('仅支持 .xlsx 或 .xls 格式'); return }
-  if (!confirm(`确认导入「${file.name}」？系统将逐行校验并批量创建订单。`)) { e.target.value = ''; return }
-  importing.value = true
+// ─── ★ Excel 快速导入（仅固定档位项目）───
+const showImportDialog    = ref(false)
+const importStudios       = ref([])        // 过滤后只剩 timeMode === 'fixed_slot'
+const importStudioId      = ref(null)
+const importDate          = ref('')
+const importErrors        = ref([])
+const importErrorTitle    = ref('')
+const templateDownloading = ref(false)
+
+function clearImportErrors() { importErrors.value = []; importErrorTitle.value = '' }
+function openImportDialog() { clearImportErrors(); showImportDialog.value = true }
+
+async function loadImportStudios() {
+  clearImportErrors()
   try {
-    const token = getToken()
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await fetch('/api/order/import', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd }).then(r => r.json())
-    if (res.success || res.code === 0) {
-      ElMessage.success(res.message || '导入成功')
-      fetchOrders(); loadCalendarDates(); loadTimeline()
-    } else {
-      ElMessage.error(res.message || '导入失败')
-    }
-  } catch { ElMessage.error('网络错误，导入失败') }
-  importing.value = false
-  e.target.value = ''
+    const res = await apiFetch(`/api/studios?mId=${mId.value}`)
+    const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+    // 时间轴模式的项目不支持 Excel 快速导入，直接不列出来
+    importStudios.value = list.filter(s => s.timeMode === 'fixed_slot')
+    if (importStudios.value.length === 1) importStudioId.value = importStudios.value[0].id
+  } catch {
+    importStudios.value = []
+  }
 }
 
-async function downloadTemplate() {
+async function downloadSlotTemplate() {
   const token = getToken()
   if (!token) { window.location.href = '/admin/login'; return }
+  templateDownloading.value = true
   try {
-    const res = await fetch('/api/order/import-template', {
-      headers: { Authorization: `Bearer ${token}` }
+    const params = new URLSearchParams({
+      mId: mId.value, studioId: importStudioId.value, date: importDate.value,
     })
-    if (!res.ok) throw new Error('下载失败')
+    const res = await fetch(`/api/order/import-template?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => null)
+      throw new Error((body && body.message) || '模板下载失败')
+    }
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = '预约订单导入模板.xlsx'
+    a.download = `档位导入模板_${importDate.value}.xlsx`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  } catch { ElMessage.error('模板下载失败') }
+  } catch (e) {
+    ElMessage.error(e.message || '模板下载失败')
+  } finally {
+    templateDownloading.value = false
+  }
+}
+
+async function handleImportFile(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  if (!/\.xlsx?$/i.test(file.name)) { ElMessage.warning('仅支持 .xlsx 或 .xls 格式'); e.target.value = ''; return }
+  if (!importStudioId.value || !importDate.value) {
+    ElMessage.warning('请先选择项目和日期'); e.target.value = ''; return
+  }
+  if (!confirm(`确认把「${file.name}」导入到所选项目 ${importDate.value} 的档位？`)) {
+    e.target.value = ''; return
+  }
+  importing.value = true
+  clearImportErrors()
+  try {
+    const token = getToken()
+    const fd = new FormData()
+    // 文本字段必须排在 file 之前，否则 multer 解析 multipart 时 req.body 还是空的
+    fd.append('studioId', String(importStudioId.value))
+    fd.append('date', importDate.value)
+    fd.append('file', file)
+    const res = await fetch('/api/order/import', {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
+    })
+    const body = await res.json().catch(() => null)
+    if (res.ok && body && (body.success || body.code === 0)) {
+      ElMessage.success(body.message || '导入成功')
+      showImportDialog.value = false
+      fetchOrders(); loadCalendarDates(); loadTimeline(); fetchRevenue()
+    } else {
+      // 结构化逐行错误：弹窗内列表展示，弹窗不关闭，可直接改文件重传
+      importErrorTitle.value = (body && body.message) || '导入失败'
+      importErrors.value = Array.isArray(body && body.data) ? body.data : []
+      if (importErrors.value.length === 0) ElMessage.error(importErrorTitle.value)
+    }
+  } catch {
+    ElMessage.error('网络错误，导入失败')
+  }
+  importing.value = false
+  e.target.value = ''
 }
 
 // 判断是否需要显示新状态机按钮
@@ -705,18 +801,18 @@ watch(() => refreshBus?.tick, async (newTick) => {
 
     <!-- 统计卡片 -->
     <div class="stats-row">
-      <div class="stat-card"><div class="num" style="color:var(--color-primary);">¥{{ todayRevenue }}</div><div class="lbl">今日营收</div></div>
-      <div class="stat-card"><div class="num" style="color:#7d9e9a;">{{ stats.active }}</div><div class="lbl">进行中</div></div>
-      <div class="stat-card"><div class="num" style="color:var(--color-warning);">{{ stats.refunding }}</div><div class="lbl">退款审核</div></div>
-      <div class="stat-card"><div class="num" style="color:var(--color-success);">{{ stats.completed }}</div><div class="lbl">已归档</div></div>
+      <div class="stat-card"><div class="num" style="color: var(--color-primary-ink);">¥{{ todayRevenue }}</div><div class="lbl">今日营收</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--color-info-ink);">{{ stats.active }}</div><div class="lbl">进行中</div></div>
+      <div class="stat-card"><div class="num" style="color: var(--color-warning-ink);">{{ stats.refunding }}</div><div class="lbl">退款审核</div></div>
+      <div class="stat-card"><div class="num" style="color: var(--color-success-ink);">{{ stats.completed }}</div><div class="lbl">已归档</div></div>
     </div>
 
     <!-- 日历 -->
     <div class="cal-view">
       <div class="cal-nav">
-        <button @click="calPrevMonth"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="cal-nav-btn" aria-label="上个月" @click="calPrevMonth"><el-icon><ArrowLeft /></el-icon></button>
         <span>{{ calYear }}年 {{ calMonth }}月</span>
-        <button @click="calNextMonth"><i class="fa-solid fa-chevron-right"></i></button>
+        <button class="cal-nav-btn" aria-label="下个月" @click="calNextMonth"><el-icon><ArrowRight /></el-icon></button>
         <button class="btn-today" @click="jumpToday">今天</button>
       </div>
       <div class="cal-wdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
@@ -731,36 +827,107 @@ watch(() => refreshBus?.tick, async (newTick) => {
     </div>
 
     <!-- ★ 24h横向排期状态条 ★ -->
-    <div class="timeline-wrap" v-if="calSelectedDate && timelineSegments.length > 0">
-      <h4 class="tl-title"><i class="fa-solid fa-chart-gantt"></i> {{ calSelectedDate }} 排期看板</h4>
-      <div class="tl-bar">
-        <div v-for="(seg, i) in timelineSegments" :key="i"
-             :class="['tl-seg', seg.type]"
-             :style="{ width: seg.w + '%' }"
-             :title="seg.tooltip">
-          <span v-if="seg.type !== 'free'" class="tl-seg-label">{{ seg.label }}</span>
-        </div>
+    <div class="timeline-wrap" v-if="calSelectedDate">
+      <h4 class="tl-title">
+        <el-icon><Histogram /></el-icon>
+        <span>{{ calSelectedDate }} 排期看板</span>
+        <span class="tl-range">营业 {{ timelineRange.start }}–{{ timelineRange.end }}</span>
+      </h4>
+
+      <div v-if="timelineError" class="tl-error">
+        <SvgIcon name="icon-circle-exclamation" :size="16" />
+        <span>排期加载失败：{{ timelineError }}</span>
+        <el-button size="small" @click="loadTimeline">重试</el-button>
       </div>
+
+      <template v-else>
+        <!-- 小时刻度：没有刻度的时间条读不出"几点"，等于一条色带 -->
+        <div class="tl-axis">
+          <span v-for="t in timelineTicks" :key="t.label"
+                class="tl-axis-label" :style="{ left: t.left + '%' }">{{ t.label }}</span>
+        </div>
+
+        <div class="tl-bar">
+          <div v-for="(seg, i) in timelineSegments" :key="i"
+               :class="['tl-seg', seg.type]"
+               :style="{ width: seg.w + '%' }"
+               :title="seg.tooltip">
+            <span v-if="seg.w > 9" class="tl-seg-label">{{ seg.label }}</span>
+          </div>
+        </div>
+
+        <p v-if="timelineSegments.length === 0" class="tl-hint">
+          {{ timelineRange.start }}–{{ timelineRange.end }} 之外没有可排期时段
+        </p>
+        <p v-else-if="!timelineBusy" class="tl-hint">
+          当天暂无预约，全天可约
+        </p>
+      </template>
+
       <div class="tl-legend">
         <span><span class="ldot free"></span>空闲</span>
         <span><span class="ldot rest"></span>休息</span>
         <span><span class="ldot rest_tail"></span>休息(自动)</span>
-        <span><span class="ldot prelock"></span>预锁</span>
-        <span><span class="ldot hardlock"></span>硬锁</span>
-        <span style="margin-left:auto;display:flex;gap:8px;">
-          <el-button size="small" @click="exportOrders">
-            📤 导出当前订单
-          </el-button>
-          <el-button size="small" @click="triggerImport">
-            📥 导入订单Excel
-          </el-button>
-          <el-button size="small" @click="downloadTemplate">
-            📄 下载空白导入模板
-          </el-button>
-        </span>
-        <input ref="importFileInput" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportFile" />
+        <span><span class="ldot pre_lock"></span>预锁</span>
+        <span><span class="ldot hard_lock"></span>硬锁</span>
       </div>
+
+      <!-- 操作行：从图例里拆出来，图例是窄条，三个按钮挤在移动端会糊成一团 -->
+      <div class="tl-actions">
+        <el-button size="small" @click="exportOrders">
+          <SvgIcon name="icon-export" :size="16" />导出当前订单
+        </el-button>
+        <el-button size="small" @click="openImportDialog">
+          <SvgIcon name="icon-import" :size="16" />Excel 快速导入
+        </el-button>
+      </div>
+      <input ref="importFileInput" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportFile" />
     </div>
+
+    <!-- ★ Excel 快速导入弹窗（仅固定档位项目） -->
+    <el-dialog v-model="showImportDialog" title="Excel 快速导入" width="640px" @open="loadImportStudios">
+      <div class="imp-row">
+        <span class="imp-label">项目</span>
+        <el-select v-model="importStudioId" placeholder="仅固定档位模式的项目可选" style="flex:1" @change="clearImportErrors">
+          <el-option v-for="s in importStudios" :key="s.id" :label="s.title" :value="s.id" />
+        </el-select>
+      </div>
+      <div class="imp-row">
+        <span class="imp-label">日期</span>
+        <el-date-picker v-model="importDate" type="date" value-format="YYYY-MM-DD"
+                        placeholder="选择档位日期" style="flex:1" @change="clearImportErrors" />
+      </div>
+
+      <p v-if="importStudios.length === 0" class="imp-empty">
+        当前没有固定档位模式的项目。请先在「项目 → 编辑 → 预约时间模式」把项目切换为固定档位模式。
+      </p>
+      <p v-else class="imp-hint">
+        ① 先选项目与日期 → ② 下载空白模板（第一列是当天还空着的档位，已标黄）→
+        ③ 填写 角色名称 / 顾客cn / 备注要求 / 订单总金额 / 定金 → ④ 上传导入。<br />
+        <strong>不用把模板填满</strong>：只填要排的那几行，其余留空的档位会自动跳过。<br />
+        导入后自动生成订单号，订单状态为「已付定金」，立即出现在时间轴与订单页；
+        金额计入<strong>所选日期</strong>当天的营收（不是导入当天）。
+      </p>
+
+      <div class="imp-actions">
+        <el-button :disabled="!importStudioId || !importDate" :loading="templateDownloading" @click="downloadSlotTemplate">
+          <SvgIcon name="icon-download-template" :size="16" />下载空白模板
+        </el-button>
+        <el-button type="primary" :disabled="!importStudioId || !importDate" :loading="importing" @click="triggerImport">
+          <SvgIcon name="icon-import" :size="16" />选择文件并导入
+        </el-button>
+      </div>
+
+      <div v-if="importErrors.length" class="imp-errors">
+        <div class="imp-errors-title">{{ importErrorTitle }}</div>
+        <el-table :data="importErrors" size="small" max-height="280" border>
+          <el-table-column prop="row" label="行号" width="72" />
+          <el-table-column label="错误内容">
+            <template #default="{ row }">{{ (row.errors || []).join('；') }}</template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-dialog>
 
     <!-- Tab -->
     <div class="tabs">
@@ -780,7 +947,10 @@ watch(() => refreshBus?.tick, async (newTick) => {
     </div>
 
     <div v-if="loading" class="empty">加载中...</div>
-    <div v-else-if="orders.length===0" class="empty">暂无订单</div>
+    <div v-else-if="orders.length===0" class="empty">
+      <AppIllustration name="empty-no-orders-admin" :width="160" />
+      <p>暂无订单</p>
+    </div>
 
     <!-- ★ 桌面端表格 ★ -->
     <div v-else class="table-wrap">
@@ -814,7 +984,9 @@ watch(() => refreshBus?.tick, async (newTick) => {
                 <td>
                   <span class="time-date-prefix">{{ fmtDateShort(getOrderDate(o)) }}</span>
                   <div class="time-block">{{ fmtBookingTime(o) }}</div>
-                  <span v-if="lockLabel(o)" :class="'lock-dot ' + lockLabel(o)">{{ lockLabel(o)==='pre'?'🔒':'✅' }}</span>
+                  <SvgIcon v-if="lockLabel(o)" :class="'lock-dot ' + lockLabel(o)"
+                       :name="lockLabel(o)==='pre' ? 'icon-lock-pre' : 'icon-lock-hard'"
+                       :size="12" :label="lockLabel(o)==='pre' ? '预锁' : '硬锁'" />
                 </td>
                 <td>
                   <div class="cell-title">{{ o.studioTitle || o.studio_name || '—' }}</div>
@@ -969,7 +1141,7 @@ watch(() => refreshBus?.tick, async (newTick) => {
               <div v-if="o.refundText || o.refund_text"><strong>退款账号:</strong> {{ o.refundText || o.refund_text }}</div>
               <img v-if="o.refundImgUrl || o.refund_img_url" :src="o.refundImgUrl || o.refund_img_url" class="refund-thumb" />
               <div v-if="o.rejectReason || o.reject_reason" style="color:var(--danger);"><strong>拒绝:</strong> {{ o.rejectReason || o.reject_reason }}</div>
-              <div style="color:#aaa;"><strong>订单号:</strong> {{ o.orderNo }} · {{ o.createdAt || o.created_at }}</div>
+              <div style="color:var(--text-3);"><strong>订单号:</strong> {{ o.orderNo }} · {{ o.createdAt || o.created_at }}</div>
               <!-- ★ 灵感储备 -->
               <div v-if="getInspirationImages(o).length > 0" class="inspiration-library" style="margin-top:8px;">
                 <div class="inspiration-title">客户拍摄灵感储备</div>
@@ -1021,152 +1193,179 @@ watch(() => refreshBus?.tick, async (newTick) => {
 
 /* ─── 统计 ─── */
 .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 14px; }
-.stat-card { text-align: center; padding: 14px; border-radius: 14px; background: #fff; border: 1px solid var(--border-color-solid); }
+.stat-card { text-align: center; padding: 14px; border-radius: 14px; background: var(--surface-solid); border: 1px solid var(--border-color-solid); }
 .stat-card .num { font-size: 26px; font-weight: 800; }
 .stat-card .lbl { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
 
 /* ─── 日历 ─── */
-.cal-view { background: #fff; border-radius: 16px; padding: 14px; margin-bottom: 14px; border: 1px solid var(--border-color-solid); box-shadow: 0 2px 12px rgba(120,130,125,.04); }
+.cal-view { background: var(--surface-solid); border-radius: 16px; padding: 14px; margin-bottom: 14px; border: 1px solid var(--border-color-solid); box-shadow: 0 2px 12px rgba(120,130,125,.04); }
 .cal-nav { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 700; font-size: 15px; }
-.cal-nav button { background: #eef1ee; border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 13px; color: var(--color-primary); font-weight: 600; transition: .2s; }
-.cal-nav button:hover { background: var(--color-primary-light); }
-.btn-today { background: var(--color-primary) !important; color: #fff !important; padding: 5px 12px !important; font-size: 11px !important; }
-.cal-wdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
-.cal-cell { padding: 10px 2px; font-size: 13px; border-radius: 10px; cursor: pointer; transition: .15s; position: relative; color: var(--text-secondary); }
-.cal-cell:hover { background: #eef1ee; }
-.cal-cell.today { font-weight: 700; color: var(--color-primary); }
-.cal-cell.selected { background: var(--color-primary-gradient); color: #fff; font-weight: 700; box-shadow: 0 3px 12px rgba(125,158,138,.3); }
-.cal-cell.past { color: #c8c8cc; cursor: default; }
-.cal-cell.past:hover { background: transparent; }
-.cal-cell.has-order::after { content: ''; width: 5px; height: 5px; background: var(--color-sakura); border-radius: 50%; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); }
-.cal-date-label { text-align: center; margin-top: 8px; font-size: 12px; color: var(--color-primary); font-weight: 600; }
-
-/* ─── ★ 24h排期条 ─── */
-.timeline-wrap {
-  background: rgba(255,255,255,0.70);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border-radius: 20px; padding: 18px 20px; margin-bottom: 14px;
-  border: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 0 2px 16px rgba(120,130,125,0.06), inset 0 1px 0 rgba(255,255,255,0.5);
+.cal-nav button { background: var(--color-neutral-tint); border: none; padding: 6px 14px; border-radius: var(--radius-btn); cursor: pointer; font-size: 13px; color: var(--color-primary-ink); font-weight: 600; transition: background-color var(--duration-1) var(--ease-out); }
+.cal-nav button:hover { background: var(--color-primary-tint); }
+/* 月份切换箭头原先是一个空的 <i>（Font Awesome 未加载），用户看不到任何可点元素。
+   现在用真实图标 + 明确的按钮尺寸，并补上 aria-label。 */
+.cal-nav-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0 !important;
+  font-size: 15px !important;
 }
-.tl-title { margin: 0 0 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: rgba(0,0,0,0.5); }
-.tl-bar { display: flex; height: 48px; border-radius: 12px; overflow: hidden; min-width: 400px; gap: 1px; background: rgba(245,238,220,0.50); }
-/* ── 排期段：清新浅色高对比 ── */
+.btn-today { background: var(--color-primary) !important; color: var(--text-on-primary) !important; padding: 5px 12px !important; font-size: 11px !important; }
+.cal-wdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+.cal-cell { padding: 10px 2px; font-size: 13px; border-radius: var(--radius-sm); cursor: pointer; transition: background-color var(--duration-1) var(--ease-out); position: relative; color: var(--text-2); }
+.cal-cell:hover { background: var(--color-neutral-tint); }
+.cal-cell.today { font-weight: 700; color: var(--color-primary-ink); }
+.cal-cell.selected { background: var(--color-primary-gradient); color: var(--text-on-primary); font-weight: 700; box-shadow: var(--shadow-primary); }
+.cal-cell.past { color: var(--text-4); cursor: default; }
+.cal-cell.past:hover { background: transparent; }
+.cal-cell.has-order::after { content: ''; width: 5px; height: 5px; background: var(--color-info-ink); border-radius: 50%; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); }
+.cal-date-label { text-align: center; margin-top: 8px; font-size: 12px; color: var(--color-primary-ink); font-weight: 600; }
+
+/* ─── ★ 24h排期条 ───
+   与紧邻的 .cal-view 用同一套面板外观（实底 + 同一档圆角/边框/阴影），
+   不再单独走半透明玻璃 —— 这一档上 --text-3 是不合法的，刻度字会不达标。 */
+.timeline-wrap {
+  background: var(--surface-solid);
+  border-radius: var(--radius-xl); padding: 18px 20px; margin-bottom: 14px;
+  border: 1px solid var(--border-color-solid);
+  box-shadow: var(--shadow-1);
+}
+.tl-title { margin: 0 0 12px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--text-1); flex-wrap: wrap; }
+.tl-range { font-size: 11px; font-weight: 600; color: var(--text-3); margin-left: auto; font-family: var(--font-mono); }
+
+/* 错误态：数据拿不到时必须说出来，而不是把整块面板藏掉 */
+.tl-error {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 12px; border-radius: var(--radius-md);
+  background: var(--color-danger-tint); color: var(--color-danger-ink);
+  font-size: 12px; font-weight: 600;
+}
+
+/* 小时刻度：与 .tl-bar 同宽、同样按百分比定位，标签才能落在色块正上方 */
+.tl-axis { position: relative; height: 15px; margin-bottom: 4px; }
+.tl-axis-label {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 10px; font-weight: 600; color: var(--text-3);
+  font-family: var(--font-mono); white-space: nowrap;
+}
+
+.tl-bar {
+  display: flex; height: 48px; border-radius: var(--radius-md);
+  overflow: hidden; background: var(--bg-sunken);
+}
+/* ── 排期段 ── */
 .tl-seg {
   height: 100%; display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 600; overflow: hidden; white-space: nowrap;
+  font-size: 11px; font-weight: 600; overflow: hidden; white-space: nowrap;
   text-overflow: ellipsis; cursor: default;
-  transition: all 0.35s ease;
+  transition: width var(--duration-3) var(--ease-out);
 }
-.tl-seg:first-child { border-radius: 10px 0 0 10px; }
-.tl-seg:last-child  { border-radius: 0 10px 10px 0; }
+/* 分段细线用 inset 阴影画：不占布局宽度，色块百分比才不会和上面的刻度错位 */
+.tl-seg + .tl-seg { box-shadow: inset 1px 0 0 rgba(255, 255, 255, .8); }
 
-/* 空闲：卡其清透玻璃 */
-.tl-seg.free {
-  background: rgba(255,252,242,0.35);
-  backdrop-filter: blur(4px);
-  color: transparent;
+/* 空闲：中性底。原先文字是 transparent、底色比轨道还浅，
+   整天没排期时整条就是一根看不出内容的空白带，商家以为功能坏了。 */
+.tl-seg.free { background: var(--color-neutral-tint); color: var(--color-neutral-ink); }
+
+/* 休息：琥珀虚线（固定休息 + 拍摄后的自动休息同款） */
+.tl-seg.rest, .tl-seg.rest_tail {
+  background: var(--color-warning-tint); color: var(--color-warning-ink);
+  border-left: 1.5px dashed var(--color-warning);
+  border-right: 1.5px dashed var(--color-warning);
 }
+.tl-seg.rest_tail { font-size: 10px; }
 
-/* 休息：琥珀虚线 */
-.tl-seg.rest {
-  background: rgba(240,210,160,0.18);
-  backdrop-filter: blur(4px);
-  border: 1.5px dashed rgba(200,150,80,0.28);
-  color: rgba(180,120,50,0.55);
-}
-
-/* 预锁：定金待审 — 半透明斜线斑马纹 */
+/* 预锁：定金待审 —— 蓝灰斜纹，表示"占位但未确认" */
 .tl-seg.pre_lock, .tl-seg.pre-lock {
-  background: rgba(255,180,100,0.28);
-  backdrop-filter: blur(6px);
-  color: rgba(180,100,30,0.65);
-  background-image: repeating-linear-gradient(
-    -40deg, transparent, transparent 5px,
-    rgba(255,255,255,0.25) 5px, rgba(255,255,255,0.25) 10px
-  );
-  position: relative;
-}
-.tl-seg.pre_lock .tl-seg-label::after,
-.tl-seg.pre-lock .tl-seg-label::after {
-  content: ' 定金待审';
-  font-size: 9px;
-  opacity: 0.7;
+  background-color: var(--color-info-tint); color: var(--color-info-ink);
+  background-image: repeating-linear-gradient(-40deg, transparent, transparent 5px, rgba(74, 107, 138, .12) 5px, rgba(74, 107, 138, .12) 10px);
 }
 
-/* 硬锁：已确认 — 实心毛玻璃 */
+/* 硬锁：已确认 —— 绿底实心，与预锁一眼可分 */
 .tl-seg.hard_lock, .tl-seg.hard-lock {
-  background: rgba(130,170,150,0.55);
-  backdrop-filter: blur(12px);
-  color: rgba(0,0,0,0.52);
-  background-image: repeating-linear-gradient(
-    -40deg, transparent, transparent 6px,
-    rgba(255,255,255,0.18) 6px, rgba(255,255,255,0.18) 12px
-  );
-}
-/* 拍摄后的自动休息段：琥珀虚线 */
-.tl-seg.rest_tail {
-  background: rgba(240,210,160,0.18);
-  backdrop-filter: blur(4px);
-  border: 1.5px dashed rgba(200,150,80,0.28);
-  color: rgba(180,120,50,0.55);
-  font-size: 9px;
+  background-color: var(--color-success-tint); color: var(--color-success-ink);
+  background-image: repeating-linear-gradient(-40deg, transparent, transparent 6px, rgba(62, 107, 78, .12) 6px, rgba(62, 107, 78, .12) 12px);
 }
 .tl-seg-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
 
-/* 图例 */
-.tl-legend { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; font-size: 11px; color: rgba(0,0,0,0.30); }
-.ldot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
-.ldot.free { background: rgba(200,200,210,0.45); }
-.ldot.rest { background: transparent; border: 1.5px dashed rgba(200,150,80,0.5); }
-.ldot.rest_tail { background: rgba(240,210,160,0.4); border: 1.5px dashed rgba(200,150,80,0.5); }
-.ldot.prelock {
-  background: rgba(190,190,200,0.50);
-  background-image: repeating-linear-gradient(-40deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+.tl-hint { margin: 8px 0 0; font-size: 11px; color: var(--text-3); }
+
+/* 操作行（导出 / 导入） */
+.tl-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; justify-content: flex-end;
 }
-.ldot.hardlock {
-  background: rgba(170,175,185,0.60);
-  background-image: repeating-linear-gradient(-40deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+
+/* ─── Excel 快速导入弹窗 ─── */
+.imp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.imp-label { flex-shrink: 0; width: 44px; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.imp-hint {
+  margin: 4px 0 16px; padding: 10px 12px; border-radius: var(--radius-md);
+  background: var(--color-info-tint); color: var(--color-info-ink);
+  font-size: 12px; line-height: 1.8;
+}
+.imp-hint strong { font-weight: 700; }
+.imp-empty {
+  margin: 4px 0 16px; padding: 10px 12px; border-radius: var(--radius-md);
+  background: var(--color-warning-tint); color: var(--color-warning-ink);
+  font-size: 12px; line-height: 1.8;
+}
+.imp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.imp-errors { margin-top: 16px; }
+.imp-errors-title {
+  margin-bottom: 8px; font-size: 13px; font-weight: 700; color: var(--color-danger-ink);
+}
+
+/* 图例：色块与时间条同源。此前图例是灰的、条上是橙/绿的，两边对不上。 */
+.tl-legend { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; font-size: 11px; color: var(--text-3); }
+.ldot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+.ldot.free { background: var(--color-neutral-tint); border: 1px solid var(--color-disabled); }
+.ldot.rest, .ldot.rest_tail { background: var(--color-warning-tint); border: 1px solid var(--color-warning); }
+.ldot.pre_lock {
+  background-color: var(--color-info-tint); border: 1px solid var(--color-info);
+  background-image: repeating-linear-gradient(-40deg, transparent, transparent 2px, rgba(74, 107, 138, .35) 2px, rgba(74, 107, 138, .35) 4px);
+}
+.ldot.hard_lock {
+  background-color: var(--color-success-tint); border: 1px solid var(--color-success);
+  background-image: repeating-linear-gradient(-40deg, transparent, transparent 2px, rgba(62, 107, 78, .35) 2px, rgba(62, 107, 78, .35) 4px);
 }
 
 /* ─── Tab ─── */
-.tabs { display: flex; gap: 2px; margin-bottom: 14px; background: #F4F2EE; border-radius: 16px; padding: 4px; flex-wrap: wrap; border: none; }
+.tabs { display: flex; gap: 2px; margin-bottom: 14px; background: var(--color-disabled-bg); border-radius: 16px; padding: 4px; flex-wrap: wrap; border: none; }
 .tab-item { flex: 1; min-width: 60px; text-align: center; padding: 10px 6px; border-radius: 14px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; color: var(--text-sub); }
-.tab-item.active { background: #fff; color: var(--color-primary); box-shadow: 0 2px 10px rgba(244,164,96,.08); }
+.tab-item.active { background: var(--surface-solid); color: var(--color-primary-ink); box-shadow: 0 2px 10px rgba(var(--color-primary-rgb), .08); }
 
 /* ─── 搜索 ─── */
 .search-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
-.input-field { flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid #E8E5DF; border-radius: 10px; font-size: 13px; outline: none; background: #fff; }
+.input-field { flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 13px; outline: none; background: var(--surface-solid); }
 .date-only-switch { flex-shrink: 0; }
 
 /* ─── 表格 ─── */
 .table-wrap { overflow-x: auto; border-radius: 16px; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.data-table th { background: #FDFBF7; padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-sub); border-bottom: 2px solid #F0EDE8; }
-.data-table td { padding: 10px 12px; border-bottom: 1px solid #F0EDE8; vertical-align: middle; }
+.data-table th { background: var(--bg-table-stripe); padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-sub); border-bottom: 2px solid var(--border-subtle); }
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
 .clickable-row { cursor: pointer; transition: background .1s; }
 .clickable-row:hover { background: rgba(125,158,138,0.03); }
 .row-待支付 { background: rgba(201,184,150,.03); }
 .row-已确认锁定 { background: rgba(123,168,130,.03); }
-.time-block { display: inline-block; padding: 4px 12px; border-radius: 14px; background: var(--color-primary-light); color: var(--color-primary-dark); font-weight: 700; font-family: 'SF Mono', monospace; font-size: 13px; white-space: nowrap; }
+.time-block { display: inline-block; padding: 4px 12px; border-radius: 14px; background: var(--color-primary-light); color: var(--color-primary-ink); font-weight: 700; font-family: 'SF Mono', monospace; font-size: 13px; white-space: nowrap; }
 .time-date-prefix { font-size: 11px; color: var(--text-sub); font-weight: 600; margin-right: 4px; }
-.lock-dot { font-size: 10px; margin-left: 4px; }
+.lock-dot { margin-left: 4px; vertical-align: -0.1em; }
 .cell-title { font-weight: 600; }
-.cell-role { font-size: 11px; color: var(--color-sakura); margin-top: 1px; }
+.cell-role { font-size: 11px; color: var(--color-primary-ink); margin-top: 1px; }
 .cell-price { font-weight: 700; }
 .cell-deposit { font-size: 10px; color: var(--text-sub); }
 .badge-cell { font-size: 10px; padding: 3px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
-.badge-pending { background: rgba(249,224,160,0.20); color: #B8933E; }
+.badge-pending { background: rgba(249,224,160,0.20); color: var(--color-warning-ink); }
 .badge-deposit-pending { background: rgba(255,200,120,0.25); color: #D4782E; }
-.badge-prepaid { background: rgba(169,193,217,0.20); color: #5A7A9A; }
-.badge-confirmed { background: rgba(244,164,96,0.15); color: #D4893E; }
-.badge-paid { background: rgba(168,216,185,0.20); color: #5A8A6A; }
-.badge-unsettled { background: rgba(244,164,96,0.22); color: #C77A2E; }
-.badge-completed { background: rgba(168,216,185,0.15); color: #5A8A6A; }
-.badge-cancelled { background: rgba(180,180,190,0.12); color: #888; }
-.badge-refunding { background: rgba(239,168,168,0.18); color: #C87878; }
+.badge-prepaid { background: rgba(169,193,217,0.20); color: var(--color-info-ink); }
+.badge-confirmed { background: rgba(var(--color-primary-rgb), 0.15); color: var(--color-primary-ink); }
+.badge-paid { background: rgba(168,216,185,0.20); color: var(--color-success-ink); }
+.badge-unsettled { background: rgba(var(--color-primary-rgb), 0.22); color: #C77A2E; }
+.badge-completed { background: rgba(168,216,185,0.15); color: var(--color-success-ink); }
+.badge-cancelled { background: rgba(180,180,190,0.12); color: var(--text-3); }
+.badge-refunding { background: rgba(239,168,168,0.18); color: var(--color-danger-ink); }
 .pending-alert-badge {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 4px 12px; border-radius: 14px;
@@ -1181,35 +1380,35 @@ watch(() => refreshBus?.tick, async (newTick) => {
 .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ─── 展开行 ─── */
-.expand-row td { background: #FDFBF7; border-bottom: 2px solid #F0EDE8; padding: 0; }
+.expand-row td { background: var(--bg-table-stripe); border-bottom: 2px solid var(--border-subtle); padding: 0; }
 .expand-content { padding: 12px 16px; }
 .expand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 16px; font-size: 12px; line-height: 1.8; }
-.expand-grid code { font-size: 10px; background: #F4F2EE; padding: 2px 6px; border-radius: 6px; }
-.refund-thumb { max-width: 120px; border-radius: 10px; margin-top: 4px; border: 1px solid #F0EDE8; }
+.expand-grid code { font-size: 10px; background: var(--color-disabled-bg); padding: 2px 6px; border-radius: 6px; }
+.refund-thumb { max-width: 120px; border-radius: 10px; margin-top: 4px; border: 1px solid var(--border-subtle); }
 
 /* ─── 移动端卡片 ─── */
 .card-list { display: none; }
-.order-card { padding: 14px; margin-bottom: 8px; background: #fff; border-radius: 16px; border: 1px solid #F0EDE8; border-left: 4px solid; }
-.card-time { font-size: 18px; font-weight: 800; color: var(--color-primary-dark); font-family: 'SF Mono', monospace; margin-bottom: 6px; }
+.order-card { padding: 14px; margin-bottom: 8px; background: var(--surface-solid); border-radius: 16px; border: 1px solid var(--border-subtle); border-left: 4px solid; }
+.card-time { font-size: 18px; font-weight: 800; color: var(--color-primary-ink); font-family: 'SF Mono', monospace; margin-bottom: 6px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .card-price { font-weight: 700; }
 .card-title { font-size: 13px; }
-.card-role { color: var(--color-sakura); }
+.card-role { color: var(--color-primary-ink); }
 .card-resched-hint {
-  font-size: 11px; color: #F9A825; margin-top: 4px;
+  font-size: 11px; color: var(--color-warning-ink); margin-top: 4px;
   padding: 4px 8px; background: #FFF8E1; border-radius: 6px;
 }
-.s-warn { background: #FFF8E1; color: #F9A825; }
+.s-warn { background: #FFF8E1; color: var(--color-warning-ink); }
 .collapse-detail { font-size: 12px; line-height: 2; }
-.collapse-detail code { font-size: 10px; background: #F4F2EE; padding: 2px 6px; border-radius: 6px; }
+.collapse-detail code { font-size: 10px; background: var(--color-disabled-bg); padding: 2px 6px; border-radius: 6px; }
 
 /* ─── 客户拍摄灵感储备 ─── */
 .inspiration-library {
   margin-top:14px; padding:14px 16px; background:rgba(254,247,239,.35);
-  border:1px solid rgba(244,164,96,.12); border-radius:16px;
+  border:1px solid rgba(var(--color-primary-rgb), .12); border-radius:16px;
 }
-.inspiration-title { font-size:12px; font-weight:700; color:#D4893E; margin-bottom:10px; }
-.insp-tag { font-size:10px; font-weight:700; color:#B08050; margin-right:8px; }
+.inspiration-title { font-size:12px; font-weight:700; color: var(--color-primary-ink); margin-bottom:10px; }
+.insp-tag { font-size:10px; font-weight:700; color:var(--color-warning-ink); margin-right:8px; }
 .insp-char { display:flex; align-items:flex-start; gap:8px; margin-bottom:10px; }
 .insp-char-img { width:120px; height:120px; object-fit:cover; border-radius:12px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.06); transition:transform .2s; }
 .insp-char-img:hover { transform:scale(1.04); }
@@ -1228,7 +1427,7 @@ watch(() => refreshBus?.tick, async (newTick) => {
 @keyframes lbFadeIn { from { opacity:0; } to { opacity:1; } }
 .lb-close {
   position:absolute; top:20px; right:24px; z-index:10;
-  background:rgba(255,255,255,.12); border:none; color:#fff;
+  background:rgba(255,255,255,.12); border:none; color: var(--text-inverse);
   font-size:22px; width:44px; height:44px; border-radius:50%;
   cursor:pointer; display:flex; align-items:center; justify-content:center;
   transition:background .15s;
@@ -1236,7 +1435,7 @@ watch(() => refreshBus?.tick, async (newTick) => {
 .lb-close:hover { background:rgba(255,255,255,.22); }
 .lb-nav {
   position:absolute; top:50%; transform:translateY(-50%); z-index:10;
-  background:rgba(255,255,255,.08); border:none; color:#fff;
+  background:rgba(255,255,255,.08); border:none; color: var(--text-inverse);
   font-size:40px; width:56px; height:80px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   border-radius:8px; transition:background .15s;
@@ -1262,20 +1461,20 @@ watch(() => refreshBus?.tick, async (newTick) => {
 .date-group-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 14px; margin-top: 8px;
-  background: linear-gradient(135deg, #FDFBF7, #F9F6F0);
+  background: linear-gradient(135deg, var(--bg-table-stripe), #F9F6F0);
   border-left: 4px solid var(--color-primary);
   border-radius: 8px;
 }
-.date-group-label { font-size: 14px; font-weight: 700; color: #4A4A4A; }
-.date-group-count { font-size: 11px; color: var(--text-sub); background: #F0EDE8; padding: 2px 8px; border-radius: 8px; }
+.date-group-label { font-size: 14px; font-weight: 700; color: var(--text-1); }
+.date-group-count { font-size: 11px; color: var(--text-sub); background: var(--border-subtle); padding: 2px 8px; border-radius: 8px; }
 
 /* ─── 日期列 ─── */
 .cell-date { font-size: 12px; color: var(--text-sub); white-space: nowrap; }
 
 /* ─── 移动端日期头部 ─── */
 .card-date-header {
-  font-size: 13px; font-weight: 700; color: #4A4A4A; padding: 8px 12px;
-  background: linear-gradient(135deg, #FDFBF7, #F9F6F0);
+  font-size: 13px; font-weight: 700; color: var(--text-1); padding: 8px 12px;
+  background: linear-gradient(135deg, var(--bg-table-stripe), #F9F6F0);
   border-left: 4px solid var(--color-primary); border-radius: 8px;
   margin-bottom: 6px; margin-top: 12px;
 }

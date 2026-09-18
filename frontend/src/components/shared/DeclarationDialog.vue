@@ -8,7 +8,7 @@
 
         <div class="declaration-body">
           <p v-for="(line, i) in filteredLines" :key="i" class="declaration-line">{{ line }}</p>
-          <p v-if="filteredLines.length === 0" class="declaration-line" style="color:#999;">暂无声明内容</p>
+          <p v-if="filteredLines.length === 0" class="declaration-line" style="color:var(--text-3);">暂无声明内容</p>
         </div>
 
         <div class="declaration-footer">
@@ -145,8 +145,8 @@ onBeforeUnmount(() => {
 }
 
 .declaration-box {
-  background: #fff;
-  border-radius: 20px;
+  background: var(--surface-solid);
+  border-radius: var(--radius-modal);
   padding: 28px 24px 20px;
   max-width: 420px;
   width: 100%;
@@ -164,19 +164,19 @@ onBeforeUnmount(() => {
   background: none;
   border: none;
   font-size: 22px;
-  color: #8E8E8E;
+  color: var(--text-3);
   cursor: pointer;
   padding: 4px 8px;
   line-height: 1;
   border-radius: 6px;
   transition: color .15s;
 }
-.declaration-close:hover { color: #4A4A4A; }
+.declaration-close:hover { color: var(--text-1); }
 
 .declaration-title {
   font-size: 17px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
   margin: 0 0 16px;
   text-align: center;
 }
@@ -192,7 +192,7 @@ onBeforeUnmount(() => {
 .declaration-line {
   font-size: 14px;
   line-height: 1.8;
-  color: #4A4A4A;
+  color: var(--text-1);
   margin: 0 0 6px;
   padding: 6px 10px;
   background: #FAFAF8;
@@ -208,15 +208,15 @@ onBeforeUnmount(() => {
   width: 100%;
   padding: 12px 24px;
   border: none;
-  border-radius: 28px;
+  border-radius: var(--radius-btn);
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   transition: all .2s;
   font-family: inherit;
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(244, 164, 96, 0.22);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: var(--text-on-primary);
+  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.22);
 }
 .declaration-btn:disabled {
   opacity: 0.5;
@@ -233,7 +233,7 @@ onBeforeUnmount(() => {
   .declaration-box {
     max-width: 95%;
     padding: 24px 16px 16px;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     max-height: 85vh;
   }
   .declaration-title { font-size: 16px; }

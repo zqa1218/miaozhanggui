@@ -1,8 +1,11 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { LocationInformation, Clock } from '@element-plus/icons-vue'
 import { useStudioStore } from '@/stores/studio'
 import { storage, getQueryParam } from '@/utils/storage'
+import AppIllustration from '@/components/shared/AppIllustration.vue'
+import placeholder4x3 from '@/assets/images/placeholder-4x3.svg'
 
 const router = useRouter()
 const route = useRoute()
@@ -54,7 +57,7 @@ function goDetail(id) {
 
     <!-- 空列表 -->
     <div v-else-if="!store.list.length" class="empty-state">
-      <div class="empty-icon">📦</div>
+      <AppIllustration name="empty-no-projects" :width="160" />
       <p>{{ isAdmin ? '暂无项目，请点击上方按钮创建' : '暂无可选项目，请稍后再来～' }}</p>
     </div>
 
@@ -69,9 +72,7 @@ function goDetail(id) {
         <!-- 封面图 -->
         <div class="card-cover">
           <img v-if="studio.coverUrl" :src="studio.coverUrl" :alt="studio.title" class="cover-img" />
-          <div v-else class="cover-ph">
-            <i class="fa-solid fa-image"></i>
-          </div>
+          <img v-else :src="placeholder4x3" alt="" class="cover-img" />
           <span v-if="studio.isStyleEnabled" class="cover-tag cover-tag-style">多样式</span>
         </div>
 
@@ -82,10 +83,10 @@ function goDetail(id) {
 
           <div class="card-meta">
             <span v-if="studio.city" class="meta-item">
-              <i class="fa-solid fa-location-dot"></i> {{ studio.city }}
+              <el-icon><LocationInformation /></el-icon> {{ studio.city }}
             </span>
             <span v-if="studio.baseStartTime" class="meta-item">
-              <i class="fa-regular fa-clock"></i> {{ studio.baseStartTime }}—{{ studio.baseEndTime }}
+              <el-icon><Clock /></el-icon> {{ studio.baseStartTime }}—{{ studio.baseEndTime }}
             </span>
           </div>
 
@@ -110,82 +111,78 @@ function goDetail(id) {
 </template>
 
 <style scoped>
-.studio-list { padding: 0 0 40px; max-width: 1280px; margin: 0 auto; }
+.studio-list { padding: 0 0 var(--space-8); max-width: var(--w-wide); margin: 0 auto; }
+
 .top-bar {
-  display: flex; align-items: center; gap: 16px;
-  padding: 0 24px; margin-bottom: 28px;
+  display: flex; align-items: center; gap: var(--space-4);
+  margin-bottom: var(--space-6);
 }
-.page-title { font-size: 22px; flex: 1; color: var(--text-primary, #4A4A4A); }
+.page-title { font-size: 22px; flex: 1; color: var(--text-1); font-weight: 700; }
 .btn-back {
-  flex-shrink: 0; background: #FFFFFF; border: 1px solid #E8E5DF;
-  padding: 8px 18px; border-radius: 28px; font-size: 13px;
-  cursor: pointer; color: var(--text-primary, #4A4A4A); font-weight: 600;
-  transition: all 0.2s ease;
+  flex-shrink: 0;
+  height: 34px; padding: 0 18px;
+  background: var(--surface-solid);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-btn);
+  font-family: inherit; font-size: 13px;
+  cursor: pointer; color: var(--text-1); font-weight: 600;
+  transition: background-color var(--duration-1) var(--ease-out),
+              border-color var(--duration-1) var(--ease-out);
 }
-.btn-back:hover { background: #FEF7EF; border-color: var(--color-primary, #F4A460); }
+.btn-back:hover { background: var(--color-primary-tint); border-color: var(--color-primary); }
 .btn-add {
   flex-shrink: 0;
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  color: #fff; border: none; padding: 10px 24px;
-  border-radius: 28px; font-size: 14px; font-weight: 700; cursor: pointer;
-  box-shadow: 0 4px 16px rgba(244,164,96,0.22);
-  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  height: 38px; padding: 0 22px;
+  background: var(--color-primary-gradient);
+  color: var(--text-on-primary);
+  border: none; border-radius: var(--radius-btn);
+  font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-primary);
+  transition: box-shadow var(--duration-2) var(--ease-out),
+              transform var(--duration-1) var(--ease-out);
 }
-.btn-add:hover { transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 8px 24px rgba(244,164,96,0.30); }
+.btn-add:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(var(--color-primary-rgb), .30); }
 
 /* ═══════════════════════════════════════════
-   CSS Grid 宫格
+   宫格
+   左右内边距交由外层 .client-main / .content-wrap 提供，
+   这里再补一层会形成双重留白。
    ═══════════════════════════════════════════ */
 .studio-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  padding: 0 24px;
+  gap: var(--space-5);
 }
 @media (max-width: 768px) {
-  .studio-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
+  .studio-grid { grid-template-columns: 1fr; gap: var(--space-4); }
 }
 
-.empty-state { text-align: center; padding: 60px 20px; color: var(--text-sub, #8b8d91); }
-.empty-icon { font-size: 40px; opacity: .2; margin-bottom: 10px; }
-
-/* ═══════════════════════════════════════════
-   C端白卡 — 封面图宫格
-   ═══════════════════════════════════════════ */
-.glass-card {
-  background: #FFFFFF;
-  border-radius: 24px; overflow: hidden;
-  border: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,.03);
-  cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s cubic-bezier(0.25,0.8,0.25,1);
-  display: flex; flex-direction: column;
+.empty-state { text-align: center; padding: 56px 20px; color: var(--text-3); }
+.empty-icon {
+  display: block; margin: 0 auto var(--space-3);
+  font-size: 40px; color: var(--color-primary-dark);
 }
-.glass-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 12px 36px rgba(0,0,0,.07);
-}
-.glass-card:active { transform: scale(0.98); }
 
 /* ═══════════════════════════════════════════
-   B端管理卡片
+   卡片（C 端浏览 / B 端管理共用）
+   不加 backdrop-filter：宫格里有 20+ 张卡，逐个离屏模糊会掉帧。
    ═══════════════════════════════════════════ */
-.card-admin {
-  background: #FFFFFF;
-  border-radius: 24px; overflow: hidden;
-  border: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,.03);
+.glass-card, .card-admin {
+  background: var(--surface-1);
+  border: 1px solid var(--glass-hairline);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
   display: flex; flex-direction: column;
-  transition: box-shadow 0.3s, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  transition: transform var(--duration-2) var(--ease-out),
+              box-shadow var(--duration-2) var(--ease-out);
 }
-.card-admin:hover {
-  box-shadow: 0 12px 36px rgba(0,0,0,.07);
-  transform: translateY(-4px) scale(1.01);
+.glass-card { cursor: pointer; }
+.glass-card:hover, .card-admin:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-3);
 }
+.glass-card:active { transform: scale(.99); }
 
 /* ═══════════════════════════════════════════
    封面图
@@ -195,111 +192,108 @@ function goDetail(id) {
   width: 100%;
   aspect-ratio: 4/3;
   overflow: hidden;
-  background: linear-gradient(135deg, #FEFBF6, #F0F4F8, #EDF6F0);
-  border-radius: 16px 16px 0 0;
+  background: linear-gradient(135deg, var(--color-primary-tint), var(--color-sky-light), var(--color-mint-light));
 }
 .cover-img {
   position: absolute; top: 0; left: 0;
   width: 100%; height: 100%;
   object-fit: cover;
-  transition: transform 0.5s cubic-bezier(0.25,0.8,0.25,1);
+  transition: transform var(--duration-3) var(--ease-out);
 }
-.glass-card:hover .cover-img {
-  transform: scale(1.08);
-}
+.glass-card:hover .cover-img { transform: scale(1.04); }
 .cover-ph {
   position: absolute; top: 0; left: 0;
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 42px; color: #F7C57C;
+  font-size: 40px; color: var(--color-primary-dark);
 }
 .cover-tag {
-  position: absolute; top: 12px; right: 12px;
-  font-size: 10px; font-weight: 700;
-  padding: 4px 12px; border-radius: 20px;
+  position: absolute; top: 10px; right: 10px;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: var(--radius-pill);
   z-index: 2;
 }
 .cover-tag-style {
-  background: rgba(244,164,96,0.65);
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--text-on-primary);
 }
 
 /* ═══════════════════════════════════════════
    信息区
    ═══════════════════════════════════════════ */
 .card-body {
-  padding: 20px 20px 24px;
-  display: flex; flex-direction: column; gap: 8px;
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-2);
   flex: 1;
 }
 .card-title {
   font-size: 16px; font-weight: 700;
-  color: var(--text-primary, #4A4A4A); line-height: 1.3;
+  color: var(--text-1); line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .card-desc {
-  font-size: 13px; color: var(--text-sub, #8E8E8E); line-height: 1.5;
+  font-size: 13px; color: var(--text-3); line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .card-meta {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  font-size: 12px; color: var(--text-sub, #8b8d91);
+  display: flex; flex-wrap: wrap; gap: var(--space-2);
+  font-size: 12px; color: var(--text-3);
 }
-.meta-item {
-  display: inline-flex; align-items: center; gap: 4px;
-}
+.meta-item { display: inline-flex; align-items: center; gap: 4px; }
 
 /* chips */
 .card-chips {
   display: flex; flex-wrap: wrap; gap: 6px;
-  margin-top: auto; padding-top: 8px;
+  margin-top: auto; padding-top: var(--space-2);
 }
 .chip {
-  font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; padding: 3px 10px; border-radius: var(--radius-pill);
   font-weight: 600; white-space: nowrap;
 }
-.chip-price { background: rgba(244,164,96,0.12); color: #D4893E; }
-.chip-pkg   { background: rgba(169,193,217,0.14); color: #5A7A9A; }
-.chip-deposit { color: var(--text-sub, #8E8E8E); }
+.chip-price   { background: var(--color-primary-tint); color: var(--color-primary-ink); }
+.chip-pkg     { background: var(--color-info-tint);    color: var(--color-info-ink); }
+.chip-deposit { color: var(--text-3); }
 
 /* ═══════════════════════════════════════════
    底部按钮
    ═══════════════════════════════════════════ */
-.card-footer {
-  padding: 10px 16px 14px;
-  display: flex; gap: 8px;
-}
+.card-footer { padding: var(--space-2) var(--space-4) var(--space-4); display: flex; gap: var(--space-2); }
 .btn-go {
-  width: 100%;
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  color: #fff; border: none; padding: 12px 0;
-  border-radius: 28px; font-size: 14px; font-weight: 700;
+  width: 100%; height: 38px;
+  background: var(--color-primary-gradient);
+  color: var(--text-on-primary); border: none;
+  border-radius: var(--radius-btn);
+  font-family: inherit; font-size: 14px; font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(244,164,96,0.22);
-  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: var(--shadow-primary);
+  transition: box-shadow var(--duration-2) var(--ease-out),
+              transform var(--duration-1) var(--ease-out);
 }
-.btn-go:hover { box-shadow: 0 8px 24px rgba(244,164,96,0.30); transform: translateY(-1px); }
+.btn-go:hover { box-shadow: 0 6px 18px rgba(var(--color-primary-rgb), .30); transform: translateY(-1px); }
 .btn-edit {
-  flex: 1;
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  color: #fff; border: none; padding: 10px 0;
-  border-radius: 28px; font-size: 12px; font-weight: 600; cursor: pointer;
-  transition: all 0.2s ease;
+  flex: 1; height: 34px;
+  background: var(--color-primary-tint);
+  color: var(--color-primary-ink);
+  border: 1px solid var(--color-primary-line);
+  border-radius: var(--radius-btn);
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background-color var(--duration-1) var(--ease-out);
 }
+.btn-edit:hover { background: var(--color-primary-soft); }
 .btn-del {
-  flex: 1;
-  background: #FFFFFF;
-  color: #EFA8A8;
-  border: 1px solid rgba(239,168,168,0.25);
-  padding: 10px 0; border-radius: 28px;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-  transition: all 0.2s ease;
+  flex: 1; height: 34px;
+  background: var(--color-danger-tint);
+  color: var(--color-danger-ink);
+  border: 1px solid rgba(239,168,168,.32);
+  border-radius: var(--radius-btn);
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background-color var(--duration-1) var(--ease-out);
 }
-.btn-del:hover { background: #FDF2F2; }
+.btn-del:hover { background: #FBE8E8; }
 </style>

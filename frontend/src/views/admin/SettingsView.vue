@@ -269,63 +269,66 @@ async function save() {
     </div>
 
     <div style="padding:10px 14px;">
-      <button class="btn-primary" @click="save" :disabled="saving">{{ saving ? '保存中...' : '保存设置' }}</button>
+      <button class="btn-primary btn--block" @click="save" :disabled="saving">{{ saving ? '保存中...' : '保存设置' }}</button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.success { color: #5A8A6A; font-size: 13px; margin-bottom: 8px; }
+.success { color: var(--color-success-ink); font-size: 13px; margin-bottom: 8px; }
 .section {
-  background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px;
-  border: 1px solid #F0EDE8; box-shadow: 0 1px 4px rgba(0,0,0,.02);
+  background: var(--surface-solid); border-radius: 14px; padding: 16px; margin-bottom: 12px;
+  border: 1px solid var(--border-subtle); box-shadow: 0 1px 4px rgba(0,0,0,.02);
 }
-.section-title { font-size: 14px; font-weight: 700; color: #4A4A4A; margin-bottom: 10px; }
+.section-title { font-size: 14px; font-weight: 700; color: var(--text-1); margin-bottom: 10px; }
 .input-row { margin-bottom: 10px; }
-.input-row label { display: block; font-size: 12px; color: #8E8E8E; font-weight: 600; margin-bottom: 4px; }
+.input-row label { display: block; font-size: 12px; color: var(--text-3); font-weight: 600; margin-bottom: 4px; }
 input[type="text"], input[type="url"], textarea {
-  width: 100%; padding: 8px 12px; border: 1px solid #E8E5DF; border-radius: 10px;
-  font-size: 13px; outline: none; background: #fff;
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 10px;
+  font-size: 13px; outline: none; background: var(--surface-solid);
 }
-input:focus, textarea:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(244,164,96,.08); }
+input:focus, textarea:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), .08); }
 .flex-1 { flex: 1; min-width: 0; }
 
 /* ── 上传行 ── */
 .qr-upload-row { display: flex; gap: 8px; align-items: center; }
 .file-input { font-size: 12px; max-width: 160px; }
 .file-input::file-selector-button {
-  padding: 4px 10px; border-radius: 8px; border: 1px solid #E8E5DF;
-  background: #F9F8F6; cursor: pointer; font-size: 12px; font-family: inherit;
+  padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border-color);
+  background: var(--bg-page); cursor: pointer; font-size: 12px; font-family: inherit;
 }
 .btn-upload {
-  padding: 6px 16px; border-radius: 10px; border: none;
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 6px 16px; border-radius: var(--radius-sm); border: none;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: var(--text-on-primary); font-size: 13px; font-weight: 600; cursor: pointer;
   white-space: nowrap; transition: all .15s; font-family: inherit;
 }
 .btn-upload:hover:not(:disabled) { opacity: .9; }
 .btn-upload:disabled { opacity: .45; cursor: not-allowed; }
 
-.upload-ok { font-size: 12px; color: #5A8A6A; margin-top: 4px; }
-.upload-fail { font-size: 12px; color: #C87878; margin-top: 4px; }
+.upload-ok { font-size: 12px; color: var(--color-success-ink); margin-top: 4px; }
+.upload-fail { font-size: 12px; color: var(--color-danger-ink); margin-top: 4px; }
 
 /* ── 预览 ── */
 .qr-preview   { max-width: 120px; border-radius: 8px; margin-top: 6px; border: 1px solid rgba(125,158,138,0.12); }
 .qr-preview-lg { max-width: 180px; border-radius: 8px; margin-top: 6px; border: 1px solid rgba(125,158,138,0.12); }
-.btn-link { background: none; border: none; color: #C87878; font-size: 12px; cursor: pointer; padding: 0; }
+.btn-link { background: none; border: none; color: var(--color-danger-ink); font-size: 12px; cursor: pointer; padding: 0; }
 .btn-link:hover { text-decoration: underline; }
 
+/* DEPRECATED：原 scoped 重定义，已由 theme.css 的按钮系统统一接管。
+   确认无回归后可删除本段。
 .btn-primary {
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  color: #fff; border: none; border-radius: 28px; padding: 12px 28px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: var(--text-on-primary); border: none; border-radius: var(--radius-btn); padding: 12px 28px;
   font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s;
 }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+*/
 
 /* ── 弹窗声明 ── */
 .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.toggle-label { font-size: 14px; font-weight: 600; color: #4A4A4A; }
-.toggle-hint { font-size: 11px; color: #8E8E8E; margin: 0 0 12px; }
+.toggle-label { font-size: 14px; font-weight: 600; color: var(--text-1); }
+.toggle-hint { font-size: 11px; color: var(--text-3); margin: 0 0 12px; }
 
 .toggle-switch { position: relative; display: inline-block; width: 48px; height: 26px; cursor: pointer; }
 .toggle-switch input { display: none; }
@@ -335,50 +338,50 @@ input:focus, textarea:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(
 }
 .toggle-track::after {
   content: ''; position: absolute; top: 3px; left: 3px;
-  width: 20px; height: 20px; background: #fff;
+  width: 20px; height: 20px; background: var(--surface-solid);
   border-radius: 50%; transition: all .25s; box-shadow: 0 1px 3px rgba(0,0,0,.15);
 }
-.toggle-switch input:checked + .toggle-track { background: linear-gradient(135deg, #F4A460, #F7C57C); }
+.toggle-switch input:checked + .toggle-track { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); }
 .toggle-switch input:checked + .toggle-track::after { transform: translateX(22px); }
 
 /* ── 声明编辑器 ── */
-.declaration-editor { margin-top: 14px; padding-top: 14px; border-top: 1px solid #F0EDE8; }
-.editor-label { display: block; font-size: 12px; color: #8E8E8E; font-weight: 600; margin-bottom: 10px; }
+.declaration-editor { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-subtle); }
+.editor-label { display: block; font-size: 12px; color: var(--text-3); font-weight: 600; margin-bottom: 10px; }
 .editor-row {
-  background: #FAFAF8; border: 1px solid #F0EDE8; border-radius: 12px;
+  background: #FAFAF8; border: 1px solid var(--border-subtle); border-radius: 12px;
   padding: 12px 14px; margin-bottom: 10px;
 }
 .editor-row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.editor-num { font-size: 13px; font-weight: 700; color: #B8933E; min-width: 22px; text-align: right; flex-shrink: 0; }
+.editor-num { font-size: 13px; font-weight: 700; color: var(--color-warning-ink); min-width: 22px; text-align: right; flex-shrink: 0; }
 .editor-input {
-  flex: 1; padding: 8px 12px; border: 1px solid #E8E5DF; border-radius: 10px;
-  font-size: 13px; outline: none; background: #fff; font-family: inherit; min-width: 0;
+  flex: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 10px;
+  font-size: 13px; outline: none; background: var(--surface-solid); font-family: inherit; min-width: 0;
 }
-.editor-input:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(244,164,96,.08); }
+.editor-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), .08); }
 .btn-row-remove {
-  background: none; border: none; color: #C0C0C0; font-size: 18px; cursor: pointer;
+  background: none; border: none; color: var(--text-4); font-size: 18px; cursor: pointer;
   padding: 0 4px; line-height: 1; flex-shrink: 0; transition: color .15s;
 }
-.btn-row-remove:hover { color: #C87878; }
+.btn-row-remove:hover { color: var(--color-danger-ink); }
 
 /* 项目选择器行 */
 .editor-row-bottom { display: flex; align-items: center; gap: 8px; }
-.project-label { font-size: 12px; color: #8E8E8E; white-space: nowrap; flex-shrink: 0; }
+.project-label { font-size: 12px; color: var(--text-3); white-space: nowrap; flex-shrink: 0; }
 .project-selector-area { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .project-select { flex: 1; min-width: 140px; }
 .project-hint {
-  font-size: 12px; color: #5A8A6A; background: #EDF6F0; padding: 2px 8px;
+  font-size: 12px; color: var(--color-success-ink); background: var(--color-mint-light); padding: 2px 8px;
   border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;
 }
-.project-hint.dim { color: #8E8E8E; background: #F4F2EE; }
+.project-hint.dim { color: var(--text-3); background: var(--color-disabled-bg); }
 
 .editor-actions { display: flex; gap: 8px; margin-top: 6px; }
 .btn-editor-add {
-  padding: 6px 14px; border-radius: 10px; border: 1px solid #E8E5DF;
-  background: #fff; font-size: 12px; cursor: pointer; color: #4A4A4A;
+  padding: 6px 14px; border-radius: 10px; border: 1px solid var(--border-color);
+  background: var(--surface-solid); font-size: 12px; cursor: pointer; color: var(--text-1);
   transition: all .15s; font-family: inherit;
 }
-.btn-editor-add:hover:not(:disabled) { border-color: #F4A460; color: #F4A460; }
+.btn-editor-add:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary-ink); }
 .btn-editor-add:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ── 移动端适配 ── */

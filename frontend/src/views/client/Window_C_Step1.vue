@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { WarningFilled } from '@element-plus/icons-vue'
 import { useWizardCStore } from '@/stores/wizardC'
 import { storage, getQueryParam } from '@/utils/storage'
 import { calculateShootingDuration, resolveTimingParams, checkTimeConflict } from '@/utils/durationCalc'
 import { normalizeExtraItems, getExtraItemKey, getExtraUnitLabel, getExtraItemAmount } from '@/utils/extraItems'
 import FlexibleTimelinePicker from '@/components/client/FlexibleTimelinePicker.vue'
+import SvgIcon from '@/components/shared/SvgIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -78,6 +80,13 @@ function selectDateCard(d) {
 // ── 可用性 ──
 const bookedRanges = ref([])
 const restRanges = ref([])
+// ── 预约时间模式（★ 注意：本文件的 bookingMode 已用于「单张/套餐」，勿复用该名）──
+//    time_axis  = 连续时间轴，顾客自由拖选（现有行为）
+//    fixed_slot = 固定档位，只能从服务端下发的 slots 里选
+const timeMode = ref('time_axis')
+const slotDuration = ref(30)
+const slots = ref([])
+const isFixedSlot = computed(() => timeMode.value === 'fixed_slot')
 const baseStartTime = ref('09:00')
 const baseEndTime = ref('18:00')
 
@@ -131,15 +140,23 @@ const durationResult = computed(() =>
 )
 
 // ── 双时间层：展示层 vs 占用层 ──
-// 展示层（用户可见）：仅纯拍摄时间，不含休息
-const displayDuration = computed(() => durationResult.value.actualShootingTime)
+// 展示层（用户可见）：仅纯拍摄时间，不含休息。
+// 固定档位下实际只占一个档，展示时长不能超过档位时长，否则顾客以为能拍更久。
+const displayDuration = computed(() =>
+  isFixedSlot.value
+    ? Math.min(durationResult.value.actualShootingTime, slotDuration.value)
+    : durationResult.value.actualShootingTime
+)
 const displayEndTime = computed(() => {
   if (!startTime.value) return ''
   return toTime(toMin(startTime.value) + displayDuration.value)
 })
 
-// 占用层（系统排期）：拍摄 + 休息 = 完整 block
-const blockedDuration = computed(() => durationResult.value.totalBlockedTime)
+// 占用层（系统排期）：拍摄 + 休息 = 完整 block。
+// 固定档位下占用时长恒等于档位时长 —— 一档=一单。
+const blockedDuration = computed(() =>
+  isFixedSlot.value ? slotDuration.value : durationResult.value.totalBlockedTime
+)
 const blockedEndTime = computed(() => {
   if (!startTime.value) return ''
   return toTime(toMin(startTime.value) + blockedDuration.value)
@@ -154,15 +171,16 @@ const computedEndTime = computed(() => blockedEndTime.value)
 // ── 将已预约 + 休息时段合并为统一不可用列表 ──
 //    注意: 对客户隐藏 "休息" 概念，统一显示为不可选时段
 const unifiedUnavailable = computed(() => {
-  const slots = []
+  // 局部变量勿命名为 slots —— 外层已有同名的档位 ref
+  const list = []
   for (const b of bookedRanges.value) {
-    slots.push({ start: b.start, end: b.end, type: 'booked', lockType: b.lockType, reason: b.lockType === 'hard_lock' ? '已确认' : '预锁' })
+    list.push({ start: b.start, end: b.end, type: 'booked', lockType: b.lockType, reason: b.lockType === 'hard_lock' ? '已确认' : '预锁' })
   }
   for (const r of restRanges.value) {
     // 后台休息时段统一按 "已被预约" 渲染，不暴露 "休息" 标签
-    slots.push({ start: r.start, end: r.end, type: 'booked', reason: '时段占用' })
+    list.push({ start: r.start, end: r.end, type: 'booked', reason: '时段占用' })
   }
-  return slots
+  return list
 })
 
 // ── 附加项目 ──
@@ -256,6 +274,11 @@ const canProceed = computed(() => {
   if (studio.value?.isStyleEnabled && availableStyles.value.length > 0 && !selectedStyleId.value) return false
   // 样式有套餐但未选择套餐或按张 → 允许（按张模式默认生效）
   if (bookingMode.value === 'package' && !selectedPackageId.value) return false
+  // 固定档位：起点必须命中一个仍然可用的档位（防止档位在轮询间隙被抢走后提交）
+  if (isFixedSlot.value) {
+    const hit = slots.value.some(s => s.available && s.start === startTime.value)
+    if (!hit) return false
+  }
   return true
 })
 
@@ -298,6 +321,9 @@ async function fetchAvailability() {
   const data = (res.data || res)
   bookedRanges.value = data.bookedRanges || []
   restRanges.value = data.restRanges || []
+  timeMode.value = data.timeMode || studio.value?.timeMode || 'time_axis'
+  slotDuration.value = data.slotDuration || studio.value?.slotDuration || 30
+  slots.value = Array.isArray(data.slots) ? data.slots : []
   baseStartTime.value = data.baseStartTime || studio.value?.baseStartTime || '09:00'
   baseEndTime.value = data.baseEndTime || studio.value?.baseEndTime || '18:00'
   startTime.value = ''
@@ -386,9 +412,9 @@ function goNext() {
 </script>
 
 <template>
-  <div class="c-step1 fade-in-up" style="max-width:520px;margin:0 auto;padding:0 0 30px;">
+  <div class="c-step1 fade-in-up page page--form">
     <div v-if="loading" style="text-align:center;padding:60px 20px;color:var(--text-sub);">加载中...</div>
-    <div v-else-if="errorMsg" style="text-align:center;padding:60px 20px;color:var(--danger,#c98a8a);">{{ errorMsg }}</div>
+    <div v-else-if="errorMsg" style="text-align:center;padding:60px 20px;color:var(--danger);">{{ errorMsg }}</div>
 
     <template v-else>
       <!-- 项目信息 -->
@@ -403,14 +429,14 @@ function goNext() {
 
       <!-- ★ SKU分流器：样式卡片流 -->
       <div v-if="availableStyles.length > 0">
-        <div class="section-header">选择样式 <span style="color:var(--danger,#c98a8a);font-size:11px;">*</span></div>
+        <div class="section-header">选择样式 <span style="color:var(--danger);font-size:11px;">*</span></div>
         <div
           v-for="s in availableStyles" :key="s.id"
           :class="['style-card', { selected: selectedStyleId === s.id }]"
           @click="selectedStyleId = selectedStyleId === s.id ? null : s.id"
         >
           <img v-if="s.styleCoverUrl" :src="s.styleCoverUrl" class="style-img" />
-          <div v-else class="style-placeholder">🎨</div>
+          <div v-else class="style-placeholder"><SvgIcon name="icon-palette" :size="28" /></div>
           <div class="style-body">
             <div class="style-name">{{ s.styleName }}</div>
             <div class="style-meta">
@@ -529,12 +555,12 @@ function goNext() {
       <!-- 附加项目 -->
       <div v-if="availableExtraItems.length > 0" class="section">
         <div class="section-title">附加项目</div>
-        <div v-for="(item, idx) in availableExtraItems" :key="getExtraItemKey(item, idx)" class="addon-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line,#e8e5df);border-radius:10px;margin-bottom:6px;cursor:pointer;" :class="{ 'addon-selected': selectedAddonIds.includes(getExtraItemKey(item, idx)) }" @click="toggleAddon(item, idx)">
-          <span style="width:20px;height:20px;border-radius:6px;border:2px solid var(--line,#d0ccc4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:#fff;transition:all .2s;" :style="selectedAddonIds.includes(getExtraItemKey(item, idx)) ? 'background:var(--accent,#c9a0a0);border-color:var(--accent,#c9a0a0);' : ''">{{ selectedAddonIds.includes(getExtraItemKey(item, idx)) ? '✓' : '' }}</span>
+        <div v-for="(item, idx) in availableExtraItems" :key="getExtraItemKey(item, idx)" class="addon-row" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;cursor:pointer;" :class="{ 'addon-selected': selectedAddonIds.includes(getExtraItemKey(item, idx)) }" @click="toggleAddon(item, idx)">
+          <span style="width:20px;height:20px;border-radius:6px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color: var(--text-on-primary);transition:all .2s;" :style="selectedAddonIds.includes(getExtraItemKey(item, idx)) ? 'background:var(--accent);border-color: var(--accent-ink);' : ''">{{ selectedAddonIds.includes(getExtraItemKey(item, idx)) ? '✓' : '' }}</span>
           <span style="font-size:13px;font-weight:600;color:var(--text-main);flex:1;">{{ item.name }}</span>
           <span style="font-size:12px;color:var(--text-sub);">+¥{{ item.price }} {{ getExtraUnitLabel(item.unit) }}</span>
         </div>
-        <div v-if="addonTotal > 0" style="text-align:right;font-size:12px;color:var(--accent,#c9a0a0);margin-top:6px;">附加合计 +¥{{ addonTotal }}</div>
+        <div v-if="addonTotal > 0" style="text-align:right;font-size:12px;color: var(--accent-ink);margin-top:6px;">附加合计 +¥{{ addonTotal }}</div>
       </div>
 
       <!-- 模特经验 -->
@@ -564,6 +590,9 @@ function goNext() {
           :required-duration="totalDuration"
           :selected-start-time="startTime"
           :step="1"
+          :mode="timeMode"
+          :slots="slots"
+          :slot-duration="slotDuration"
           @update:selected-start-time="startTime = $event"
           @select="startTime = $event"
         />
@@ -592,7 +621,7 @@ function goNext() {
       <!-- 冲突 -->
       <div v-if="hasConflict" class="conflict-bar">
         <div class="conflict-main">
-          <i class="fa-solid fa-triangle-exclamation"></i>
+          <el-icon><WarningFilled /></el-icon>
           您选择的起始时间加上拍摄总耗时后，会与已有的时间段冲突，请重新选择更早的起始时间或减少拍摄张数。
         </div>
         <div v-if="conflictMsg" class="conflict-detail">{{ conflictMsg }}</div>
@@ -614,23 +643,18 @@ function goNext() {
 
 <style scoped>
 /* ─── 区块 ─── */
-.section {
-  background: rgba(255,255,255,0.72); backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  margin: 10px 14px; border-radius: 18px; padding: 14px;
-  box-shadow: 0 4px 20px rgba(120,130,125,0.04);
-  border: 1px solid rgba(180,185,182,0.18);
-}
+/* .section 的玻璃外观已由 theme.css 统一定义（原先本页、Window_C_Step2、
+   OrderDetailView 各复制了一份相同的 rgba/blur 数值）。此处不再重定义。 */
 .section-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
 .section-header {
   font-size: 14px; font-weight: 700;
   padding: 0 14px; margin-top: 10px; margin-bottom: 4px;
 }
 .input-field {
-  padding: 10px 14px; border: 1px solid #E8E5DF; border-radius: 12px;
-  font-size: 14px; outline: none; background: #fff;
+  padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 12px;
+  font-size: 14px; outline: none; background: var(--surface-solid);
 }
-.input-field:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(244,164,96,.12); }
+.input-field:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), .12); }
 
 /* ─── 样式卡片 ─── */
 .style-card {
@@ -639,27 +663,27 @@ function goNext() {
   background: rgba(255,255,255,0.72); border: 1.5px solid rgba(180,185,182,0.18);
   transition: all .2s; backdrop-filter: blur(12px);
 }
-.style-card:hover { border-color: var(--purple, #5a7a65); }
+.style-card:hover { border-color: var(--color-primary-ink); }
 .style-card.selected {
-  border-color: var(--purple, #5a7a65);
+  border-color: var(--color-primary-ink);
   box-shadow: 0 4px 16px rgba(125,158,138,0.2);
   background: rgba(232,240,235,0.4);
 }
 .style-img { width: 52px; height: 52px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
 .style-placeholder {
   width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0;
-  background: var(--purple-light, #e8f0eb);
+  background: var(--purple-light);
   display: flex; align-items: center; justify-content: center; font-size: 22px;
 }
 .style-body { flex: 1; min-width: 0; }
 .style-name { font-size: 14px; font-weight: 700; }
-.style-meta { font-size: 12px; color: var(--text-sub, #8e8ea0); margin-top: 2px; }
-.style-pkg { color: var(--purple, #5a7a65); }
-.style-check { color: var(--purple, #5a7a65); font-size: 20px; flex-shrink: 0; }
+.style-meta { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+.style-pkg { color: var(--color-primary-ink); }
+.style-check { color: var(--color-primary-ink); font-size: 20px; flex-shrink: 0; }
 
 /* ─── 单选 ─── */
 .radio-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; }
-.addon-tag { font-size: 11px; color: var(--peach, #8a7040); }
+.addon-tag { font-size: 11px; color: var(--color-primary-ink); }
 
 /* ─── 毛玻璃看板 ─── */
 .preview-panel {
@@ -673,16 +697,16 @@ function goNext() {
   0%, 100% { box-shadow: 0 0 0 0 rgba(123,168,130,0.15); }
   50% { box-shadow: 0 0 0 8px rgba(123,168,130,0); }
 }
-.preview-hint { color: var(--text-sub, #8e8ea0); padding: 12px; font-size: 13px; }
-.preview-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-sub, #8e8ea0); margin-bottom: 8px; }
+.preview-hint { color: var(--text-sub); padding: 12px; font-size: 13px; }
+.preview-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-sub); margin-bottom: 8px; }
 .preview-range { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 8px 0; }
 .preview-time { text-align: center; }
-.preview-time-label { font-size: 10px; color: var(--text-sub, #8e8ea0); display: block; }
+.preview-time-label { font-size: 10px; color: var(--text-sub); display: block; }
 .preview-time-value { font-size: 28px; font-weight: 800; font-family: 'SF Mono', monospace; }
-.preview-time-value.start { color: var(--color-primary-dark, #5a7a65); }
-.preview-time-value.end { color: var(--sakura, #a08080); }
-.preview-arrow { font-size: 24px; color: var(--color-primary-light, #a8bfad); }
-.preview-detail { font-size: 13px; color: var(--text-secondary, #6e6e73); margin-top: 4px; }
+.preview-time-value.start { color: var(--color-primary-ink); }
+.preview-time-value.end { color: var(--color-primary-ink); }
+.preview-arrow { font-size: 24px; color: var(--color-primary-dark); }
+.preview-detail { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
 
 /* ─── 冲突 ─── */
 .conflict-bar {
@@ -693,40 +717,43 @@ function goNext() {
   color: #a05050; font-weight: 500; line-height: 1.5;
 }
 .conflict-detail {
-  margin-top: 4px; font-size: 12px; color: #b87070;
+  margin-top: 4px; font-size: 12px; color: var(--color-danger-ink);
   padding: 4px 10px; background: rgba(201,138,138,0.06); border-radius: 6px;
 }
 
 /* ─── 价格 ─── */
 .price-summary {
   text-align: center; margin: 12px 0; font-size: 20px; font-weight: 800;
-  color: var(--color-primary-dark, #5a7a65);
+  color: var(--color-primary-ink);
 }
-.deposit-note { font-size: 12px; color: var(--text-sub, #8e8ea0); font-weight: 400; }
+.deposit-note { font-size: 12px; color: var(--text-sub); font-weight: 400; }
 
-/* ─── 按钮 ─── */
+/* ─── 按钮 ───
+   DEPRECATED：原 scoped 重定义，已由 theme.css 的按钮系统统一接管。
+   确认无回归后可删除本段。
 .btn-primary {
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
   color: #fff; border: none; border-radius: 28px; padding: 12px 24px;
   font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s;
-  box-shadow: 0 4px 16px rgba(244,164,96,0.22);
+  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.22);
 }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
 .btn-secondary {
-  background: #fff; border: 1px solid #E8E5DF; border-radius: 28px;
-  padding: 12px 24px; font-size: 15px; cursor: pointer; color: #4A4A4A;
+  background: var(--surface-solid); border: 1px solid var(--border-color); border-radius: 28px;
+  padding: 12px 24px; font-size: 15px; cursor: pointer; color: var(--text-1);
 }
+*/
 
 /* ─── 日期范围提示 ─── */
 .hint-warn {
-  margin-top: 6px; font-size: 12px; color: #D4893E;
-  padding: 6px 10px; background: #FEF7EF; border-radius: 8px;
+  margin-top: 6px; font-size: 12px; color: var(--color-primary-ink);
+  padding: 6px 10px; background: var(--color-primary-tint); border-radius: 8px;
 }
 
 /* ─── 套餐卡片 ─── */
 .section-badge {
-  font-size: 10px; font-weight: 600; color: #D4893E;
-  background: #FEF7EF; padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 600; color: var(--color-primary-ink);
+  background: var(--color-primary-tint); padding: 2px 8px; border-radius: 10px;
   margin-left: 8px; vertical-align: middle;
 }
 .pkg-scroll {
@@ -741,15 +768,15 @@ function goNext() {
   flex: 0 0 auto; width: 160px; scroll-snap-align: start;
   display: flex; flex-direction: column; gap: 4px;
   padding: 14px 12px; border-radius: 14px; cursor: pointer;
-  border: 2px solid #E8E5DF; background: #fff;
+  border: 2px solid var(--border-color); background: var(--surface-solid);
   transition: all 0.2s; font-family: inherit; text-align: left;
   -webkit-tap-highlight-color: transparent;
 }
-.pkg-card:hover:not(.active) { border-color: #F4A460; background: #FFFCF7; }
+.pkg-card:hover:not(.active) { border-color: var(--color-primary); background: #FFFCF7; }
 .pkg-card.active {
-  border-color: #F4A460;
-  background: linear-gradient(160deg, #FFF5E8 0%, #FEF7EF 100%);
-  box-shadow: 0 4px 16px rgba(244,164,96,0.15);
+  border-color: var(--color-primary);
+  background: linear-gradient(160deg, #FFF5E8 0%, var(--color-primary-tint) 100%);
+  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.15);
   transform: translateY(-2px);
 }
 .pkg-card.pkg-single {
@@ -757,7 +784,7 @@ function goNext() {
 }
 .pkg-card.pkg-single.active {
   border-style: solid; border-color: #7A9A86;
-  background: linear-gradient(160deg, #EDF6F0 0%, #F4F9F5 100%);
+  background: linear-gradient(160deg, var(--color-mint-light) 0%, #F4F9F5 100%);
   box-shadow: 0 4px 16px rgba(122,154,134,0.12);
 }
 
@@ -766,30 +793,30 @@ function goNext() {
 }
 .pkg-card-name { font-size: 14px; font-weight: 700; color: #3A3A4A; line-height: 1.3; }
 .pkg-card-check {
-  font-size: 14px; font-weight: 700; color: #F4A460;
+  font-size: 14px; font-weight: 700; color: var(--color-primary-ink);
   flex-shrink: 0; margin-left: 6px;
 }
-.pkg-card.active.pkg-single .pkg-card-check { color: #5A8A6A; }
+.pkg-card.active.pkg-single .pkg-card-check { color: var(--color-success-ink); }
 
 .pkg-card-price {
-  font-size: 22px; font-weight: 800; color: #D4893E;
+  font-size: 22px; font-weight: 800; color: var(--color-primary-ink);
   line-height: 1.2; margin: 2px 0;
 }
-.pkg-card.pkg-single .pkg-card-price { color: #5A8A6A; }
-.pkg-per { font-size: 12px; font-weight: 500; color: #8E8E8E; }
+.pkg-card.pkg-single .pkg-card-price { color: var(--color-success-ink); }
+.pkg-per { font-size: 12px; font-weight: 500; color: var(--text-3); }
 
-.pkg-card-meta { font-size: 11px; color: #8E8E8E; }
-.pkg-card-sep { margin: 0 3px; color: #D0D0D0; }
-.pkg-card-desc { font-size: 10px; color: #B0B0B0; line-height: 1.4; margin-top: 2px; }
+.pkg-card-meta { font-size: 11px; color: var(--text-3); }
+.pkg-card-sep { margin: 0 3px; color: var(--text-3); }
+.pkg-card-desc { font-size: 10px; color: var(--text-3); line-height: 1.4; margin-top: 2px; }
 
 .pkg-locked-badge {
   display: inline-block; font-size: 10px; font-weight: 600;
   padding: 2px 8px; border-radius: 10px;
-  background: #FEF7EF; color: #D4893E;
+  background: var(--color-primary-tint); color: var(--color-primary-ink);
   margin-left: 6px; vertical-align: middle;
 }
 .input-field.locked {
-  background: #F4F2EE; color: #B0B0B0; cursor: not-allowed;
+  background: var(--color-disabled-bg); color: var(--text-3); cursor: not-allowed;
 }
 
 /* ─── 日期卡片网格 ─── */
@@ -801,24 +828,24 @@ function goNext() {
 .date-card {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 10px 6px; border-radius: 14px; cursor: pointer;
-  border: 1.5px solid #E8E5DF; background: #fff;
+  border: 1.5px solid var(--border-color); background: var(--surface-solid);
   transition: all 0.15s; font-family: inherit;
   -webkit-tap-highlight-color: transparent;
 }
 .date-card:hover:not(:disabled):not(.active) {
-  border-color: #F4A460; background: #FEF7EF;
+  border-color: var(--color-primary); background: var(--color-primary-tint);
 }
 .date-card:disabled { cursor: not-allowed; opacity: .38; }
 .date-card.past { opacity: .38; cursor: not-allowed; }
 .date-card.active {
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  border-color: #F4A460; color: #fff;
-  box-shadow: 0 4px 16px rgba(244,164,96,0.25);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  border-color: var(--color-primary); color: var(--text-on-primary);
+  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.25);
 }
 .date-card.active .date-weekday,
 .date-card.active .date-month { color: rgba(255,255,255,0.8); }
-.date-card.active .date-day { color: #fff; }
-.date-weekday { font-size: 11px; color: #8E8E8E; font-weight: 500; }
+.date-card.active .date-day { color: var(--text-on-primary); }
+.date-weekday { font-size: 11px; color: var(--text-3); font-weight: 500; }
 .date-day { font-size: 20px; font-weight: 800; color: #3A3A4A; line-height: 1; }
-.date-month { font-size: 10px; color: #B0B0B0; font-weight: 500; }
+.date-month { font-size: 10px; color: var(--text-3); font-weight: 500; }
 </style>

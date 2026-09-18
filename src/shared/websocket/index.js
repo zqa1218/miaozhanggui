@@ -22,8 +22,18 @@ class NotificationServer {
         if (token) {
           try {
             const decoded = jwt.verify(token, config.jwt.secret);
-            this.addClient(this.adminClients, decoded.mId, ws);
-            logger.info(`[WS] Admin connected: ${decoded.mId}`);
+            if (decoded.mId) {
+              // 管理端 token
+              this.addClient(this.adminClients, decoded.mId, ws);
+              logger.info(`[WS] Admin connected: ${decoded.mId}`);
+            } else if (decoded.userId) {
+              // 小程序/顾客 token → 按 userId 订阅（换设备不丢推送）
+              this.addClient(this.userClients, 'user_' + decoded.userId, ws);
+              logger.info(`[WS] User connected by userId: ${decoded.userId}`);
+            } else {
+              ws.close();
+              return;
+            }
           } catch { ws.close(); return; }
         } else if (deviceId) {
           this.addClient(this.userClients, deviceId, ws);
@@ -70,6 +80,12 @@ class NotificationServer {
   /** 推送给特定用户 */
   notifyUser(deviceId, data) {
     const clients = this.userClients.get(deviceId);
+    if (clients) this.sendAll(clients, data);
+  }
+
+  /** 按 userId 推送（小程序账号用户） */
+  notifyUserById(userId, data) {
+    const clients = this.userClients.get('user_' + userId);
     if (clients) this.sendAll(clients, data);
   }
 

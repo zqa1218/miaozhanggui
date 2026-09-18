@@ -66,3 +66,12 @@ Desktop.ini
 *.tmp
 *.temp
 .cache/
+
+# ========== 数据库转储 ==========
+# 生产库转储含真实业务数据（订单 / 门店 / 通知 / 操作日志）与密码哈希，
+# 不应进入 git 历史 —— 一旦提交，后续即使删除文件仍可从历史中检出。
+# 转储请留在服务器本地 backups/，或迁到对象存储并保留访问审计。
+# 例外：backend/database/ 下是 Schema 迁移脚本（无数据），需要版本管理。
+backups/
+*.sql
+!backend/database/*.sql

@@ -95,7 +95,7 @@ function goDetail(id) {
 
 .loading-wrap {
   text-align: center; padding: 80px 0;
-  color: #8e8e93; font-size: 14px;
+  color: var(--text-3); font-size: 14px;
 }
 
 /* ═══════════════════════════════════════════
@@ -121,7 +121,7 @@ function goDetail(id) {
    日系白卡
    ═══════════════════════════════════════════ */
 .glass-card {
-  background: #FFFFFF;
+  background: var(--surface-solid);
   border-radius: 24px;
   overflow: hidden;
   border: none;
@@ -147,7 +147,7 @@ function goDetail(id) {
   width: 100%;
   padding-top: 75%;
   overflow: hidden;
-  background: linear-gradient(135deg, #FEFBF6, #F0F4F8, #EDF6F0);
+  background: linear-gradient(135deg, var(--color-primary-tint), var(--color-sky-light), var(--color-mint-light));
 }
 .card-cover img {
   position: absolute;
@@ -160,7 +160,7 @@ function goDetail(id) {
   top: 0; left: 0;
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 42px; color: #b8c5bb;
+  font-size: 42px; color: var(--color-primary-dark);
 }
 
 /* 角标 */
@@ -175,12 +175,12 @@ function goDetail(id) {
   z-index: 2;
 }
 .cover-badge-style {
-  background: rgba(244,164,96,0.65);
-  color: #fff;
+  background: rgba(var(--color-primary-rgb), 0.65);
+  color: var(--text-on-primary);
 }
 .cover-badge-single {
   background: rgba(168,216,185,0.65);
-  color: #fff;
+  color: var(--text-on-primary);
 }
 
 /* ═══════════════════════════════════════════
@@ -195,7 +195,7 @@ function goDetail(id) {
 
 .card-title {
   font-size: 16px; font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -204,7 +204,7 @@ function goDetail(id) {
 }
 
 .card-desc {
-  font-size: 13px; color: #8E8E8E;
+  font-size: 13px; color: var(--text-3);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -216,10 +216,10 @@ function goDetail(id) {
 /* 信息行 */
 .card-row {
   display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: #8E8E8E;
+  font-size: 12px; color: var(--text-3);
 }
 .row-icon {
-  font-size: 12px; color: #D4893E;
+  font-size: 12px; color: var(--color-primary-ink);
   width: 14px; text-align: center;
 }
 
@@ -238,23 +238,23 @@ function goDetail(id) {
   letter-spacing: 0.3px;
 }
 .tag-price {
-  background: rgba(244,164,96,0.12);
-  color: #D4893E;
+  background: rgba(var(--color-primary-rgb), 0.12);
+  color: var(--color-primary-ink);
 }
 .tag-duration {
   background: rgba(169,193,217,0.14);
-  color: #5A7A9A;
+  color: var(--color-info-ink);
 }
 .tag-deposit {
   background: rgba(249,224,160,0.18);
-  color: #B8933E;
+  color: var(--color-warning-ink);
 }
 
 /* ═══════════════════════════════════════════
    空态
    ═══════════════════════════════════════════ */
 .empty-state {
-  text-align: center; padding: 100px 0; color: #B0B0B0;
+  text-align: center; padding: 100px 0; color: var(--text-3);
 }
 .empty-state i { font-size: 48px; margin-bottom: 12px; display: block; }
 </style>

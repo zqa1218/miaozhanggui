@@ -48,6 +48,20 @@
         :title="`${gap.start}—${gap.end} (${gap.duration}min)`"
       />
 
+      <!-- ★ 固定档位图层：档位边界 + 已满态 -->
+      <div
+        v-for="(s, i) in slotOverlays"
+        :key="'sl' + i"
+        class="ftp-slot"
+        :class="{
+          'is-avail': s.available,
+          'is-taken': !s.available,
+          'is-picked': s.start === selectedStartTime,
+        }"
+        :style="{ left: s.leftPct + '%', width: s.widthPct + '%' }"
+        :title="s.available ? `${s.start}—${s.end} 可预约` : `${s.start}—${s.end} 已被占用`"
+      />
+
       <!-- 拖动悬浮气泡 -->
       <div
         v-if="dragging && dragPreviewTime"
@@ -75,24 +89,32 @@
     <!-- 底部图例 & 信息 + 微调按钮 -->
     <div class="ftp-footer">
       <span class="ftp-legend">
-        <i class="ftp-dot free"></i> 可选
-        <i class="ftp-dot booked"></i> 已被预约
-        <i v-if="hasRestBlocks" class="ftp-dot rest"></i> 休息
+        <template v-if="isFixed">
+          <i class="ftp-dot free"></i> 可选档位
+          <i class="ftp-dot booked"></i> 已满档位
+        </template>
+        <template v-else>
+          <i class="ftp-dot free"></i> 可选
+          <i class="ftp-dot booked"></i> 已被预约
+          <i v-if="hasRestBlocks" class="ftp-dot rest"></i> 休息
+        </template>
       </span>
       <span v-if="selectedStartTime" class="ftp-info">
         <button
           class="ftp-nudge"
-          title="减少 1 分钟"
+          :title="isFixed ? '上一档' : '减少 1 分钟'"
+          :aria-label="isFixed ? '上一档' : '减少 1 分钟'"
           @pointerdown.stop.prevent="adjustTime(-1)"
         >−</button>
         <span class="ftp-time-display">{{ selectedStartTime }}</span>
         <button
           class="ftp-nudge"
-          title="增加 1 分钟"
+          :title="isFixed ? '下一档' : '增加 1 分钟'"
+          :aria-label="isFixed ? '下一档' : '增加 1 分钟'"
           @pointerdown.stop.prevent="adjustTime(1)"
         >+</button>
-        <span class="ftp-dur">· 需 {{ requiredDuration }}min</span>
-        <template v-if="!selectedFits">
+        <span class="ftp-dur">· {{ isFixed ? `档位 ${slotDuration}min` : `需 ${requiredDuration}min` }}</span>
+        <template v-if="!isFixed && !selectedFits">
           <span class="ftp-warn">（时长不足）</span>
         </template>
       </span>
@@ -117,6 +139,12 @@ const props = defineProps({
   selectedStartTime: { type: String, default: '' },
   /** 步长（分钟），默认 1 分钟 */
   step: { type: Number, default: 1 },
+  /** 预约时间模式: 'time_axis'(默认, 自由拖动) | 'fixed_slot'(只能选固定档位) */
+  mode: { type: String, default: 'time_axis' },
+  /** 固定档位列表 [{ start, end, available, blockedBy }]，仅 fixed_slot 使用 */
+  slots: { type: Array, default: () => [] },
+  /** 档位时长（分钟），仅用于展示 */
+  slotDuration: { type: Number, default: 30 },
 })
 
 const emit = defineEmits(['update:selectedStartTime', 'select'])
@@ -284,7 +312,40 @@ function clientX(e) {
   return e.touches ? e.touches[0].clientX : e.clientX
 }
 
+const isFixed = computed(() => props.mode === 'fixed_slot')
+
+/** 固定档位：落在已满档位上 → null（不挪到别的档）；否则吸附到最近的可用档 */
+function resolveFixedSlot(clientX) {
+  const rect = trackRef.value.getBoundingClientRect()
+  if (!rect.width) return null
+  const bs = toMin(props.openTime)
+  const be = toMin(props.closeTime)
+  const raw = bs + Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * (be - bs)
+
+  const hit = props.slots.find(s => raw >= toMin(s.start) && raw < toMin(s.end))
+  if (hit) return hit.available ? toMin(hit.start) : null
+
+  const avail = props.slots.filter(s => s.available)
+  if (avail.length === 0) return null
+  let best = avail[0]
+  for (const s of avail) {
+    if (Math.abs(toMin(s.start) - raw) < Math.abs(toMin(best.start) - raw)) best = s
+  }
+  return toMin(best.start)
+}
+
+const slotOverlays = computed(() => {
+  if (!isFixed.value) return []
+  const bs = toMin(props.openTime)
+  return props.slots.map(s => ({
+    ...s,
+    leftPct: pct(toMin(s.start) - bs),
+    widthPct: pct(toMin(s.end) - toMin(s.start)),
+  }))
+})
+
 function getTimeFromPosition(clientX) {
+  if (isFixed.value) return resolveFixedSlot(clientX)
   const rect = trackRef.value.getBoundingClientRect()
   const pctVal = ((clientX - rect.left) / rect.width) * 100
   const bs = toMin(props.openTime)
@@ -296,6 +357,9 @@ function getTimeFromPosition(clientX) {
 }
 
 function canPlaceAt(minutes) {
+  if (isFixed.value) {
+    return props.slots.some(s => s.available && toMin(s.start) === minutes)
+  }
   const endMin = minutes + props.requiredDuration
   if (endMin > toMin(props.closeTime)) return false
   const result = checkTimeConflict(
@@ -309,8 +373,10 @@ function updateFromEvent(e) {
   const cx = clientX(e)
   const minutes = getTimeFromPosition(cx)
   const rect = trackRef.value.getBoundingClientRect()
-  dragPreviewTime.value = toTime(minutes)
   dragPreviewPct.value = ((cx - rect.left) / rect.width) * 100
+  // 固定档位下点到已满档位会返回 null —— 保持当前选中不动，不做任何吸附
+  if (minutes === null || minutes === undefined) { dragPreviewTime.value = ''; return }
+  dragPreviewTime.value = toTime(minutes)
   if (canPlaceAt(minutes)) {
     emit('update:selectedStartTime', toTime(minutes))
     emit('select', toTime(minutes))
@@ -354,8 +420,28 @@ onBeforeUnmount(() => {
 })
 
 // ---- 微调：+/- 1 分钟 ----
+/** 固定档位下按档跳，且只在可用档位之间移动（不会卡在已满档上） */
+function jumpSlot(dir) {
+  const avail = props.slots.filter(s => s.available)
+  if (avail.length === 0) return
+  const cur = toMin(props.selectedStartTime)
+  const idx = avail.findIndex(s => toMin(s.start) === cur)
+  let next
+  if (idx < 0) {
+    next = dir > 0
+      ? (avail.find(s => toMin(s.start) > cur) || avail[avail.length - 1])
+      : ([...avail].reverse().find(s => toMin(s.start) < cur) || avail[0])
+  } else {
+    next = avail[idx + dir]
+  }
+  if (!next) return
+  emit('update:selectedStartTime', next.start)
+  emit('select', next.start)
+}
+
 function adjustTime(delta) {
   if (!props.selectedStartTime) return
+  if (isFixed.value) { jumpSlot(delta > 0 ? 1 : -1); return }
   const cur = toMin(props.selectedStartTime)
   const next = cur + delta
   if (next < toMin(props.openTime)) return
@@ -528,7 +614,7 @@ function adjustTime(delta) {
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(14px) saturate(160%);
   -webkit-backdrop-filter: blur(14px) saturate(160%);
-  color: #4A4A4A; font-size: 12px; font-weight: 700;
+  color: var(--text-1); font-size: 12px; font-weight: 700;
   padding: 4px 14px; border-radius: 16px; white-space: nowrap;
   font-family: 'SF Mono', 'Cascadia Code', monospace;
   border: 1px solid rgba(0,0,0,0.08);
@@ -561,13 +647,13 @@ function adjustTime(delta) {
 .ftp-nudge:hover {
   border-color: rgba(200,130,80,0.40);
   background: rgba(255,255,255,0.85);
-  color: #D4893E;
+  color: var(--color-primary-ink);
   box-shadow: 0 2px 12px rgba(200,130,80,0.12);
 }
 .ftp-nudge:active { transform: scale(0.90); }
 .ftp-time-display {
   font-family: 'SF Mono', 'Cascadia Code', monospace;
-  font-size: 15px; font-weight: 700; color: #D4893E;
+  font-size: 15px; font-weight: 700; color: var(--color-primary-ink);
   min-width: 50px; text-align: center;
   transition: color 0.3s ease;
 }
@@ -590,7 +676,28 @@ function adjustTime(delta) {
   font-weight: 500; display: flex; align-items: center; gap: 6px;
 }
 .ftp-dur { font-size: 11px; color: rgba(0,0,0,0.25); }
-.ftp-warn  { color: #C87878; font-weight: 600; }
+.ftp-warn  { color: var(--color-danger-ink); font-weight: 600; }
+
+/* ═══ 固定档位图层 ═══
+   z-index:2 —— 压在 .ftp-gap 之上、选中块(.ftp-selected-block, z-index:3)之下，
+   选中态的珊瑚高亮仍然在最上层，整体视觉语言与时间轴模式保持一致。 */
+.ftp-slot {
+  position: absolute; top: 3px; height: calc(100% - 6px);
+  z-index: 2; pointer-events: none;
+  transition: background 0.25s ease;
+}
+.ftp-slot.is-avail {
+  background: rgba(255, 255, 255, 0.14);
+  border-left: 1px dashed rgba(160, 140, 100, 0.26);
+}
+.ftp-slot.is-taken {
+  background:
+    repeating-linear-gradient(-40deg, transparent, transparent 4px,
+      rgba(0, 0, 0, 0.05) 4px, rgba(0, 0, 0, 0.05) 8px),
+    rgba(180, 180, 190, 0.30);
+  border-left: 1px solid rgba(0, 0, 0, 0.07);
+}
+.ftp-slot.is-picked { background: rgba(240, 150, 100, 0.18); }
 
 @keyframes ftp-fade-in {
   from { opacity: 0; transform: scale(0.96); }

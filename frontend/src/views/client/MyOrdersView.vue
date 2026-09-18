@@ -6,6 +6,7 @@ import { useClientAuthStore } from '@/stores/clientAuth'
 import { storage, getQueryParam } from '@/utils/storage'
 import { ElMessage } from 'element-plus'
 import FlexibleTimelinePicker from '@/components/client/FlexibleTimelinePicker.vue'
+import AppIllustration from '@/components/shared/AppIllustration.vue'
 
 const router = useRouter()
 const store = useOrderStore()
@@ -232,7 +233,7 @@ function goBooking() {
 </script>
 
 <template>
-  <div class="my-orders fade-in-up" style="max-width:520px;margin:0 auto;padding:0 0 20px;">
+  <div class="my-orders fade-in-up page page--form">
     <!-- 加载中 -->
     <div v-if="loading" class="loading-state">加载中...</div>
 
@@ -305,7 +306,7 @@ function goBooking() {
 
     <!-- 空状态 -->
     <div v-else class="empty-state">
-      <div class="empty-icon">📭</div>
+      <AppIllustration name="empty-no-orders" :width="180" alt="暂无订单" />
       <p class="empty-title">您还没有订单</p>
       <p class="empty-sub">快去预约一个心仪的项目吧</p>
       <button class="empty-btn" @click="goBooking">去预约</button>
@@ -359,7 +360,7 @@ function goBooking() {
             原时间：{{ reschedModalOrder.date }} {{ reschedModalOrder.bookingStartTime }}—{{ reschedModalOrder.bookingEndTime }}
           </p>
 
-          <div v-if="reschedLoading" style="text-align:center;padding:20px;color:#8E8E8E;">加载时间轴...</div>
+          <div v-if="reschedLoading" style="text-align:center;padding:20px;color:var(--text-3);">加载时间轴...</div>
           <FlexibleTimelinePicker
             v-else
             :open-time="reschedBaseStart"
@@ -391,7 +392,7 @@ function goBooking() {
         <div class="modal-box">
           <h3>确认取消</h3>
           <p class="modal-sub">您确定要申请取消此订单吗？</p>
-          <p class="modal-sub" style="font-size:11px;color:#8E8E8E;">
+          <p class="modal-sub" style="font-size:11px;color:var(--text-3);">
             {{ cancelModalOrder.studioTitle }} / {{ cancelModalOrder.date }}
           </p>
           <div class="modal-actions">
@@ -410,95 +411,103 @@ function goBooking() {
 .my-orders { min-height: 60vh; }
 
 /* ─── 加载 ─── */
-.loading-state { text-align: center; padding: 80px 0; color: #8E8E8E; font-size: 14px; }
+.loading-state { text-align: center; padding: 80px 0; color: var(--text-3); font-size: 14px; }
 
-/* ─── 订单卡片 ─── */
+/* ─── 订单卡片 ───
+   宫格/列表项不加 backdrop-filter：一屏多张时是纯粹的 GPU 浪费，
+   半透明由 --surface-1 的 alpha 合成提供。 */
 .order-card {
-  margin: 10px 14px; padding: 16px; border-radius: 16px;
-  background: rgba(255,255,255,0.72); backdrop-filter: blur(12px);
-  border: 1px solid rgba(180,185,182,0.18);
-  box-shadow: 0 2px 8px rgba(120,130,125,0.03);
-  transition: all 0.15s;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  border: 1px solid var(--glass-hairline);
+  box-shadow: var(--shadow-1);
+  transition: box-shadow var(--duration-2) var(--ease-out);
 }
 
 .card-top {
   display: flex; justify-content: space-between; align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
-.card-title { font-size: 15px; font-weight: 700; color: #3A3A4A; }
+.card-title { font-size: 15px; font-weight: 700; color: var(--text-1); }
 
 .card-badge {
-  font-size: 10px; font-weight: 700; padding: 3px 10px;
-  border-radius: 12px; white-space: nowrap; flex-shrink: 0;
+  font-size: 11px; font-weight: 700; padding: 2px 10px;
+  border-radius: var(--radius-pill); white-space: nowrap; flex-shrink: 0;
 }
-.s-pending { background: #FFF3E0; color: #E67E22; }
-.s-active  { background: #E3F2FD; color: #1976D2; }
-.s-done    { background: #E8F5E9; color: #388E3C; }
-.s-cancel  { background: #F5F5F5; color: #999; }
-.s-warn    { background: #FFF8E1; color: #F9A825; }
+/* 状态徽章全部改为「tint 底 + ink 字」，原先用的是 Material 色板
+   （#1976D2 / #388E3C / #F9A825…），与暖杏体系断裂且对比度未校准。 */
+.s-pending { background: var(--color-warning-tint); color: var(--color-warning-ink); }
+.s-active  { background: var(--color-info-tint);    color: var(--color-info-ink); }
+.s-done    { background: var(--color-success-tint); color: var(--color-success-ink); }
+.s-cancel  { background: var(--color-neutral-tint); color: var(--color-neutral-ink); }
+.s-warn    { background: var(--color-danger-tint);  color: var(--color-danger-ink); }
 
 .card-meta {
-  display: flex; gap: 12px; flex-wrap: wrap;
-  font-size: 12px; color: #8E8E8E; margin-bottom: 8px;
+  display: flex; gap: var(--space-3); flex-wrap: wrap;
+  font-size: 12px; color: var(--text-3); margin-bottom: var(--space-2);
 }
-.card-time { color: #5a7a65; font-weight: 600; }
+.card-time { color: var(--color-primary-ink); font-weight: 600; }
 
 .card-footer {
   display: flex; justify-content: space-between; align-items: center;
   font-size: 12px; margin-bottom: 4px;
 }
-.card-price { color: #6E6E73; }
-.card-price strong { font-size: 14px; color: #D4893E; }
-.card-deposit { color: #B0B0B0; }
-.card-no { font-size: 10px; color: #C0C0C0; font-family: monospace; }
+.card-price { color: var(--text-3); }
+.card-price strong { font-size: 14px; color: var(--color-primary-ink); }
+.card-deposit { color: var(--text-3); }
+.card-no { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
 
 .card-reschedule {
-  margin-top: 6px; padding: 6px 10px; border-radius: 8px;
-  background: #FFF8E1; color: #F9A825; font-size: 11px; font-weight: 500;
+  margin-top: 6px; padding: 6px 10px; border-radius: var(--radius-sm);
+  background: var(--color-warning-tint); color: var(--color-warning-ink);
+  font-size: 11px; font-weight: 600;
 }
 .card-reviewing {
-  margin-top: 6px; padding: 6px 10px; border-radius: 8px;
-  background: #F5F5F5; color: #999; font-size: 12px; text-align: center;
+  margin-top: 6px; padding: 6px 10px; border-radius: var(--radius-sm);
+  background: var(--color-neutral-tint); color: var(--color-neutral-ink);
+  font-size: 12px; text-align: center;
 }
 
 /* ─── 操作按钮 ─── */
 .card-actions {
   display: flex; gap: 8px; margin-top: 10px; padding-top: 10px;
-  border-top: 1px solid #F0EDE8;
+  border-top: 1px solid var(--border-subtle);
 }
 .act-btn {
-  flex: 1; padding: 8px 0; border-radius: 10px; border: 1px solid #E8E5DF;
+  flex: 1; padding: 8px 0; border-radius: var(--radius-sm); border: 1px solid var(--border-color);
   font-size: 12px; font-weight: 600; cursor: pointer;
-  background: #fff; font-family: inherit;
+  background: var(--surface-solid); font-family: inherit;
   transition: all 0.15s;
 }
 .act-btn:active { transform: scale(0.96); }
-.act-pay     { color: #D4893E; border-color: #F4A460; }
-.act-pay:hover:not(:disabled) { background: #FEF7EF; }
-.act-resched { color: #5a7a65; }
-.act-resched:hover:not(:disabled) { background: #e8f0eb; }
-.act-cancel  { color: #C87878; border-color: rgba(200,120,120,0.3); }
-.act-cancel:hover:not(:disabled) { background: #FDF2F2; }
+.act-pay     { color: var(--color-primary-ink); border-color: var(--color-primary); }
+.act-pay:hover:not(:disabled) { background: var(--color-primary-tint); }
+.act-resched { color: var(--color-primary-ink); }
+.act-resched:hover:not(:disabled) { background: var(--color-primary-tint); }
+.act-cancel  { color: var(--color-danger-ink); border-color: rgba(200,120,120,0.3); }
+.act-cancel:hover:not(:disabled) { background: var(--color-danger-tint); }
 .act-btn:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ─── 已取消订单区域 ─── */
 .cancelled-section { margin-top: 20px; }
 .cancelled-header {
   margin: 0 14px 8px; font-size: 12px; font-weight: 600;
-  color: #B0B0B0; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px;
 }
 .order-card.cancelled { opacity: 0.55; }
 
 /* ─── 空状态 ─── */
 .empty-state { text-align: center; padding: 80px 20px; }
 .empty-icon { font-size: 56px; margin-bottom: 12px; }
-.empty-title { font-size: 16px; font-weight: 700; color: #4A4A4A; margin-bottom: 4px; }
-.empty-sub { font-size: 13px; color: #8E8E8E; margin-bottom: 20px; }
+.empty-title { font-size: 16px; font-weight: 700; color: var(--text-1); margin-bottom: 4px; }
+.empty-sub { font-size: 13px; color: var(--text-3); margin-bottom: 20px; }
 .empty-btn {
-  padding: 10px 32px; border-radius: 24px; border: none;
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
-  font-family: inherit; box-shadow: 0 4px 16px rgba(244,164,96,0.22);
+  padding: 10px 32px; border-radius: var(--radius-btn); border: none;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: var(--text-on-primary); font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: inherit; box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.22);
 }
 
 /* ─── 弹窗 ─── */
@@ -507,38 +516,38 @@ function goBooking() {
   background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;
 }
 .modal-box {
-  background: #fff; border-radius: 20px; padding: 28px 24px;
+  background: var(--surface-solid); border-radius: var(--radius-modal); padding: var(--space-6) var(--space-5);
   max-width: 380px; width: 90%; max-height: 85vh; overflow-y: auto;
 }
 .modal-wide { max-width: 480px; }
 .modal-box h3 { font-size: 18px; margin-bottom: 8px; text-align: center; }
-.modal-sub { font-size: 13px; color: #8E8E8E; margin-bottom: 12px; text-align: center; }
+.modal-sub { font-size: 13px; color: var(--text-3); margin-bottom: 12px; text-align: center; }
 .modal-amount {
   font-size: 28px; font-weight: 800; text-align: center; margin: 10px 0;
-  color: #D4893E;
+  color: var(--color-primary-ink);
 }
 
 .modal-qr { text-align: center; margin: 12px 0; }
-.qr-img { max-width: 200px; border-radius: 12px; border: 1px solid #F0EDE8; }
-.qr-img-sm { width: 110px; border-radius: 10px; border: 1px solid #F0EDE8; }
+.qr-img { max-width: 200px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--surface-solid); }
+.qr-img-sm { width: 110px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: var(--surface-solid); }
 .qr-dual { display: flex; gap: 12px; justify-content: center; }
 .qr-tag { font-size: 11px; font-weight: 600; margin-top: 4px; }
-.qr-tag.alipay { color: #1677ff; }
-.qr-tag.wechat { color: #07c160; }
-.qr-hint { font-size: 11px; color: #8E8E8E; margin-top: 8px; }
-.modal-no-qr { text-align: center; padding: 24px; color: #8E8E8E; font-size: 13px; }
+.qr-tag.alipay { color: var(--color-info-ink); }
+.qr-tag.wechat { color: var(--color-success-ink); }
+.qr-hint { font-size: 11px; color: var(--text-3); margin-top: 8px; }
+.modal-no-qr { text-align: center; padding: 24px; color: var(--text-3); font-size: 13px; }
 
 .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
 .modal-actions .act-btn { flex: 1; padding: 12px; font-size: 14px; }
 
 .modal-close-btn {
   display: block; width: 100%; margin-top: 12px; padding: 10px;
-  border: 1px solid #E8E5DF; border-radius: 12px;
-  background: #fff; font-size: 14px; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--border-color); border-radius: 12px;
+  background: var(--surface-solid); font-size: 14px; cursor: pointer; font-family: inherit;
 }
 
 .resched-err {
   margin-top: 8px; padding: 8px 12px; border-radius: 8px;
-  background: #FDF2F2; color: #C87878; font-size: 12px; text-align: center;
+  background: var(--color-danger-tint); color: var(--color-danger-ink); font-size: 12px; text-align: center;
 }
 </style>

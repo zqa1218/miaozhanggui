@@ -317,7 +317,7 @@ function stepUp(refKey, step = 0.01) {
           <div class="field">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
               <label class="field-label">附加项目</label>
-              <span style="font-size:11px;color:#8e8e93;">{{ form.additionalItems.length }} 个项目</span>
+              <span style="font-size:11px;color:var(--text-3);">{{ form.additionalItems.length }} 个项目</span>
             </div>
 
             <div v-for="(item, idx) in form.additionalItems" :key="idx" class="addon-box" style="margin-bottom:10px;">
@@ -436,7 +436,7 @@ function stepUp(refKey, step = 0.01) {
           <div class="field">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
               <label class="field-label">套餐配置</label>
-              <span style="font-size:11px;color:#8e8e93;">{{ form.packages.length }} 个套餐</span>
+              <span style="font-size:11px;color:var(--text-3);">{{ form.packages.length }} 个套餐</span>
             </div>
 
             <div v-for="(pkg, idx) in form.packages" :key="idx" class="package-box" style="margin-bottom:12px;">
@@ -529,7 +529,7 @@ function stepUp(refKey, step = 0.01) {
   --ink:         #1d1d1f;
   --ink-soft:    #3a3a3f;
   --ash:         #6e6e73;
-  --ash-light:   #8e8e93;
+  --ash-light:   var(--text-3);
   --line:        rgba(180,185,182,.16);
   --line-solid:  #e5e5ea;
   --white-60:    rgba(255,255,255,.60);
@@ -807,8 +807,8 @@ function stepUp(refKey, step = 0.01) {
   width: 10px; height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: var(--dot-color, #8aab96);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--dot-color, #8aab96) 40%, transparent);
+  background: var(--dot-color);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--dot-color) 40%, transparent);
 }
 .panel-heading {
   font-size: 16px;
@@ -943,7 +943,7 @@ function stepUp(refKey, step = 0.01) {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  color: #fff;
+  color: var(--text-on-primary);
   background: linear-gradient(135deg, #8aab96, #9bb8a6);
   box-shadow: 0 3px 14px rgba(138,171,150,.22);
   transition: all 0.25s var(--ease-apple);
@@ -1061,7 +1061,7 @@ function stepUp(refKey, step = 0.01) {
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
-  color: #5a7a65;
+  color: var(--color-primary-ink);
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s var(--ease-apple);
@@ -1201,7 +1201,7 @@ function stepUp(refKey, step = 0.01) {
   top: 3px; left: 3px;
   width: 24px; height: 24px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface-solid);
   box-shadow: 0 2px 6px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.02);
   transition: transform 0.4s var(--ease-spring);
   display: flex;
@@ -1342,7 +1342,7 @@ function stepUp(refKey, step = 0.01) {
 
 .btn-submit {
   flex: 2.2;
-  color: #fff;
+  color: var(--text-on-primary);
   background: linear-gradient(135deg, #8aab96 0%, #9bb8a6 100%);
   box-shadow: 0 4px 20px rgba(138,171,150,.24), 0 1px 3px rgba(0,0,0,.03);
 }

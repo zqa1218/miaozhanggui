@@ -2,7 +2,7 @@
   <div class="styles-view fade-in-up">
     <div class="section-box">
       <div class="section-header">
-        <h3><i class="fa-solid fa-palette"></i> 预设管理</h3>
+        <h3><el-icon><Brush /></el-icon> 预设管理</h3>
         <el-button type="primary" size="small" @click="openAdd">新增预设</el-button>
       </div>
 
@@ -20,7 +20,10 @@
             <el-button size="small" type="danger" @click="handleDelete(item.id)">删除</el-button>
           </div>
         </div>
-        <div v-if="!store.styles.length" class="empty-state">暂无预设，点击右上角新增</div>
+        <div v-if="!store.styles.length" class="empty-state">
+          <AppIllustration name="empty-no-presets" :width="150" />
+          <p>暂无预设，点击右上角新增</p>
+        </div>
       </template>
     </div>
 
@@ -125,7 +128,7 @@
                   <div class="pkg-card-bar">
                     <span class="pkg-card-num">套餐 {{ idx + 1 }}</span>
                     <el-button size="small" class="pkg-del-btn" @click="removePackage(idx)">
-                      🗑️ 删除此套餐
+                      <SvgIcon name="icon-trash" :size="14" />删除此套餐
                     </el-button>
                   </div>
 
@@ -158,7 +161,7 @@
               </TransitionGroup>
 
               <el-button class="pkg-add-btn" @click="addPackage">
-                ➕ 添加新套餐
+                <SvgIcon name="icon-plus" :size="16" />添加新套餐
               </el-button>
             </div>
           </el-card>
@@ -252,10 +255,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { Brush } from '@element-plus/icons-vue'
 import { useStyleStore } from '@/stores/style'
 import { storage } from '@/utils/storage'
 import { ElMessageBox } from 'element-plus'
 import { validateImageFile } from '@/utils/validateFile'
+import SvgIcon from '@/components/shared/SvgIcon.vue'
+import AppIllustration from '@/components/shared/AppIllustration.vue'
 
 const store = useStyleStore()
 const mId = ref(storage.get('mzg_admin_mid', ''))
@@ -464,22 +470,22 @@ async function handleDelete(id) {
 
 <style scoped>
 .styles-view { max-width: 900px; margin: 0 auto; }
-.section-box { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+.section-box { background: var(--surface-solid); border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .section-header h3 { font-size: 16px; display: flex; align-items: center; gap: 6px; }
-.style-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; margin-bottom: 8px; border: 1px solid #F0EDE8; background: #fff; }
+.style-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 14px; margin-bottom: 8px; border: 1px solid var(--border-subtle); background: var(--surface-solid); }
 .style-cover { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
 .style-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.style-price { color: #5a7a65; font-weight: 600; font-size: 13px; }
+.style-price { color: var(--color-primary-ink); font-weight: 600; font-size: 13px; }
 .style-package { color: #8a7040; font-size: 13px; }
 .style-actions { display: flex; gap: 6px; }
-.loading-wrap, .empty-state { text-align: center; padding: 40px; color: #8E8E8E; }
+.loading-wrap, .empty-state { text-align: center; padding: 40px; color: var(--text-3); }
 
 /* ── 全屏弹窗 ── */
 .dialog-body {
   display: flex;
   justify-content: center;
-  background: #F9F8F6;
+  background: var(--bg-page);
   min-height: 100%;
   padding: 24px;
 }
@@ -491,12 +497,12 @@ async function handleDelete(id) {
 .form-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
 }
 .form-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-table-stripe);
   border-radius: 12px 12px 0 0;
 }
 .form-card :deep(.el-card__body) {
@@ -505,7 +511,7 @@ async function handleDelete(id) {
 .card-hd {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
 }
 
 :deep(.el-form-item) {
@@ -513,26 +519,26 @@ async function handleDelete(id) {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-1);
   min-width: 120px;
 }
 
 .unit {
   margin-left: 8px;
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-3);
 }
 
 /* 上传 */
 .upload-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .file-picker { flex: 1; min-width: 180px; font-size: 12px; }
-.file-hint { font-size: 12px; color: #B8933E; margin-top: 4px; }
-.upload-ok { font-size: 12px; color: #5A8A6A; margin-top: 4px; }
-.upload-err { font-size: 12px; color: #EFA8A8; margin-top: 4px; }
+.file-hint { font-size: 12px; color: var(--color-warning-ink); margin-top: 4px; }
+.upload-ok { font-size: 12px; color: var(--color-success-ink); margin-top: 4px; }
+.upload-err { font-size: 12px; color: var(--color-danger-ink); margin-top: 4px; }
 .cover-preview {
   max-width: 240px; max-height: 160px; display: block;
   margin-top: 8px; border-radius: 10px; object-fit: cover;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
 }
 
 /* ── 套餐配置区域 ── */
@@ -544,10 +550,10 @@ async function handleDelete(id) {
   margin-bottom: 12px;
 }
 .packages-section-title {
-  font-size: 14px; font-weight: 700; color: #4A4A4A;
+  font-size: 14px; font-weight: 700; color: var(--text-1);
 }
 .packages-section-hint {
-  font-size: 12px; color: #B0B0B0;
+  font-size: 12px; color: var(--text-3);
 }
 
 /* 套餐卡片 */
@@ -555,7 +561,7 @@ async function handleDelete(id) {
   display: flex; flex-direction: column; gap: 12px;
 }
 .pkg-card {
-  border: 1px solid #F0EDE8; border-radius: 12px;
+  border: 1px solid var(--border-subtle); border-radius: 12px;
   background: #FAFAF8; overflow: hidden;
   transition: all 0.3s ease;
 }
@@ -565,8 +571,8 @@ async function handleDelete(id) {
 .pkg-card-bar {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #FDFBF7, #F9F5F0);
-  border-bottom: 1px solid #F0EDE8;
+  background: linear-gradient(135deg, var(--bg-table-stripe), #F9F5F0);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .pkg-card-num {
   font-size: 12px; font-weight: 700; color: #8a7040;
@@ -583,23 +589,23 @@ async function handleDelete(id) {
   margin-bottom: 12px;
 }
 .pkg-card-body :deep(.el-form-item__label) {
-  font-size: 12px; color: #8E8E8E; font-weight: 600;
+  font-size: 12px; color: var(--text-3); font-weight: 600;
 }
 
 /* 添加按钮 */
 .pkg-add-btn {
   width: 100%; margin-top: 10px;
-  border: 2px dashed #E0D8CC !important;
+  border: 1px dashed var(--border-strong) !important;
   background: transparent !important;
-  color: #8a7040 !important;
+  color: var(--color-primary-ink) !important;
   font-size: 14px !important; font-weight: 600 !important;
   padding: 12px !important; border-radius: 12px !important;
   transition: all 0.2s !important;
 }
 .pkg-add-btn:hover {
-  border-color: #D4893E !important;
-  background: #FEF7EF !important;
-  color: #D4893E !important;
+  border-color: var(--color-primary-ink) !important;
+  background: var(--color-primary-tint) !important;
+  color: var(--color-primary-ink) !important;
 }
 
 /* 卡片列表过渡动画 */

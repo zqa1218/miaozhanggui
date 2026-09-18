@@ -107,12 +107,12 @@ function disabledDate(time) {
 .step-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
 }
 .step-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-table-stripe);
   border-radius: 12px 12px 0 0;
 }
 .step-card :deep(.el-card__body) {
@@ -122,7 +122,7 @@ function disabledDate(time) {
 .card-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
 }
 
 /* 日期选择区 */
@@ -138,7 +138,7 @@ function disabledDate(time) {
 }
 
 /* 通用 */
-.hint { font-size: 12px; color: #B0B0B0; }
+.hint { font-size: 12px; color: var(--text-3); }
 
 /* 统一 el-form-item 间距 */
 :deep(.el-form-item) {
@@ -146,7 +146,7 @@ function disabledDate(time) {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-1);
 }
 
 /* 底部操作栏 */

@@ -40,6 +40,31 @@ function findRestSlots(studioId) {
   return knex('studio_rest_slots').where('studio_id', studioId).select('start_time', 'end_time');
 }
 
+/**
+ * 查询商户名下所有项目的休息时段（去重）。
+ * 商家级排期看板不区分项目，同一时段被多个项目共用时只应出现一次。
+ */
+function findRestSlotsByMerchant(mId) {
+  return knex('studio_rest_slots as srs')
+    .join('studios as s', 'srs.studio_id', 's.id')
+    .where({ 's.m_id': mId, 's.is_deleted': false })
+    .distinct('srs.start_time', 'srs.end_time');
+}
+
+/**
+ * 商户名下所有项目的营业时间窗口（最早开始 ~ 最晚结束）。
+ * 与 findActiveStudios 用同一套取值表达式，保证"营业时间"全站含义一致。
+ */
+function findBusinessHoursByMerchant(mId) {
+  return knex(TABLE)
+    .where({ m_id: mId, is_deleted: false })
+    .select(
+      knex.raw("MIN(COALESCE(NULLIF(base_start_time, ''), open_time, '09:00:00')) as start_time"),
+      knex.raw("MAX(COALESCE(NULLIF(base_end_time, ''), close_time, '21:00:00')) as end_time")
+    )
+    .first();
+}
+
 /** 获取所有活跃工作室的简要信息（用于可用性计算） */
 function findActiveStudios() {
   return knex(TABLE)
@@ -141,7 +166,7 @@ module.exports = {
   findAllByMerchant, findActiveStudios, findBookedSlotsByDate, findUnavailableSlotsByDate, findStudiosOpenOnDate,
   findAllPublic, findDistinctCities,
   findById, findByIdAndMerchant, findWithStyles,
-  findAvailabilities, findRestSlots,
+  findAvailabilities, findRestSlots, findRestSlotsByMerchant, findBusinessHoursByMerchant,
   create, update, softDelete,
   insertStyleRelations, deleteStyleRelations,
   replaceAvailabilities, replaceRestSlots,

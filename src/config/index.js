@@ -36,11 +36,17 @@ const config = {
     origins: (process.env.CORS_ORIGINS || 'http://localhost:8080,http://127.0.0.1:8080').split(','),
   },
 
+  // 图片出口公网前缀（DB 仍存相对路径，响应出口拼接，为空则保持相对路径）
+  assetBaseUrl: process.env.ASSET_BASE_URL || '',
+
   wechat: {
     appId: process.env.WECHAT_APPID || '',
     secret: process.env.WECHAT_SECRET || '',
     mchId: process.env.WECHAT_MCHID || '',
     apiKey: process.env.WECHAT_API_KEY || '',
+    // 小程序（与网页 WECHAT_APPID/SECRET 独立）
+    mpAppId: process.env.WECHAT_MP_APPID || '',
+    mpSecret: process.env.WECHAT_MP_SECRET || '',
   },
 };
 

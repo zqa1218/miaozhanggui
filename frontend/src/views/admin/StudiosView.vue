@@ -113,9 +113,9 @@ async function handleDelete(id) {
    卡片
    ═══════════════════════════════════════════ */
 .studio-card {
-  background: #fff;
+  background: var(--surface-solid);
   border-radius: 20px; overflow: hidden;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
   box-shadow: 0 2px 8px rgba(0,0,0,.03);
   display: flex; flex-direction: column;
   transition: box-shadow 0.2s, transform 0.2s;
@@ -126,7 +126,7 @@ async function handleDelete(id) {
 .card-cover {
   position: relative; width: 100%; padding-top: 65%;
   overflow: hidden;
-  background: linear-gradient(135deg, #FEFBF6, #F0F4F8);
+  background: linear-gradient(135deg, var(--color-primary-tint), var(--color-sky-light));
 }
 .card-cover img {
   position: absolute; top: 0; left: 0;
@@ -137,7 +137,7 @@ async function handleDelete(id) {
   position: absolute; top: 0; left: 0;
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 36px; color: #b8c5bb;
+  font-size: 36px; color: var(--color-primary-dark);
 }
 
 /* 信息区 */
@@ -150,7 +150,7 @@ async function handleDelete(id) {
   line-height: 1.3;
 }
 .card-desc {
-  font-size: 12px; color: #8e8e93; line-height: 1.5;
+  font-size: 12px; color: var(--text-3); line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -158,9 +158,9 @@ async function handleDelete(id) {
 }
 .card-meta {
   display: flex; flex-wrap: wrap; gap: 10px;
-  font-size: 11px; color: #8e8e93;
+  font-size: 11px; color: var(--text-3);
 }
-.card-meta i { color: #b0b5b2; }
+.card-meta i { color: var(--text-3); }
 
 .card-chips {
   display: flex; flex-wrap: wrap; gap: 5px;
@@ -171,7 +171,7 @@ async function handleDelete(id) {
   font-weight: 600;
 }
 .chip-style { background: rgba(138,158,201,0.12); color: #5a7a96; }
-.chip-price { background: rgba(125,158,138,0.12); color: #5a7a65; }
+.chip-price { background: rgba(125,158,138,0.12); color: var(--color-primary-ink); }
 
 /* 底部操作 */
 .card-actions {
@@ -180,5 +180,5 @@ async function handleDelete(id) {
 }
 .card-actions .el-button { flex: 1; }
 
-.loading-wrap, .empty-state { text-align: center; padding: 40px; color: #8e8e93; }
+.loading-wrap, .empty-state { text-align: center; padding: 40px; color: var(--text-3); }
 </style>

@@ -157,12 +157,12 @@ async function handleSubmit() {
 .step-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
 }
 .step-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-table-stripe);
   border-radius: 12px 12px 0 0;
 }
 .step-card :deep(.el-card__body) {
@@ -172,27 +172,27 @@ async function handleSubmit() {
 .card-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
 }
 
 /* 样式选项 */
 .style-option {
   margin-bottom: 6px;
   padding: 10px 14px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   transition: border-color 0.2s;
 }
 .style-option:hover {
-  border-color: #F4A460;
+  border-color: var(--color-primary);
 }
 
 /* 通用 */
-.hint { font-size: 12px; color: #B0B0B0; }
+.hint { font-size: 12px; color: var(--text-3); }
 .unit-suffix {
   margin-left: 8px;
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-3);
 }
 
 /* 统一 el-form-item 间距 */
@@ -201,7 +201,7 @@ async function handleSubmit() {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-1);
 }
 
 /* 底部操作栏 */

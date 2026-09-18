@@ -10,6 +10,10 @@ const redis = new Redis({
     return Math.min(times * 200, 3000);
   },
   lazyConnect: true,
+  // Redis 不可用时快速失败（不排队、不阻塞业务），由调用方降级到 MySQL/内存
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: 1,
+  connectTimeout: 2000,
 });
 
 redis.on('connect', () => console.log('[Redis]  连接成功'));

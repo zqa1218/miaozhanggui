@@ -278,7 +278,7 @@ function goBack() {
 .step-title {
   font-size: 20px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
   margin-bottom: 20px;
 }
 
@@ -286,12 +286,12 @@ function goBack() {
 .step-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
 }
 .step-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-table-stripe);
   border-radius: 12px 12px 0 0;
 }
 .step-card :deep(.el-card__body) {
@@ -300,7 +300,7 @@ function goBack() {
 .card-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
 }
 
 /* 表单项 */
@@ -311,7 +311,7 @@ function goBack() {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-1);
   min-width: 110px;
 }
 
@@ -327,8 +327,8 @@ function goBack() {
   justify-content: center;
   width: 18px; height: 18px;
   border-radius: 50%;
-  background: #F4F2EE;
-  color: #B0B0B0;
+  background: var(--color-disabled-bg);
+  color: var(--text-3);
   font-size: 11px;
   font-weight: 700;
   cursor: help;
@@ -338,10 +338,10 @@ function goBack() {
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
-  background: #EDF6F0;
+  background: var(--color-mint-light);
   border: 1px solid rgba(168,216,185,0.30);
   border-radius: 10px;
-  color: #5A8A6A;
+  color: var(--color-success-ink);
   font-size: 14px;
   font-weight: 500;
   margin-top: 8px;
@@ -352,8 +352,8 @@ function goBack() {
   justify-content: center;
   width: 22px; height: 22px;
   border-radius: 50%;
-  background: #A8D8B9;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-success-ink);
   font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
@@ -372,7 +372,7 @@ function goBack() {
 }
 .field-hint {
   font-size: 12px;
-  color: #B0B0B0;
+  color: var(--text-3);
 }
 
 /* 上传 */
@@ -384,17 +384,17 @@ function goBack() {
 }
 .upload-hint {
   font-size: 12px;
-  color: #B8933E;
+  color: var(--color-warning-ink);
   margin-top: 4px;
 }
 .msg-success {
   font-size: 12px;
-  color: #5A8A6A;
+  color: var(--color-success-ink);
   margin-top: 4px;
 }
 .msg-error {
   font-size: 12px;
-  color: #EFA8A8;
+  color: var(--color-danger-ink);
   margin-top: 4px;
 }
 .cover-preview {
@@ -402,7 +402,7 @@ function goBack() {
   display: block;
   margin-top: 10px;
   border-radius: 10px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
 }
 
 /* 详情图网格 */
@@ -421,13 +421,13 @@ function goBack() {
   height: 80px;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
 }
 .detail-del {
   position: absolute;
   top: -6px; right: -6px;
-  background: #EFA8A8;
-  color: #fff;
+  background: var(--color-danger);
+  color: var(--color-danger-ink);
   border: none;
   border-radius: 50%;
   width: 20px; height: 20px;
@@ -444,8 +444,8 @@ function goBack() {
 .detail-arrows button {
   font-size: 10px;
   padding: 1px 5px;
-  border: 1px solid #E8E5DF;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  background: var(--surface-solid);
   border-radius: 4px;
   cursor: pointer;
 }

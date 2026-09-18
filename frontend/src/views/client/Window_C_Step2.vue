@@ -2,8 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWizardCStore } from '@/stores/wizardC'
+import { ChatDotRound, ChatLineRound, Iphone, Link } from '@element-plus/icons-vue'
 import { storage, getQueryParam } from '@/utils/storage'
 import DeclarationDialog from '@/components/shared/DeclarationDialog.vue'
+import SvgIcon from '@/components/shared/SvgIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,11 +27,13 @@ onMounted(() => {
 
 // ── 表单 ──
 const roleName = ref(wizardC.roleName || '')
+// icon 由 Font Awesome 类名改为组件引用：项目从未引入 FA，这四个图标
+// 在此之前全部渲染为空白（联系方式是结账页的必填项）。
 const CONTACT_TYPES = [
-  { key: 'qq',     label: 'QQ',       icon: 'fa-brands fa-qq',         placeholder: '请输入QQ号' },
-  { key: 'wechat', label: '微信',     icon: 'fa-brands fa-weixin',     placeholder: '请输入微信号' },
-  { key: 'phone',  label: '手机号',   icon: 'fa-solid fa-mobile-alt',  placeholder: '请输入手机号' },
-  { key: 'other',  label: '其他',     icon: 'fa-solid fa-globe',       placeholder: '请备注网站/平台名称' },
+  { key: 'qq',     label: 'QQ',       icon: ChatDotRound, placeholder: '请输入QQ号' },
+  { key: 'wechat', label: '微信',     icon: ChatLineRound, placeholder: '请输入微信号' },
+  { key: 'phone',  label: '手机号',   icon: Iphone,       placeholder: '请输入手机号' },
+  { key: 'other',  label: '其他',     icon: Link,         placeholder: '请备注网站/平台名称' },
 ]
 const contactType = ref(wizardC.contactType || '')
 const contactValue = ref(wizardC.contactValue || '')
@@ -217,8 +221,8 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
 </script>
 
 <template>
-  <div class="c-step2 fade-in-up" style="max-width:520px;margin:0 auto;padding:0 0 30px;">
-    <h1 style="font-size:18px;padding:12px 14px;color:var(--text-primary,#333);">确认信息与支付定金</h1>
+  <div class="c-step2 fade-in-up page page--form">
+    <h1 style="font-size:18px;padding:12px 14px;color:var(--text-primary);">确认信息与支付定金</h1>
 
     <!-- ★ 支付成功 — 等待商家核账 -->
     <div v-if="orderResult" class="success-panel">
@@ -260,7 +264,7 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
       </div>
 
       <p class="lock-notice">时段已预锁 · 摄影师核对流水后将正式确认</p>
-      <button class="btn-primary" @click="goHome" style="margin-top:12px;">返回首页</button>
+      <button class="btn-primary btn--block" @click="goHome" style="margin-top:12px;">返回首页</button>
     </div>
 
     <template v-else>
@@ -292,12 +296,12 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
       <div class="section">
         <div class="section-title">角色与联系信息</div>
         <div class="input-row">
-          <label>角色名称 <span style="color:var(--danger,#c98a8a);">*</span></label>
+          <label>角色名称 <span style="color:var(--danger);">*</span></label>
           <input v-model="roleName" placeholder="请填写您要出的角色名称（必填）" maxlength="256" class="input-field" style="width:100%;" />
         </div>
         <!-- 联系方式类型选择 -->
-        <label style="display:block;font-size:12px;color:var(--sub,#999);margin-bottom:6px;">
-          联系方式 <span style="color:var(--danger,#c98a8a);">*</span>
+        <label style="display:block;font-size:12px;color:var(--sub);margin-bottom:6px;">
+          联系方式 <span style="color:var(--danger);">*</span>
         </label>
         <div class="contact-type-row">
           <button
@@ -305,7 +309,7 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
             :class="['contact-type-card', { active: contactType === ct.key }]"
             @click="contactType = ct.key"
           >
-            <i :class="ct.icon" style="margin-right:4px;"></i>{{ ct.label }}
+            <el-icon style="margin-right:4px;"><component :is="ct.icon" /></el-icon>{{ ct.label }}
           </button>
         </div>
         <div class="input-row" style="margin-top:8px;">
@@ -323,7 +327,7 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
 
       <!-- ★ 角色人设图 -->
       <div class="section">
-        <div class="section-title">🖼️ 角色人设图 <span class="opt-tag">可选，限1张</span></div>
+        <div class="section-title"><SvgIcon name="icon-picture" :size="16" />角色人设图 <span class="opt-tag">可选，限1张</span></div>
         <div v-if="!characterImage" class="upload-card" @click="$refs.charInput.click()">
           <span v-if="characterImageUploading" class="upload-spin">⏳ 上传中...</span>
           <span v-else>点击上传角色人设图</span>
@@ -337,7 +341,7 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
 
       <!-- ★ 参考动作图 -->
       <div class="section">
-        <div class="section-title">📸 参考动作图 <span class="opt-tag">可选，最多6张</span></div>
+        <div class="section-title"><SvgIcon name="icon-camera" :size="16" />参考动作图 <span class="opt-tag">可选，最多6张</span></div>
         <div class="ref-grid">
           <div v-for="(url, i) in referenceImages" :key="url" class="ref-thumb-wrap">
             <img :src="url" class="ref-thumb" />
@@ -352,7 +356,7 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
         <div class="ref-count">{{ referenceImages.length }} / 6</div>
       </div>
 
-      <div v-if="errorMsg" class="error-bar">❌ {{ errorMsg }}</div>
+      <div v-if="errorMsg" class="error-bar"><SvgIcon name="icon-circle-exclamation" :size="15" />{{ errorMsg }}</div>
 
       <div style="padding:10px 14px 20px;display:flex;gap:10px;">
         <button class="btn-secondary" @click="goBack" style="flex:1;">← 上一步</button>
@@ -412,57 +416,56 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
 </template>
 
 <style scoped>
-/* ─── 区块 ─── */
-.section {
-  background: rgba(255,255,255,0.72); backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  margin: 10px 14px; border-radius: 18px; padding: 14px;
-  box-shadow: 0 4px 20px rgba(120,130,125,0.04);
-  border: 1px solid rgba(180,185,182,0.18);
-}
+/* ─── 区块 ───
+   .section 的玻璃外观已由 theme.css 统一定义。此处不再重定义。 */
 .section-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
 .input-row { margin-bottom: 10px; }
-.input-row label { display: block; font-size: 12px; color: var(--sub, #999); margin-bottom: 4px; }
+.input-row label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 4px; }
 .input-field {
   padding: 8px 12px; border: 1px solid #ddd; border-radius: 10px;
-  font-size: 14px; outline: none; background: #fff;
+  font-size: 14px; outline: none; background: var(--surface-solid);
 }
-.input-field:focus { border-color: var(--purple, #5a7a65); }
+.input-field:focus { border-color: var(--color-primary-ink); }
 
 /* ─── 联系方式类型卡片 ─── */
 .contact-type-row {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
 }
 .contact-type-card {
-  padding: 10px 6px; border: 1.5px solid #E8E5DF; border-radius: 12px;
-  background: #fff; font-size: 12px; font-weight: 600; cursor: pointer;
-  text-align: center; color: #8E8E8E; transition: all .15s;
+  padding: 10px 6px; border: 1.5px solid var(--border-color); border-radius: 12px;
+  background: var(--surface-solid); font-size: 12px; font-weight: 600; cursor: pointer;
+  text-align: center; color: var(--text-3); transition: all .15s;
   font-family: inherit;
 }
-.contact-type-card:hover { border-color: #D4893E; color: #D4893E; }
+.contact-type-card:hover { border-color: var(--color-primary-ink); color: var(--color-primary-ink); }
 .contact-type-card.active {
-  border-color: #F4A460; background: linear-gradient(135deg, #FFF7ED, #FFF1E0);
-  color: #D4893E; box-shadow: 0 2px 8px rgba(244,164,96,.12);
+  border-color: var(--color-primary); background: linear-gradient(135deg, #FFF7ED, #FFF1E0);
+  color: var(--color-primary-ink); box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), .12);
 }
 
 /* ─── 摘要 ─── */
 .summary-grid {
   display: grid; grid-template-columns: 1fr 2fr; gap: 4px 8px; font-size: 13px;
 }
-.summary-grid .k { color: var(--sub, #999); }
-.summary-grid .v-role { color: var(--sakura, #a08080); }
-.summary-grid .v-time { color: var(--purple, #5a7a65); }
-.summary-grid .v-price { font-size: 16px; color: var(--sakura, #a08080); }
-.summary-grid .v-deposit { color: var(--peach, #8a7040); }
-.hint-danger { font-size: 11px; color: var(--danger, #c98a8a); margin-top: 6px; }
+.summary-grid .k { color: var(--sub); }
+.summary-grid .v-role { color: var(--color-primary-ink); }
+.summary-grid .v-time { color: var(--color-primary-ink); }
+.summary-grid .v-price { font-size: 16px; color: var(--color-primary-ink); }
+.summary-grid .v-deposit { color: var(--color-primary-ink); }
+.hint-danger { font-size: 11px; color: var(--danger); margin-top: 6px; }
 
 /* ─── 成功 ─── */
 .success-panel {
-  background: rgba(255,255,255,0.72); backdrop-filter: blur(12px);
-  margin: 10px 14px; border-radius: 18px; padding: 24px 16px; text-align: center;
-  border: 1px solid rgba(123,168,130,0.3);
+  background: var(--surface-1);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  margin: 0 0 var(--space-4);
+  border-radius: var(--radius-card);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  border: 1px solid rgba(123,168,130,.3);
 }
-.success-panel h2 { color: var(--mint, #5a7a60); margin-bottom: 12px; }
+.success-panel h2 { color: var(--color-success-ink); margin-bottom: 12px; }
 .order-no-box { margin: 8px 0; font-size: 14px; }
 .order-no-label { font-size: 11px; color: var(--sub); display: block; }
 .lock-badges { display: flex; gap: 8px; justify-content: center; margin: 8px 0; }
@@ -483,7 +486,7 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
   border: 1px solid rgba(180,185,182,0.15);
 }
 .qr-section-title {
-  font-size: 13px; font-weight: 600; color: #4A4A4A; margin-bottom: 10px;
+  font-size: 13px; font-weight: 600; color: var(--text-1); margin-bottom: 10px;
 }
 .qr-preview {
   width: 100%; max-width: 200px; border-radius: 12px;
@@ -493,28 +496,33 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
 .qr-item-inline { text-align: center; }
 .qr-preview-sm { width: 120px; border-radius: 10px; border: 1px solid rgba(125,158,138,0.12); }
 .qr-tag { display: block; font-size: 11px; font-weight: 600; margin-top: 2px; }
-.qr-tag.alipay { color: #1677ff; }
-.qr-tag.wechat { color: #07c160; }
+.qr-tag.alipay { color: var(--color-info-ink); }
+.qr-tag.wechat { color: var(--color-success-ink); }
 .qr-save-hint {
-  font-size: 11px; color: #8E8E8E; margin-top: 8px; margin-bottom: 0;
+  font-size: 11px; color: var(--text-3); margin-top: 8px; margin-bottom: 0;
 }
 
-/* ─── 按钮 ─── */
+/* ─── 按钮 ───
+   DEPRECATED：原先这里 scoped 重定义了 .btn-primary / .btn-secondary。
+   因为 scoped 选择器带 [data-v-x]、优先级高于全局，导致同一个「主按钮」
+   在本页 padding 12×24、在 SettingsView 12×28、在 EditStudio 10×20，各页不同。
+   现由 theme.css 的按钮系统统一接管，此处不再定义。确认无回归后可删除本段。
 .btn-primary {
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
   color: #fff; border: none; border-radius: 28px; padding: 12px 24px;
   font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s;
-  box-shadow: 0 4px 16px rgba(244,164,96,0.22);
+  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.22);
 }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
 .btn-secondary {
-  background: #fff; border: 1px solid #E8E5DF; border-radius: 28px;
-  padding: 12px 24px; font-size: 15px; cursor: pointer; color: #4A4A4A;
+  background: var(--surface-solid); border: 1px solid var(--border-color); border-radius: 28px;
+  padding: 12px 24px; font-size: 15px; cursor: pointer; color: var(--text-1);
 }
-.lock-hint { text-align: center; font-size: 11px; color: var(--sub); }
+*/
+.lock-hint { text-align: center; font-size: 11px; color: var(--text-3); }
 .error-bar {
   margin: 0 14px; padding: 10px 14px; border-radius: 10px;
-  background: #FDF2F2; color: #C87878; font-size: 13px;
+  background: var(--color-danger-tint); color: var(--color-danger-ink); font-size: 13px;
 }
 
 /* ─── 弹窗 ─── */
@@ -524,12 +532,12 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
   display: flex; align-items: center; justify-content: center;
 }
 .modal-box {
-  background: #fff; border-radius: 20px; padding: 28px 24px;
+  background: var(--surface-solid); border-radius: 20px; padding: 28px 24px;
   max-width: 380px; width: 90%; text-align: center; max-height: 90vh; overflow-y: auto;
 }
 .modal-amount {
   font-size: 32px; font-weight: 800;
-  background: linear-gradient(135deg, var(--sakura, #a08080), var(--purple, #5a7a65));
+  background: linear-gradient(135deg, var(--sakura), var(--purple));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text; margin: 10px 0;
 }
@@ -537,24 +545,24 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
 .qr-item { flex: 1; min-width: 120px; }
 .qr-img { width: 100%; max-width: 160px; border-radius: 14px; border: 1.5px solid rgba(125,158,138,0.15); }
 .qr-label { font-size: 12px; font-weight: 600; margin-top: 4px; }
-.qr-label.alipay { color: #1677ff; }
-.qr-label.wechat { color: #07c160; }
-.qr-label.default { color: var(--purple, #5a7a65); }
-.no-qr { padding: 24px; color: var(--sub, #8e8e93); font-size: 13px; }
-.qr-hint { font-size: 11px; color: var(--sub, #8e8e93); margin: 8px 0; }
+.qr-label.alipay { color: var(--color-info-ink); }
+.qr-label.wechat { color: var(--color-success-ink); }
+.qr-label.default { color: var(--color-primary-ink); }
+.no-qr { padding: 24px; color: var(--sub); font-size: 13px; }
+.qr-hint { font-size: 11px; color: var(--sub); margin: 8px 0; }
 .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
 @keyframes badgePulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
-.opt-tag { font-size:11px; color:var(--text-sub,#8e8e93); font-weight:400; }
+.opt-tag { font-size:11px; color:var(--text-sub); font-weight:400; }
 .upload-card {
   display:flex; align-items:center; justify-content:center;
   padding:28px 20px; border:2px dashed #E0DCD5; border-radius:16px;
-  cursor:pointer; background:rgba(255,255,255,.5); color:#aaa; font-size:14px;
+  cursor:pointer; background:rgba(255,255,255,.5); color:var(--text-3); font-size:14px;
   transition:all .2s;
 }
-.upload-card:hover { border-color:#D4893E; color:#D4893E; background:rgba(254,247,239,.5); }
+.upload-card:hover { border-color: var(--color-primary-ink); color: var(--color-primary-ink); background:rgba(254,247,239,.5); }
 .upload-spin { animation: spin 1s linear infinite; }
 .preview-card {
   position:relative; display:inline-block; border-radius:14px; overflow:hidden;
@@ -563,7 +571,7 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
 .preview-thumb { width:160px; height:160px; object-fit:cover; display:block; }
 .preview-remove {
   position:absolute; top:4px; right:4px; width:24px; height:24px;
-  border:none; background:rgba(0,0,0,.45); color:#fff; border-radius:50%;
+  border:none; background:rgba(0,0,0,.45); color: var(--text-inverse); border-radius:50%;
   font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;
 }
 .ref-grid { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
@@ -576,6 +584,6 @@ function goHome() { wizardC.resetAll(); router.push('/studio-filter') }
   width:80px; height:80px; padding:0; font-size:28px; font-weight:300;
   border-radius:12px;
 }
-.ref-count { font-size:12px; color:var(--text-sub,#8e8e93); margin-top:8px; text-align:right; }
+.ref-count { font-size:12px; color:var(--text-sub); margin-top:8px; text-align:right; }
 @keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
 </style>

@@ -180,7 +180,7 @@ function goBack() {
       <template v-if="isStyleEnabled">
         <el-form-item label="选择样式" required>
           <div v-if="stylesLoading" class="hint">加载中...</div>
-          <div v-else-if="stylesError && allStyles.length === 0" class="hint" style="color:#EFA8A8">{{ stylesError }}</div>
+          <div v-else-if="stylesError && allStyles.length === 0" class="hint" style="color: var(--color-danger-ink)">{{ stylesError }}</div>
           <div v-else-if="allStyles.length === 0" class="hint">暂无可用样式，请先创建</div>
           <div v-else class="style-grid">
             <div
@@ -305,14 +305,14 @@ function goBack() {
 .step-title {
   font-size: 20px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
   margin-bottom: 20px;
 }
 
 /* 错误 */
 .error-msg {
-  background: #FDF2F2;
-  color: #C87878;
+  background: var(--color-danger-tint);
+  color: var(--color-danger-ink);
   padding: 12px 18px;
   border-radius: 10px;
   margin-bottom: 16px;
@@ -324,12 +324,12 @@ function goBack() {
 .step-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
 }
 .step-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-table-stripe);
   border-radius: 12px 12px 0 0;
 }
 .step-card :deep(.el-card__body) {
@@ -338,7 +338,7 @@ function goBack() {
 .card-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
 }
 
 /* 表单项 */
@@ -349,14 +349,14 @@ function goBack() {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-1);
   min-width: 130px;
 }
 
 .unit-suffix {
   margin-left: 8px;
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-3);
 }
 
 /* 样式网格 */
@@ -368,19 +368,19 @@ function goBack() {
 }
 .style-card {
   position: relative;
-  border: 2px solid #F0EDE8;
+  border: 2px solid var(--border-subtle);
   border-radius: 12px;
   padding: 12px;
   cursor: pointer;
   transition: all .2s;
-  background: #fff;
+  background: var(--surface-solid);
 }
 .style-card:hover {
-  border-color: #F4A460;
+  border-color: var(--color-primary);
 }
 .style-card.selected {
-  border-color: #F4A460;
-  background: #FEF7EF;
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
 }
 .style-cover {
   width: 100%;
@@ -388,15 +388,15 @@ function goBack() {
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 8px;
-  background: #F9F8F6;
+  background: var(--bg-page);
 }
 .style-check {
   position: absolute;
   top: 8px; right: 8px;
   width: 24px; height: 24px;
   border-radius: 50%;
-  background: #F4F2EE;
-  color: #F4A460;
+  background: var(--color-disabled-bg);
+  color: var(--color-primary-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -405,18 +405,18 @@ function goBack() {
   transition: all .2s;
 }
 .style-card.selected .style-check {
-  background: #F4A460;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--text-on-primary);
 }
 .style-name {
   font-size: 14px;
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-1);
   margin-bottom: 2px;
 }
 .style-price {
   font-size: 12px;
-  color: #D4893E;
+  color: var(--color-primary-ink);
   font-weight: 600;
 }
 
@@ -424,7 +424,7 @@ function goBack() {
 .hint {
   text-align: center;
   padding: 24px;
-  color: #B0B0B0;
+  color: var(--text-3);
   font-size: 13px;
 }
 

@@ -89,8 +89,8 @@ async function saveSlots() {
 
 <style scoped>
 .section-box {
-  background: #fff; border-radius: 16px; padding: 20px;
-  border: 1px solid #F0EDE8; box-shadow: 0 2px 8px rgba(0,0,0,.03);
+  background: var(--surface-solid); border-radius: 16px; padding: 20px;
+  border: 1px solid var(--border-subtle); box-shadow: 0 2px 8px rgba(0,0,0,.03);
 }
 .section-box h3 { margin: 0 0 12px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .cal-nav {
@@ -98,23 +98,23 @@ async function saveSlots() {
   margin-bottom: 8px; font-weight: 700;
 }
 .cal-nav button {
-  background: #F4F2EE; border: none; padding: 6px 14px;
+  background: var(--color-disabled-bg); border: none; padding: 6px 14px;
   border-radius: 20px; cursor: pointer; font-size: 13px;
-  color: #D4893E; font-weight: 600; transition: 0.2s;
+  color: var(--color-primary-ink); font-weight: 600; transition: 0.2s;
 }
-.cal-nav button:hover { background: #FEF7EF; }
-.time-section { margin-top: 16px; border-top: 2px dashed #F0EDE8; padding-top: 16px; }
+.cal-nav button:hover { background: var(--color-primary-tint); }
+.time-section { margin-top: 16px; border-top: 2px dashed var(--border-subtle); padding-top: 16px; }
 .time-section h4 { margin-bottom: 8px; font-size: 14px; }
 .time-grid-admin { display: flex; flex-wrap: wrap; gap: 8px; }
 .time-chip-admin {
   padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
-  border: 1.5px solid #E8E5DF; cursor: pointer; transition: all 0.2s;
-  background: #fff; color: #4A4A4A;
+  border: 1.5px solid var(--border-color); cursor: pointer; transition: all 0.2s;
+  background: var(--surface-solid); color: var(--text-1);
 }
 .time-chip-admin.disabled {
   background: #f5ecec; border-color: #dbb8b8; color: #a05050; font-weight: 600;
 }
 .time-chip-admin:not(.disabled):hover {
-  background: #e8f0eb; border-color: #a0b8a8; transform: translateY(-1px);
+  background: var(--color-primary-tint); border-color: #a0b8a8; transform: translateY(-1px);
 }
 </style>

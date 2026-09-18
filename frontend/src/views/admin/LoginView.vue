@@ -1,4 +1,5 @@
 <script setup>
+import logoHorizontal from '@/assets/images/logo-horizontal.svg?raw'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { storage } from '@/utils/storage'
@@ -74,7 +75,8 @@ async function doRegister() {
 
 <template>
   <div class="login-box fade-in-up">
-    <h2>&#x1F431; 喵掌柜后台</h2>
+    <!-- 品牌横版 Logo（内联以继承页面字体栈） -->
+    <span class="login-brand" v-html="logoHorizontal"></span>
 
     <el-tabs v-model="loginTab" stretch>
       <el-tab-pane label="登录" name="login"></el-tab-pane>
@@ -112,7 +114,7 @@ async function doRegister() {
       </el-button>
     </template>
 
-    <p style="margin-top:16px;font-size:12px;color:#8e8e93;text-align:center;">
+    <p style="margin-top:16px;font-size:12px;color:var(--text-3);text-align:center;">
       注册后将获得商家ID，请妥善保存
     </p>
   </div>
@@ -126,8 +128,15 @@ async function doRegister() {
   padding: 10px 0;
   margin-bottom: 12px;
   font-size: 14px;
-  color: #4A4A4A;
+  color: var(--text-1);
   font-weight: 600;
-  border-top: 1px solid #F0EDE8;
+  border-top: 1px solid var(--border-subtle);
 }
+
+/* 品牌 Logo（按高度 32px 使用） */
+.login-brand {
+  display: flex; justify-content: center;
+  height: 32px; margin-bottom: var(--space-5); line-height: 0;
+}
+.login-brand :deep(svg) { height: 32px; width: auto; display: block; }
 </style>

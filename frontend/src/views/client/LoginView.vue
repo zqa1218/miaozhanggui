@@ -1,4 +1,8 @@
 <script setup>
+import logoHorizontal from '@/assets/images/logo-horizontal.svg?raw'
+import mascotStanding from '@/assets/images/mascot-standing.png'
+import iconWechat from '@/assets/brand/icon-wechat.svg?raw'
+import iconQq from '@/assets/brand/icon-qq.svg?raw'
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useClientAuthStore } from '@/stores/clientAuth'
@@ -54,7 +58,10 @@ async function handleOAuthLogin(provider) {
 <template>
   <div class="client-login-page">
     <div class="login-box fade-in-up">
-      <h2>🐱 喵喵预约</h2>
+      <!-- 登录页主视觉：品牌 IP 形象（设计交付 ip/mascot-standing） -->
+      <img class="login-mascot" :src="mascotStanding" alt="" width="120" height="120" />
+      <!-- 品牌横版 Logo（内联以继承页面字体栈） -->
+      <span class="login-brand" v-html="logoHorizontal"></span>
 
       <div v-if="!mId" class="error">缺少商家ID，请从正确的下单链接进入</div>
 
@@ -69,17 +76,17 @@ async function handleOAuthLogin(provider) {
         type="success" style="width:100%;margin-bottom:12px;height:48px;font-size:15px;"
         @click="handleOAuthLogin('wechat')" :loading="loading"
       >
-        🟢 微信授权登录
+        <span class="oauth-icon" v-html="iconWechat"></span>微信授权登录
       </el-button>
 
       <el-button
         type="primary" style="width:100%;height:48px;font-size:15px;background:#12B7F5;border-color:#12B7F5;"
         @click="handleOAuthLogin('qq')" :loading="loading"
       >
-        🔵 QQ 授权登录
+        <span class="oauth-icon" v-html="iconQq"></span>QQ 授权登录
       </el-button>
 
-      <p style="margin-top:20px;font-size:12px;color:#8e8e93;text-align:center;">
+      <p style="margin-top:20px;font-size:12px;color:var(--text-3);text-align:center;">
         登录即表示同意《服务协议》<br />授权后将自动注册或绑定已有账号
       </p>
     </div>
@@ -91,10 +98,8 @@ async function handleOAuthLogin(provider) {
   min-height: 100vh; min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(244,164,96,.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(18,183,245,.06) 0%, transparent 50%),
-    #F9F8F6;
+  /* 透明：让 body 上的页面背景图透出来 */
+  background: transparent;
   position: relative; overflow: hidden;
 }
 .client-login-page::before {
@@ -102,8 +107,28 @@ async function handleOAuthLogin(provider) {
   position: absolute; top: -40%; left: -20%;
   width: 140%; height: 140%;
   background:
-    radial-gradient(circle at 30% 40%, rgba(244,164,96,.04) 0%, transparent 40%),
+    radial-gradient(circle at 30% 40%, rgba(var(--color-primary-rgb), .04) 0%, transparent 40%),
     radial-gradient(circle at 70% 60%, rgba(160,200,180,.04) 0%, transparent 40%);
   pointer-events: none; z-index: 0;
 }
+
+/* 登录页主视觉吉祥物 */
+.login-mascot {
+  display: block; margin: 0 auto var(--space-3);
+  width: 120px; height: auto;
+}
+
+/* 品牌 Logo（按高度 32px 使用） */
+.login-brand {
+  display: flex; justify-content: center;
+  height: 32px; margin-bottom: var(--space-6); line-height: 0;
+}
+.login-brand :deep(svg) { height: 32px; width: auto; display: block; }
+
+/* 第三方登录图标：18px，颜色由图标自带的官方品牌色决定 */
+.oauth-icon {
+  display: inline-flex; width: 18px; height: 18px;
+  margin-right: 6px; vertical-align: -0.22em;
+}
+.oauth-icon :deep(svg) { width: 100%; height: 100%; display: block; }
 </style>

@@ -59,7 +59,7 @@ onUnmounted(() => store.reset())
 <style scoped>
 .wizard-view { max-width: 780px; margin: 0 auto; }
 .section-box {
-  background: #fff;
+  background: var(--surface-solid);
   border-radius: 16px;
   padding: 28px 32px;
   box-shadow: 0 2px 12px rgba(0,0,0,.04);
@@ -68,18 +68,18 @@ onUnmounted(() => store.reset())
 .steps-indicator { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
 .step-dot {
   width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: #F4F2EE; color: #B0B0B0; font-weight: 700; font-size: 14px;
+  background: var(--color-disabled-bg); color: var(--text-3); font-weight: 700; font-size: 14px;
   transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
 }
 .step-dot.active {
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  color: #fff;
-  box-shadow: 0 0 20px rgba(244,164,96,0.25);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: var(--text-on-primary);
+  box-shadow: 0 0 20px rgba(var(--color-primary-rgb), 0.25);
 }
-.step-dot.done { background: #A8D8B9; color: #fff; }
-.step-line { width: 60px; height: 3px; background: #E8E5DF; margin: 0 4px; border-radius: 3px; transition: background 0.4s ease; }
-.step-line.fill { background: #F4A460; }
+.step-dot.done { background: #A8D8B9; color: var(--text-on-primary); }
+.step-line { width: 60px; height: 3px; background: var(--border-color); margin: 0 4px; border-radius: 3px; transition: background 0.4s ease; }
+.step-line.fill { background: var(--color-primary); }
 
-.steps-label { display: flex; justify-content: center; gap: 90px; margin-bottom: 28px; font-size: 13px; color: #B0B0B0; }
-.steps-label .on { color: #D4893E; font-weight: 700; }
+.steps-label { display: flex; justify-content: center; gap: 90px; margin-bottom: 28px; font-size: 13px; color: var(--text-3); }
+.steps-label .on { color: var(--color-primary-ink); font-weight: 700; }
 </style>

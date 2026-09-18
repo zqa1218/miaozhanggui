@@ -44,43 +44,43 @@ defineProps({
   font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
-  background: #F4F2EE;
-  color: #B0B0B0;
+  background: var(--color-disabled-bg);
+  color: var(--text-3);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 2;
 }
 .step-dot.active {
-  background: linear-gradient(135deg, #F4A460, #F7C57C);
-  color: #fff;
-  box-shadow: 0 0 24px rgba(244,164,96,0.28);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: var(--text-on-primary);
+  box-shadow: 0 0 24px rgba(var(--color-primary-rgb), 0.28);
   transform: scale(1.18);
 }
 .step-dot.done {
   background: #A8D8B9;
-  color: #fff;
+  color: var(--text-on-primary);
 }
 .step-line {
   flex: 1;
   height: 3px;
   min-width: 24px;
-  background: #E8E5DF;
+  background: var(--border-color);
   border-radius: 3px;
   margin-top: 15px;
   transition: background 0.5s ease;
 }
 .step-line.done {
-  background: linear-gradient(90deg, #A8D8B9, #F4A460, #A8D8B9);
+  background: linear-gradient(90deg, #A8D8B9, var(--color-primary), #A8D8B9);
 }
 .step-label {
   font-size: 11px;
-  color: #B0B0B0;
+  color: var(--text-3);
   margin-top: 6px;
   text-align: center;
   white-space: nowrap;
   transition: color 0.3s, font-weight 0.3s;
 }
 .step-label.active {
-  color: #D4893E;
+  color: var(--color-primary-ink);
   font-weight: 700;
 }
 

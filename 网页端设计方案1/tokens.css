@@ -1,0 +1,79 @@
+/* ============================================================
+   喵掌柜 · 设计令牌 (Design Tokens)
+   对应设计需求文档，唯一真源：frontend/src/assets/styles/tokens.css
+   本文件为「网页端设计方案1」敲定值，供前端直接落地。
+   ============================================================ */
+
+:root {
+  /* ---- 品牌主色 · 珊瑚红 ---- */
+  --coral: #E8635C;            /* 品牌基准：按钮/选中/图标/高亮 */
+  --coral-light: #EC7F79;      /* 渐变浅端 */
+  --coral-deep: #BE514B;       /* ≥24px 装饰图标、强调边框（对比度 4.70:1） */
+  --coral-text: #A83A32;       /* 白底上所有珊瑚色文字（对比度 6.33:1） */
+  --coral-bg-1: #FDF3F2;       /* hover / chip / 选中浅底 */
+  --coral-bg-2: #FCE9E8;       /* 更深一档的强调底 */
+  --on-coral: #38140E;         /* 珊瑚实底/渐变上的文字（对比度 5.00:1） */
+
+  /* ---- 主色渐变 ---- */
+  --grad-primary: linear-gradient(135deg, #E8635C 0%, #EC7F79 100%);
+  --grad-primary-hover: linear-gradient(135deg, #ED7C76 0%, #F0968F 100%);
+  --grad-primary-active: linear-gradient(135deg, #D2564F 0%, #DD7168 100%);
+
+  /* ---- 状态语义三元组（填充 / 浅底 / 文字） ---- */
+  --success: #A8D8B9;  --success-bg: #EDF6F0;  --success-text: #3E6B4E;
+  --warning: #F9E0A0;  --warning-bg: #FEF9ED;  --warning-text: #8A6420;
+  --danger:  #C0392B;  --danger-bg:  #FBEBE9;  --danger-text:  #9A2E22;
+  --info:    #A9C1D9;  --info-bg:    #F0F4F8;  --info-text:    #4A6B8A;
+  --neutral: #D4CFC8;  --neutral-bg: #F4F2EE;  --neutral-text: #6B6560;
+
+  /* ---- 文字层级（4 档，勿加第 5 档） ---- */
+  --text-1: #4A4642;   /* 标题/数据值/订单号 9.35:1 */
+  --text-2: #6B6560;   /* 正文 5.74:1 */
+  --text-3: #756E69;   /* 次要说明/标签/占位 5.01:1 */
+  --text-4: #9A938C;   /* 仅禁用态与装饰，不可承载文案 */
+  --text-inverse: #FFFFFF;
+
+  /* ---- 页面底色 ---- */
+  --bg-page: #F9F8F6;
+  --bg-white: #FFFFFF;
+  --bg-zebra: #FDFBF7;
+
+  /* ---- 圆角（6 档，勿加第 7 档） ---- */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;     /* 卡片封顶 */
+  --radius-xl: 20px;
+  --radius-pill: 9999px; /* 按钮/标签/头像/chip */
+  --radius-btn: 9999px;  /* 胶囊按钮，全站圆角只改这一个变量 */
+
+  /* ---- 边框 ---- */
+  --border-color: #E8E5DF;
+  --border-subtle: #EFECE6;
+  --border-strong: rgba(74, 70, 66, 0.16);
+  --glass-hairline: rgba(74, 70, 66, 0.07);
+
+  /* ---- 磨砂表面 ---- */
+  --glass-panel: rgba(255, 255, 255, 0.82);
+  --glass-bar: rgba(255, 255, 255, 0.92);
+  --glass-float: rgba(255, 255, 255, 0.68);
+  --glass-blur: 20px;
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+
+  /* ---- 阴影（暖褐，勿用纯黑） ---- */
+  --shadow-1: 0 1px 2px rgba(74, 70, 66, 0.04), 0 1px 3px rgba(74, 70, 66, 0.06);
+  --shadow-2: 0 2px 6px rgba(74, 70, 66, 0.05), 0 8px 24px rgba(74, 70, 66, 0.06);
+  --shadow-3: 0 4px 12px rgba(74, 70, 66, 0.07), 0 18px 44px rgba(74, 70, 66, 0.10);
+  --shadow-primary: 0 4px 14px rgba(232, 99, 92, 0.26);
+
+  /* ---- 焦点环 ---- */
+  --focus-ring: 2px solid #E8635C;
+  --focus-offset: 2px;
+
+  /* ---- 动效 ---- */
+  --ease-primary: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-secondary: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-mid: 200ms;
+  --dur-slow: 320ms;
+}

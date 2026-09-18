@@ -1,6 +1,14 @@
 const router = require('express').Router();
 const multer = require('multer');
-const upload = multer({ dest: '/tmp/order-imports/', limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({
+  dest: '/tmp/order-imports/',
+  limits: { fileSize: 5 * 1024 * 1024 },
+  // 提前挡掉非表格文件，避免先落盘再报错
+  fileFilter: (req, file, cb) => {
+    const ok = /\.(xlsx|xls)$/i.test(file.originalname || '');
+    cb(ok ? null : new Error('仅支持 .xlsx 或 .xls 格式'), ok);
+  },
+});
 const ctrl = require('./order.controller');
 const auth = require('../../middlewares/auth');
 const clientAuth = require('../../middlewares/clientAuth');

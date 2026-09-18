@@ -51,12 +51,15 @@ function intervalsOverlap(aStart, aEnd, bStart, bEnd) {
  * @param {Object}  params.knex            - Knex 实例
  * @param {Object}  [params.trx]           - 可选事务对象
  * @param {Array}   [params.restSlots]     - 预查询的休息时段 [{start_time, end_time}]
+ * @param {Array}   [params.occupiedSlots] - 预查询的已占用时段（可含已取消过滤），
+ *                                           不传时按原逻辑查 slot_bookings。
+ *                                           接受 [{start,end}] 或 [{start_time,end_time}]
  * @param {string}  [params.excludeOrderNo] - 排除某订单 (改期时用)
  * @returns {Object} { hasCollision: boolean, conflicts: string[] }
  */
 async function checkTimeCollision({
   bookingDate, bookingStartTime, bookingEndTime,
-  studioId, mId, knex, trx, restSlots, excludeOrderNo,
+  studioId, mId, knex, trx, restSlots, occupiedSlots, excludeOrderNo,
 }) {
   const conflicts = [];
 
@@ -74,16 +77,28 @@ async function checkTimeCollision({
   }
 
   // 2. 检查已有 slot_bookings
-  let query = trx
-    ? knex('slot_bookings').transacting(trx)
-    : knex('slot_bookings');
-  query = query.where({ m_id: mId, studio_id: studioId, booking_date: bookingDate });
+  //    occupiedSlots 是调用方预取的结果（Excel 导入用它复用「已 JOIN orders 排除取消单」
+  //    的那次查询）；不传时走原查询，既有调用方行为逐字节不变。
+  let bookedSlots;
+  if (occupiedSlots) {
+    bookedSlots = occupiedSlots.map((s) => ({
+      start_time: s.start_time !== undefined ? s.start_time : s.start,
+      end_time: s.end_time !== undefined ? s.end_time : s.end,
+      lock_type: s.lock_type !== undefined ? s.lock_type : s.lockType,
+      order_no: s.order_no !== undefined ? s.order_no : s.orderNo,
+    }));
+  } else {
+    let query = trx
+      ? knex('slot_bookings').transacting(trx)
+      : knex('slot_bookings');
+    query = query.where({ m_id: mId, studio_id: studioId, booking_date: bookingDate });
 
-  if (excludeOrderNo) {
-    query = query.whereNot('order_no', excludeOrderNo);
+    if (excludeOrderNo) {
+      query = query.whereNot('order_no', excludeOrderNo);
+    }
+
+    bookedSlots = await query.select('start_time', 'end_time', 'lock_type', 'order_no');
   }
-
-  const bookedSlots = await query.select('start_time', 'end_time', 'lock_type', 'order_no');
 
   for (const slot of bookedSlots) {
     const ss = typeof slot.start_time === 'string' ? slot.start_time.slice(0, 5) : slot.start_time;

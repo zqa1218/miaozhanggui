@@ -77,7 +77,7 @@
     <el-dialog v-model="payVisible" title="支付定金" width="380px">
       <div class="pay-content">
         <p>应付定金: <b>¥{{ store.depositAmount }}</b></p>
-        <p style="font-size:13px;color:#999;">请线下转账后点击确认</p>
+        <p style="font-size:13px;color:var(--text-3);">请线下转账后点击确认</p>
         <el-button type="primary" :loading="paying" @click="handlePay">我已支付定金</el-button>
       </div>
     </el-dialog>
@@ -183,13 +183,13 @@ h4 { margin-bottom: 16px; }
 .order-summary { background: #fafafa; border-radius: 10px; padding: 14px; }
 .summary-title { font-weight: 700; margin-bottom: 8px; }
 .summary-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; }
-.summary-row.price strong { color: #5a7a65; font-size: 16px; }
+.summary-row.price strong { color: var(--color-primary-ink); font-size: 16px; }
 .summary-row.deposit strong { color: #b8860b; }
 .lock-info { margin-top: 16px; }
-.lock-step { font-size: 13px; padding: 8px 12px; background: #F4F2EE; border-radius: 10px; margin-bottom: 6px; }
+.lock-step { font-size: 13px; padding: 8px 12px; background: var(--color-disabled-bg); border-radius: 10px; margin-bottom: 6px; }
 .lock-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-right: 6px; }
-.lock-badge.pre { background: #FEFBF6; color: #B8933E; }
-.lock-badge.hard { background: #EDF6F0; color: #5A8A6A; }
+.lock-badge.pre { background: var(--color-primary-tint); color: var(--color-warning-ink); }
+.lock-badge.hard { background: var(--color-mint-light); color: var(--color-success-ink); }
 .step-footer { display: flex; justify-content: space-between; margin-top: 24px; }
 .pay-content { text-align: center; padding: 10px 0; }
 </style>

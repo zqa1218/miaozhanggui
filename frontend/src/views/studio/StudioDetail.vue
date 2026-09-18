@@ -21,7 +21,7 @@ function goBooking() {
 </script>
 
 <template>
-  <div class="studio-detail fade-in-up" style="padding:16px;max-width:640px;margin:0 auto;">
+  <div class="studio-detail fade-in-up page page--form">
     <div v-if="store.loading" class="empty-state">加载中...</div>
     <div v-else-if="!mId" class="empty-state">
       <p>缺少商家 ID，请从正确链接进入</p>
@@ -42,7 +42,7 @@ function goBooking() {
         </div>
       </div>
 
-      <button class="btn-primary" @click="goBooking">立即预约</button>
+      <button class="btn-primary btn--block" @click="goBooking">立即预约</button>
     </template>
     <div v-else class="empty-state">项目不存在或已下架</div>
   </div>

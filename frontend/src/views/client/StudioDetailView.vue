@@ -71,20 +71,20 @@ const currentComponent = computed(() => stepComponents[store.currentStep])
 
 <style scoped>
 .detail-view { max-width: 600px; margin: 0 auto; padding: 0 16px 40px; }
-.loading-wrap, .empty-state { text-align: center; padding: 60px; color: #8E8E8E; }
+.loading-wrap, .empty-state { text-align: center; padding: 60px; color: var(--text-3); }
 
 .detail-img { width: 100%; height: 220px; object-fit: cover; border-radius: 16px; }
-.placeholder-img { background: #F4F2EE; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #B0B0B0; border-radius: 16px; }
+.placeholder-img { background: var(--color-disabled-bg); display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--text-3); border-radius: 16px; }
 
-.detail-panel { background: #fff; border-radius: 20px; padding: 20px; margin-top: -20px; position: relative; box-shadow: 0 4px 16px rgba(0,0,0,.05); }
-.detail-title { font-size: 20px; font-weight: 700; color: #4A4A4A; }
-.detail-city { font-size: 13px; color: #D4893E; margin-top: 4px; }
-.detail-desc { font-size: 14px; color: #4A4A4A; margin-top: 6px; }
-.detail-price { font-size: 24px; color: #D4893E; font-weight: 700; margin-top: 8px; }
-.detail-price small { font-size: 14px; font-weight: 400; color: #8E8E8E; }
+.detail-panel { background: var(--surface-solid); border-radius: 20px; padding: 20px; margin-top: -20px; position: relative; box-shadow: 0 4px 16px rgba(0,0,0,.05); }
+.detail-title { font-size: 20px; font-weight: 700; color: var(--text-1); }
+.detail-city { font-size: 13px; color: var(--color-primary-ink); margin-top: 4px; }
+.detail-desc { font-size: 14px; color: var(--text-1); margin-top: 6px; }
+.detail-price { font-size: 24px; color: var(--color-primary-ink); font-weight: 700; margin-top: 8px; }
+.detail-price small { font-size: 14px; font-weight: 400; color: var(--text-3); }
 
-.steps-bar { display: flex; align-items: center; gap: 8px; margin: 16px 0; font-size: 14px; color: #8E8E8E; }
-.steps-bar .active { color: #D4893E; font-weight: 700; }
-.steps-bar .arrow { color: #B0B0B0; }
+.steps-bar { display: flex; align-items: center; gap: 8px; margin: 16px 0; font-size: 14px; color: var(--text-3); }
+.steps-bar .active { color: var(--color-primary-ink); font-weight: 700; }
+.steps-bar .arrow { color: var(--text-3); }
 .steps-bar .done { color: #A8D8B9; }
 </style>

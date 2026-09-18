@@ -1,6 +1,7 @@
 const ERROR_CODES = require('../../shared/errors/errorCodes');
 const AppError = require('../../shared/errors/AppError');
 const knex = require('../../shared/database/knex');
+const { timeToMinutes } = require('../../shared/utils/dateHelper');
 const repo = require('./studio.repository');
 const styleRepo = require('../style/style.repository');
 
@@ -96,9 +97,27 @@ function validateTimeRange(start, end) {
   }
 }
 
+/**
+ * 校验固定档位配置：营业时长至少要放得下一个档位，否则档位列表恒为空，
+ * 商家会看到「保存成功但一个档位都没有」而不知道为什么。
+ */
+function validateSlotConfig(mode, start, end, slotDuration) {
+  if (mode !== 'fixed_slot') return;
+  if (!start || !end) {
+    throw new AppError(ERROR_CODES.PARAM_TIME_INVALID, 400, '固定档位模式需要先设置工作起止时间');
+  }
+  const dur = parseInt(slotDuration, 10) || 30;
+  const span = timeToMinutes(end) - timeToMinutes(start);
+  if (span < dur) {
+    throw new AppError(ERROR_CODES.PARAM_TIME_INVALID, 400,
+      `营业时长 ${span} 分钟，放不下一个 ${dur} 分钟的档位`);
+  }
+}
+
 /** 创建项目 (事务: studios + style_relations + availabilities + rest_slots) */
 async function create(data) {
   validateTimeRange(data.baseStartTime, data.baseEndTime);
+  validateSlotConfig(data.timeMode, data.baseStartTime, data.baseEndTime, data.slotDuration);
 
   // 如果启用样式，校验所选样式属于该商户
   if (data.isStyleEnabled && data.selectedStyleIds && data.selectedStyleIds.length > 0) {
@@ -122,6 +141,8 @@ async function create(data) {
     base_start_time: data.baseStartTime,
     base_end_time: data.baseEndTime,
     interval_rest_time: data.intervalRestTime || 0,
+    time_mode: data.timeMode || 'time_axis',
+    slot_duration: data.slotDuration || 30,
     is_experience_enabled: data.isExperienceEnabled || false,
     novice_single_add_time: data.noviceSingleAddTime || 0,
     novice_package_add_time: data.novicePackageAddTime || 0,
@@ -169,6 +190,14 @@ async function update(data) {
   const existing = await repo.findByIdAndMerchant(data.id, data.mId);
   if (!existing) throw new AppError(ERROR_CODES.STUDIO_NOT_FOUND, 404);
 
+  // 局部更新时用库里的现存值补齐，才能正确判断"改完之后"的档位配置是否成立
+  validateSlotConfig(
+    data.timeMode ?? existing.time_mode ?? 'time_axis',
+    data.baseStartTime ?? existing.base_start_time,
+    data.baseEndTime ?? existing.base_end_time,
+    data.slotDuration ?? existing.slot_duration ?? 30,
+  );
+
   const payload = {};
 
   // 基础字段映射
@@ -178,6 +207,7 @@ async function update(data) {
     isStyleEnabled: 'is_style_enabled', hasPackage: 'has_package',
     baseStartTime: 'base_start_time', baseEndTime: 'base_end_time',
     intervalRestTime: 'interval_rest_time',
+    timeMode: 'time_mode', slotDuration: 'slot_duration',
     isExperienceEnabled: 'is_experience_enabled',
     noviceSingleAddTime: 'novice_single_add_time',
     novicePackageAddTime: 'novice_package_add_time',
@@ -273,6 +303,9 @@ async function mapToLiteDTO(row) {
     baseStartTime: fmtTime(row.base_start_time),
     baseEndTime: fmtTime(row.base_end_time),
     intervalRestTime: row.interval_rest_time,
+    // 预约时间模式：C 端靠这两个字段决定用连续时间轴还是固定档位选择器
+    timeMode: row.time_mode || 'time_axis',
+    slotDuration: row.slot_duration || 30,
     isExperienceEnabled: row.is_experience_enabled,
     noviceSingleAddTime: row.novice_single_add_time,
     novicePackageAddTime: row.novice_package_add_time,

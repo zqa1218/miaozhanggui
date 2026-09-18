@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Close } from '@element-plus/icons-vue'
 import { useWizardBStore } from '@/stores/wizardB'
 
 const router = useRouter()
@@ -16,6 +17,12 @@ onMounted(() => {
 const baseStartTime = ref(store.baseStartTime || '09:00')
 const baseEndTime   = ref(store.baseEndTime || '18:00')
 const intervalRestTime = ref(store.intervalRestTime || 15)
+
+// ---- 预约时间模式 ----
+// time_axis = 顾客在连续时间轴上自由拖动（现有行为）
+// fixed_slot = 把营业时间按 slotDuration 切成固定档位，一档 = 一单
+const timeMode     = ref(store.timeMode || 'time_axis')
+const slotDuration = ref(store.slotDuration || 30)
 
 // ---- 每日营业时间 ----
 const defaultOpen  = ref('09:00')
@@ -61,6 +68,8 @@ function goNext() {
   store.baseStartTime = baseStartTime.value
   store.baseEndTime = baseEndTime.value
   store.intervalRestTime = intervalRestTime.value
+  store.timeMode = timeMode.value
+  store.slotDuration = slotDuration.value
   store.dailyHours = { ...dailyHours.value }
   store.restSlots = restSlots.value.filter(r => r.start_time && r.end_time)
   router.push('/admin/studio/create/step3')
@@ -70,6 +79,8 @@ function goBack() {
   store.baseStartTime = baseStartTime.value
   store.baseEndTime = baseEndTime.value
   store.intervalRestTime = intervalRestTime.value
+  store.timeMode = timeMode.value
+  store.slotDuration = slotDuration.value
   store.dailyHours = { ...dailyHours.value }
   store.restSlots = [...restSlots.value]
   router.push('/admin/studio/create/step1')
@@ -79,6 +90,33 @@ function goBack() {
 <template>
   <div class="step-page fade-in-up">
     <h2 class="step-title">创建项目 — 第2步：时间轴与休息段</h2>
+
+    <!-- 卡片：预约时间模式 -->
+    <el-card shadow="never" class="step-card">
+      <template #header>
+        <span class="card-header-title">预约时间模式</span>
+      </template>
+
+      <el-radio-group v-model="timeMode">
+        <el-radio label="time_axis">时间轴模式</el-radio>
+        <el-radio label="fixed_slot">固定档位模式</el-radio>
+      </el-radio-group>
+      <p class="mode-hint">
+        <template v-if="timeMode === 'time_axis'">
+          顾客在时间轴上自由拖动选择起止时间，适合散客自助预约。
+        </template>
+        <template v-else>
+          把「工作起始 → 工作结束」按档位时长等分，扣除休息段与已被占用的档位后，
+          顾客只能从剩余档位里选。一档 = 一单，占用时长即档位时长。
+          <strong>只有固定档位模式的项目可以使用 Excel 快速导入。</strong>
+        </template>
+      </p>
+
+      <el-form-item v-if="timeMode === 'fixed_slot'" label="每档时长">
+        <el-input-number v-model="slotDuration" :min="5" :max="480" :step="5" />
+        <span class="unit-suffix">分钟</span>
+      </el-form-item>
+    </el-card>
 
     <!-- 卡片：工作时间轴 -->
     <el-card shadow="never" class="step-card">
@@ -103,8 +141,11 @@ function goBack() {
         />
       </el-form-item>
       <el-form-item label="每单间隔休息">
-        <el-input-number v-model="intervalRestTime" :min="0" :max="120" :step="5" />
+        <el-input-number v-model="intervalRestTime" :min="0" :max="120" :step="5" :disabled="timeMode === 'fixed_slot'" />
         <span class="unit-suffix">分钟</span>
+        <p v-if="timeMode === 'fixed_slot'" class="field-hint">
+          固定档位模式下，间隔由档位本身形成，此项不参与计算。
+        </p>
       </el-form-item>
     </el-card>
 
@@ -156,8 +197,8 @@ function goBack() {
         <span class="time-sep">—</span>
         <el-time-select v-model="slot.end_time" start="00:00" step="00:30" end="23:30" placeholder="止" size="small" />
         <el-input v-model="slot.reason" placeholder="原因（如午休）" size="small" style="width:130px;" />
-        <el-button type="danger" size="small" circle @click="removeRestSlot(idx)">
-          <i class="fa-solid fa-xmark"></i>
+        <el-button type="danger" size="small" circle aria-label="删除该休息段" @click="removeRestSlot(idx)">
+          <el-icon><Close /></el-icon>
         </el-button>
       </div>
       <el-button size="small" @click="addRestSlot" style="margin-top:4px;">+ 添加休息段</el-button>
@@ -180,7 +221,7 @@ function goBack() {
 .step-title {
   font-size: 20px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
   margin-bottom: 20px;
 }
 
@@ -188,12 +229,12 @@ function goBack() {
 .step-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  border: 1px solid #F0EDE8;
+  border: 1px solid var(--border-subtle);
 }
 .step-card :deep(.el-card__header) {
   padding: 16px 20px;
-  border-bottom: 1px solid #F0EDE8;
-  background: #FDFBF7;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-table-stripe);
   border-radius: 12px 12px 0 0;
 }
 .step-card :deep(.el-card__body) {
@@ -202,7 +243,7 @@ function goBack() {
 .card-header-title {
   font-size: 16px;
   font-weight: 700;
-  color: #4A4A4A;
+  color: var(--text-1);
 }
 
 /* 表单项 */
@@ -213,14 +254,29 @@ function goBack() {
 }
 :deep(.el-form-item__label) {
   font-weight: 600;
-  color: #4A4A4A;
+  color: var(--text-1);
   min-width: 110px;
 }
 
 .unit-suffix {
   margin-left: 8px;
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-3);
+}
+
+/* 预约时间模式说明 */
+.mode-hint {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-3);
+}
+.mode-hint strong { color: var(--color-primary-ink); font-weight: 600; }
+.field-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-3);
 }
 
 /* 时间行 */
@@ -232,11 +288,11 @@ function goBack() {
 }
 .time-label {
   font-size: 13px;
-  color: #8E8E8E;
+  color: var(--text-3);
   flex-shrink: 0;
 }
 .time-sep {
-  color: #B0B0B0;
+  color: var(--text-3);
   font-size: 13px;
   flex-shrink: 0;
 }
@@ -263,11 +319,11 @@ function goBack() {
 }
 .rest-select {
   padding: 6px 10px;
-  border: 1px solid #E8E5DF;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 13px;
-  background: #fff;
-  color: #4A4A4A;
+  background: var(--surface-solid);
+  color: var(--text-1);
   outline: none;
 }
 
@@ -275,7 +331,7 @@ function goBack() {
 .empty-hint {
   text-align: center;
   padding: 20px;
-  color: #B0B0B0;
+  color: var(--text-3);
   font-size: 13px;
 }
 

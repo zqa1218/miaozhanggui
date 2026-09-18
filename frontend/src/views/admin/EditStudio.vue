@@ -83,6 +83,9 @@ const selectedDates = ref([])
 const baseStartTime = ref('09:00')
 const baseEndTime = ref('18:00')
 const intervalRestTime = ref(15)
+// 预约时间模式：time_axis=连续时间轴 | fixed_slot=固定档位（一档=一单）
+const timeMode = ref('time_axis')
+const slotDuration = ref(30)
 const restSlots = ref([])
 const restStart = ref('')
 const restEnd = ref('')
@@ -130,6 +133,8 @@ onMounted(async () => {
         baseStartTime.value = found.baseStartTime || '09:00'
         baseEndTime.value = found.baseEndTime || '18:00'
         intervalRestTime.value = found.intervalRestTime || 15
+        timeMode.value = found.timeMode || 'time_axis'
+        slotDuration.value = found.slotDuration || 30
         restSlots.value = (found.restSlots && Array.isArray(found.restSlots)) ? [...found.restSlots] : []
         isStyleEnabled.value = !!found.isStyleEnabled
         isExperienceEnabled.value = !!found.isExperienceEnabled
@@ -173,6 +178,8 @@ async function handleSubmit() {
       availableDates: isAllTimeOpen.value ? [] : normalizeDateArray(selectedDates.value),
       baseStartTime: baseStartTime.value, baseEndTime: baseEndTime.value,
       intervalRestTime: intervalRestTime.value,
+      timeMode: timeMode.value,
+      slotDuration: slotDuration.value,
       restSlots: (restSlots.value || []).filter(s => s.start_time && s.end_time),
       isStyleEnabled: isStyleEnabled.value, isExperienceEnabled: isExperienceEnabled.value,
       noviceSingleAddTime: noviceSingleAddTime.value,
@@ -196,13 +203,13 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="edit-studio fade-in-up" style="max-width:700px;margin:0 auto;padding:16px;">
+  <div class="edit-studio fade-in-up page page--read">
     <h1 style="font-size:20px;margin-bottom:16px;">编辑项目</h1>
 
-    <div v-if="loading" style="text-align:center;padding:40px;color:#999;">加载中...</div>
+    <div v-if="loading" style="text-align:center;padding:40px;color:var(--text-3);">加载中...</div>
 
     <template v-else>
-      <div v-if="errorMsg" class="error-msg" style="color:#f56c6c;margin-bottom:12px;font-size:13px;">{{ errorMsg }}</div>
+      <div v-if="errorMsg" class="error-msg" style="color:var(--color-danger-ink);margin-bottom:12px;font-size:13px;">{{ errorMsg }}</div>
 
       <!-- 基础信息 -->
       <fieldset><legend>基础信息</legend>
@@ -215,8 +222,8 @@ async function handleSubmit() {
           <input id="edit-cover-input" type="file" accept="image/*" @change="onCoverChange" style="flex:1" />
           <button type="button" class="btn-primary btn-sm" :disabled="!coverFile || uploadingCover" @click="uploadCover" style="width:auto;padding:5px 14px;font-size:12px;">{{ uploadingCover ? '上传中' : '上传' }}</button>
         </div>
-        <div v-if="coverUploadMsg==='success'" style="color:#67c23a;font-size:12px;">✓ 上传成功</div>
-        <div v-else-if="coverUploadMsg" style="color:#f56c6c;font-size:12px;">✗ {{ coverUploadMsg }}</div>
+        <div v-if="coverUploadMsg==='success'" style="color:var(--color-success-ink);font-size:12px;">✓ 上传成功</div>
+        <div v-else-if="coverUploadMsg" style="color:var(--color-danger-ink);font-size:12px;">✗ {{ coverUploadMsg }}</div>
         <img v-if="coverUrl" :src="coverUrl" style="max-width:180px;margin-top:8px;border-radius:10px;" />
 
         <label>详情图</label>
@@ -224,10 +231,10 @@ async function handleSubmit() {
           <input id="edit-detail-input" type="file" accept="image/*" multiple @change="onDetailChange" style="flex:1" />
           <button type="button" class="btn-primary btn-sm" :disabled="!detailFiles.length || uploadingDetail" @click="uploadDetails" style="width:auto;padding:5px 14px;font-size:12px;">{{ uploadingDetail ? '上传中' : '上传' }}</button>
         </div>
-        <div v-if="detailUploadMsg==='success'" style="color:#67c23a;font-size:12px;">✓ 上传成功</div>
-        <div v-else-if="detailUploadMsg" style="color:#f56c6c;font-size:12px;">✗ {{ detailUploadMsg }}</div>
+        <div v-if="detailUploadMsg==='success'" style="color:var(--color-success-ink);font-size:12px;">✓ 上传成功</div>
+        <div v-else-if="detailUploadMsg" style="color:var(--color-danger-ink);font-size:12px;">✗ {{ detailUploadMsg }}</div>
         <div v-if="detailImgUrls.length" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-          <img v-for="(u,i) in detailImgUrls" :key="i" :src="u" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid #F0EDE8;" />
+          <img v-for="(u,i) in detailImgUrls" :key="i" :src="u" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:1px solid var(--border-subtle);" />
         </div>
       </fieldset>
 
@@ -248,7 +255,25 @@ async function handleSubmit() {
             <input type="time" v-model="baseEndTime" class="input-field" style="flex:1" />
           </div>
         </label>
-        <label>每单间隔休息 (分钟) <input type="number" v-model.number="intervalRestTime" min="0" max="120" class="input-field" style="width:100px" /></label>
+        <label>预约时间模式
+          <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+            <label style="display:flex;gap:4px;align-items:center;font-weight:400;">
+              <input type="radio" value="time_axis" v-model="timeMode" />时间轴模式
+            </label>
+            <label style="display:flex;gap:4px;align-items:center;font-weight:400;">
+              <input type="radio" value="fixed_slot" v-model="timeMode" />固定档位模式
+            </label>
+            <template v-if="timeMode === 'fixed_slot'">
+              <span>每档</span>
+              <input type="number" v-model.number="slotDuration" min="5" max="480" step="5" class="input-field" style="width:90px" />
+              <span>分钟</span>
+            </template>
+          </div>
+          <small style="color:var(--text-3);font-weight:400;display:block;margin-top:4px;">
+            固定档位模式下顾客只能从档位里选，一档 = 一单；只有该模式可以使用 Excel 快速导入。
+          </small>
+        </label>
+        <label>每单间隔休息 (分钟) <input type="number" v-model.number="intervalRestTime" min="0" max="120" class="input-field" style="width:100px" :disabled="timeMode === 'fixed_slot'" /></label>
         <label>固定休息时段</label>
         <div style="display:flex;gap:6px;align-items:center;">
           <input type="time" v-model="restStart" class="input-field" style="width:110px" />
@@ -269,7 +294,7 @@ async function handleSubmit() {
 
         <template v-if="isStyleEnabled">
           <label>勾选预设</label>
-          <div v-if="allStyles.length===0" style="font-size:12px;color:#999;">暂无可用预设</div>
+          <div v-if="allStyles.length===0" style="font-size:12px;color:var(--text-3);">暂无可用预设</div>
           <div v-else style="display:flex;flex-wrap:wrap;gap:8px;">
             <label v-for="s in allStyles" :key="s.id" style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
               <input type="checkbox" :value="s.id" v-model="selectedStyleIds" /> {{ s.styleName }}
@@ -306,7 +331,7 @@ async function handleSubmit() {
 
         <!-- 附加项目（非预设模式下可用） -->
         <template v-if="!isStyleEnabled">
-          <hr style="border:none;border-top:1px solid #F0EDE8;margin:16px 0;" />
+          <hr style="border:none;border-top:1px solid var(--border-subtle);margin:16px 0;" />
           <ExtraItemsEditor v-model="extraItems" />
         </template>
       </fieldset>
@@ -324,23 +349,27 @@ async function handleSubmit() {
 <style scoped>
 .edit-studio { min-height: 100vh; }
 fieldset {
-  border: 1px solid #F0EDE8; border-radius: 14px; padding: 18px; margin-bottom: 16px;
+  border: 1px solid var(--border-subtle); border-radius: 14px; padding: 18px; margin-bottom: 16px;
 }
-legend { font-size: 15px; font-weight: 700; padding: 0 8px; color: #4A4A4A; }
-label { display: block; margin-bottom: 8px; font-size: 13px; color: #4A4A4A; }
+legend { font-size: 15px; font-weight: 700; padding: 0 8px; color: var(--text-1); }
+label { display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-1); }
 .input-field {
-  padding: 8px 12px; border: 1px solid #E8E5DF; border-radius: 10px;
-  font-size: 13px; outline: none; margin-top: 2px; background: #fff;
+  padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 10px;
+  font-size: 13px; outline: none; margin-top: 2px; background: var(--surface-solid);
 }
-.input-field:focus { border-color: #F4A460; box-shadow: 0 0 0 3px rgba(244,164,96,.12); }
-.btn-primary { background: linear-gradient(135deg, #F4A460, #F7C57C); color: #fff; border: none; border-radius: 28px; padding: 10px 20px; cursor: pointer; font-weight: 600; }
+.input-field:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), .12); }
+/* DEPRECATED：原 scoped 重定义 .btn-primary / .btn-secondary / .btn-sm，
+   与其余 4 个页面互相冲突（同一个 .btn-sm 在此处 28px 圆角、在 StyleList 20px）。
+   已由 theme.css 的按钮系统统一接管。确认无回归后可删除本段。
+.btn-primary { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); color: var(--text-on-primary); border: none; border-radius: var(--radius-btn); padding: 10px 20px; cursor: pointer; font-weight: 600; }
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-.btn-secondary { background: #fff; border: 1px solid #E8E5DF; border-radius: 28px; padding: 10px 20px; cursor: pointer; color: #4A4A4A; }
+.btn-secondary { background: var(--surface-solid); border: 1px solid var(--border-color); border-radius: 28px; padding: 10px 20px; cursor: pointer; color: var(--text-1); }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
+*/
 .date-tag {
   display: inline-flex; align-items: center; gap: 2px;
-  padding: 4px 10px; background: #FEF7EF; border-radius: 14px;
-  font-size: 12px; color: #D4893E; font-weight: 500;
+  padding: 4px 10px; background: var(--color-primary-tint); border-radius: 14px;
+  font-size: 12px; color: var(--color-primary-ink); font-weight: 500;
 }
 .switch-label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 </style>
