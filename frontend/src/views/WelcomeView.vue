@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { House, Calendar, Lock, Picture } from '@element-plus/icons-vue'
 import mascotStanding from '@/assets/images/mascot-standing.png'
 import { useTheme } from '@/composables/useTheme'
+import ThemeSwitcher from '@/components/common/ThemeSwitcher.vue'
 
 /* GlassHome 按需加载，不静态 import。
    为什么：它是 glass 专属的整页实现（约 11 KB JS + 17 KB CSS）。
@@ -34,61 +35,84 @@ function goAdmin() {
 </script>
 
 <template>
-  <GlassHome v-if="isGlass" />
-  <div v-else class="welcome">
-    <!-- 背景装饰：只留静态云朵。
-         原先还有 5 颗无限闪烁的星星，属于「不传达任何状态的装饰性动效」，
-         在工具型界面里是噪音，已移除。 -->
-    <div class="decorations" aria-hidden="true">
-      <span class="cloud cloud-1">☁️</span>
-      <span class="cloud cloud-2">☁️</span>
-      <span class="cloud cloud-3">☁️</span>
+  <div class="welcome-root">
+    <!-- ⚠ 本页相对改造前唯一新增的元素，需要你确认（像素基线会体现）。
+         为什么必须加：glass 首页是另一套组件（GlassHome），在 `/` 上切到
+         classic 会把它整个换掉。若 classic 首页没有切换入口，用户切过去之后
+         就再也切不回来 —— 那是个单向门。
+
+         为什么放在**被替换的子树之外**：切换主题时这个节点不参与重建，
+         于是「焦点在触发器上」这件事能原样保留。若放进 .welcome 里面，
+         它会随组件一起销毁重建，焦点会掉到 body —— 键盘用户按一次回车
+         就被丢回文档开头。同理也避开了「新首页是异步 chunk、还没挂载完
+         就无法归还焦点」的时序问题。
+
+         为什么用绝对定位：脱离文档流，不参与任何布局计算，
+         页面其余部分的像素完全不受影响。 -->
+    <!-- v-show 而不是 v-if：glass 下这个浮动入口要隐藏（GlassHome 的导航条里
+         已经有一个了），但**不能销毁** —— 销毁就回到了「切主题时节点重建、
+         焦点丢失」的老问题。display:none 的元素不可聚焦，于是切换后由
+         restoreFocus 把焦点交给可见的那一个。 -->
+    <div class="welcome-theme" v-show="!isGlass">
+      <ThemeSwitcher />
     </div>
 
-    <!-- 主标题 -->
-    <div class="hero">
-      <!-- 品牌 IP 形象（设计交付 ip/mascot-standing）替代原先的相机图标 -->
-      <img class="hero-mascot" :src="mascotStanding" alt="喵掌柜" width="150" height="182" />
-      <h1 class="hero-title">喵掌柜</h1>
-      <p class="hero-subtitle">发现你的专属摄影师</p>
-      <p class="hero-desc">一站式摄影写真预约平台，轻松预约，定格美好瞬间</p>
-    </div>
-
-    <!-- 特色卡片 -->
-    <div class="features">
-      <div class="feature-card">
-        <el-icon class="feature-icon"><House /></el-icon>
-        <h3>海量工作室</h3>
-        <p>浏览各类风格的摄影工作室，找到最适合你的摄影师</p>
+    <GlassHome v-if="isGlass" />
+    <div v-else class="welcome">
+      <!-- 背景装饰：只留静态云朵。
+           原先还有 5 颗无限闪烁的星星，属于「不传达任何状态的装饰性动效」，
+           在工具型界面里是噪音，已移除。 -->
+      <div class="decorations" aria-hidden="true">
+        <span class="cloud cloud-1">☁️</span>
+        <span class="cloud cloud-2">☁️</span>
+        <span class="cloud cloud-3">☁️</span>
       </div>
-      <div class="feature-card">
-        <el-icon class="feature-icon"><Calendar /></el-icon>
-        <h3>自由选择时段</h3>
-        <p>灵活挑选日期和时间，按你的节奏安排拍摄计划</p>
-      </div>
-      <div class="feature-card">
-        <el-icon class="feature-icon"><Lock /></el-icon>
-        <h3>安全支付</h3>
-        <p>定金锁定预约，拍摄完成再付尾款，资金安全有保障</p>
-      </div>
-    </div>
 
-    <!-- 按钮组 -->
-    <div class="actions">
-      <button class="btn-user" @click="goUser">
-        <el-icon class="btn-icon"><Picture /></el-icon>
-        我是用户
-        <span class="btn-hint">浏览工作室，预约拍摄</span>
-      </button>
-      <button class="btn-admin" @click="goAdmin">
-        <el-icon class="btn-icon"><House /></el-icon>
-        我是商家
-        <span class="btn-hint">管理后台，处理订单</span>
-      </button>
-    </div>
+      <!-- 主标题 -->
+      <div class="hero">
+        <!-- 品牌 IP 形象（设计交付 ip/mascot-standing）替代原先的相机图标 -->
+        <img class="hero-mascot" :src="mascotStanding" alt="喵掌柜" width="150" height="182" />
+        <h1 class="hero-title">喵掌柜</h1>
+        <p class="hero-subtitle">发现你的专属摄影师</p>
+        <p class="hero-desc">一站式摄影写真预约平台，轻松预约，定格美好瞬间</p>
+      </div>
 
-    <!-- 底部说明 -->
-    <p class="footer-note">已注册商家？<a href="/admin/login">登录管理后台</a></p>
+      <!-- 特色卡片 -->
+      <div class="features">
+        <div class="feature-card">
+          <el-icon class="feature-icon"><House /></el-icon>
+          <h3>海量工作室</h3>
+          <p>浏览各类风格的摄影工作室，找到最适合你的摄影师</p>
+        </div>
+        <div class="feature-card">
+          <el-icon class="feature-icon"><Calendar /></el-icon>
+          <h3>自由选择时段</h3>
+          <p>灵活挑选日期和时间，按你的节奏安排拍摄计划</p>
+        </div>
+        <div class="feature-card">
+          <el-icon class="feature-icon"><Lock /></el-icon>
+          <h3>安全支付</h3>
+          <p>定金锁定预约，拍摄完成再付尾款，资金安全有保障</p>
+        </div>
+      </div>
+
+      <!-- 按钮组 -->
+      <div class="actions">
+        <button class="btn-user" @click="goUser">
+          <el-icon class="btn-icon"><Picture /></el-icon>
+          我是用户
+          <span class="btn-hint">浏览工作室，预约拍摄</span>
+        </button>
+        <button class="btn-admin" @click="goAdmin">
+          <el-icon class="btn-icon"><House /></el-icon>
+          我是商家
+          <span class="btn-hint">管理后台，处理订单</span>
+        </button>
+      </div>
+
+      <!-- 底部说明 -->
+      <p class="footer-note">已注册商家？<a href="/admin/login">登录管理后台</a></p>
+    </div>
   </div>
 </template>
 
@@ -292,6 +316,18 @@ function goAdmin() {
 
 .footer-note a:hover {
   text-decoration: underline;
+}
+
+/* 主题切换的定位上下文。只是 position: relative 的普通块容器，
+   不加任何尺寸/内边距，因此 .welcome 的 100vh 与居中计算都不受影响。 */
+.welcome-root { position: relative; }
+
+/* 页面右上角的主题切换入口。绝对定位 + 脱离文档流：不参与 flex 居中计算。 */
+.welcome-theme {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+  z-index: 2;
 }
 
 /* ── 响应式适配 ── */

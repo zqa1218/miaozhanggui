@@ -285,11 +285,15 @@ for (const need of ['--color-primary', '--text-3', '--surface-glass', '--glass-b
   const used = new Map() // name -> 首个引用位置
   for (const f of sources) {
     const text = readFileSync(f, 'utf8')
-    // 源码里**局部定义**的令牌同样算已定义。
-    // 典型例子：Window_B_Style_Create.vue 在 .create-page 作用域内定义了
-    // --sage/--rose/--ink 等一整套自有令牌。它是死代码、不进构建产物，
-    // 所以这些名字不会出现在构建后的 CSS 里 —— 只看产物会误判为「未定义」。
-    for (const m of text.matchAll(/(--[a-zA-Z][\w-]*)\s*:/g)) defined.add(m[1])
+    // 源码里**局部定义**的令牌同样算已定义。两类典型：
+    //   1. CSS 里局部声明：Window_B_Style_Create.vue 在 .create-page 作用域内
+    //      定义了 --sage/--rose/--ink 等一整套自有令牌。它是死代码、不进构建
+    //      产物，所以这些名字不会出现在构建后的 CSS 里。
+    //   2. **JS 里声明**：组件用 :style="{ '--pv-bg': x }" 传局部变量
+    //      （见 ThemeSwitcher 的迷你预览）。键名带引号，所以正则必须允许
+    //      名字和冒号之间夹一个引号，否则会把它误报成未定义。
+    // 只看构建产物会同时误判这两类。
+    for (const m of text.matchAll(/(--[a-zA-Z][\w-]*)['"]?\s*:/g)) defined.add(m[1])
     for (const m of text.matchAll(/var\(\s*(--[a-zA-Z][\w-]*)/g)) {
       if (!used.has(m[1])) used.set(m[1], f.replace(/.*\/src\//, 'src/'))
     }

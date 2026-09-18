@@ -459,6 +459,35 @@ body {
 .is-spinning { animation: spinSlow 1.4s linear infinite; }
 @keyframes spinSlow { to { transform: rotate(360deg); } }
 
+/* ══════════════════════════════════════════════════════════════
+   主题切换的整页交叉淡入（View Transitions API）
+   -------------------------------------------------------------
+   只在 JS 调用了 document.startViewTransition 时才会命中 ——
+   这些伪元素平时根本不存在，所以对不支持的浏览器、以及没有发生切换的
+   页面都没有任何影响。
+
+   刻意**不写自定义关键帧**：默认行为已经是「旧快照淡出 + 新快照淡入」，
+   两者同时存在，中间不会露出白底。自己写动画很容易写成先清空再淡入 ——
+   那才是白闪。这里只调时长与曲线。
+
+   也不能改成给 body 加 transition：过渡期间浏览器拍的是**快照**，
+   真实 DOM 上的动画在快照里是看不到的。
+   ══════════════════════════════════════════════════════════════ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: .32s;
+  animation-timing-function: var(--ease-out);
+}
+
+/* 双保险：JS 侧在 reduced-motion 下已经完全不调用 startViewTransition，
+   这里再关一次，防止将来有人绕过那个判断。 */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }

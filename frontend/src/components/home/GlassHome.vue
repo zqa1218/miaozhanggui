@@ -31,7 +31,7 @@ import { useRouter } from 'vue-router'
 import { useStudioStore } from '@/stores/studio'
 import { useTheme } from '@/composables/useTheme'
 import SvgIcon from '@/components/shared/SvgIcon.vue'
-import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import ThemeSwitcher from '@/components/common/ThemeSwitcher.vue'
 import logoIcon from '@/assets/images/logo-icon.svg?raw'
 import placeholder4x3 from '@/assets/images/placeholder-4x3.svg'
 
@@ -96,7 +96,7 @@ function goStudio(id) {
       </nav>
 
       <div class="gh-nav__actions">
-        <ThemeToggle />
+        <ThemeSwitcher />
         <button type="button" class="gh-nav__login" @click="go('/admin/login')">商家登录</button>
         <button
           type="button"
@@ -124,6 +124,12 @@ function goStudio(id) {
           </button>
           <button type="button" class="gh-sheet__item" @click="go('/studio-filter')">开始预约</button>
           <button type="button" class="gh-sheet__item" @click="go('/admin/login')">商家登录</button>
+
+          <!-- 与导航条里是**同一个组件**，只是换成竖排呈现。
+               浮层里额外多一个「恢复默认」—— 导航条上空间要留给主操作。 -->
+          <div class="gh-sheet__section">
+            <ThemeSwitcher variant="sheet" />
+          </div>
         </div>
       </div>
     </Teleport>
@@ -418,6 +424,14 @@ function goStudio(id) {
 }
 .gh-sheet__item:hover { background: var(--color-primary-tint); }
 .gh-sheet__item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+
+/* 浮层里的主题切换：与上面的导航项用一条分隔线区分开 ——
+   它们性质不同（上面是「去哪」，这里是「换个样子」）。 */
+.gh-sheet__section {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
 
 /* ══════════════════════════════════════════════════════════════
    Hero
