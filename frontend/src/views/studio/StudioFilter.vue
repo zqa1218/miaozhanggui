@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { Clock, LocationInformation } from '@element-plus/icons-vue'
 import AppIllustration from '@/components/shared/AppIllustration.vue'
 import placeholder4x3 from '@/assets/images/placeholder-4x3.svg'
+import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
 
@@ -13,6 +14,22 @@ const selectedDate = ref(new Date().toISOString().slice(0, 10))
 const selectedCity = ref('')
 const cityList = ref([])
 const errorMsg = ref('')
+
+const { theme } = useTheme()
+const isGlass = computed(() => theme.value === 'glass')
+
+/* 筛选生效时的反馈策略。
+   现状：改日期会走 fetchAvailable，loading 一置真就**整块替换**结果区为加载插画，
+   数据回来再换回来 —— 用户看到的是整页闪烁 + 一次重排（内容高度也变了）。
+
+   glass 下改为「保留旧结果 + 顶部细进度条」：不闪、不重排，
+   进度条是唯一的变化。city 过滤本来就是纯前端计算，瞬间完成，不涉及这里。
+
+   classic 下 showLoadingBlock 恒等于 loading，行为与改造前逐帧一致。 */
+const showLoadingBlock = computed(
+  () => loading.value && (!isGlass.value || !studioList.value.length)
+)
+const showGlassProgress = computed(() => isGlass.value && loading.value && studioList.value.length > 0)
 
 // 本地过滤：日期由 API 负责，城市在前端过滤
 const studioList = computed(() => {
@@ -104,8 +121,8 @@ function goBooking(studio) {
       </div>
     </div>
 
-    <!-- 加载中 -->
-    <div v-if="loading" class="empty-state">
+    <!-- 加载中（glass 下若已有结果则不整块替换，见 showLoadingBlock 注释） -->
+    <div v-if="showLoadingBlock" class="empty-state">
       <!-- 加载态插画：按设计说明用 CSS 旋转，不引入 Lottie -->
       <AppIllustration name="empty-loading" :width="160" class="is-spinning" />
       <p>正在寻找有空档的工作室...</p>
@@ -127,6 +144,14 @@ function goBooking(studio) {
 
     <!-- 结果 -->
     <template v-else>
+      <!-- glass：筛选进行中，只走一条细进度条，结果区保持不动。
+           role="status" + sr-only 文本让读屏用户也知道正在更新 ——
+           纯视觉的进度条对读屏是不存在的。 -->
+      <div v-if="showGlassProgress" class="filter-progress" role="status">
+        <span class="filter-progress__bar"></span>
+        <span class="sr-only">正在按所选日期更新结果</span>
+      </div>
+
       <div class="result-count">
         {{ selectedDate }} 共有 <strong>{{ studioList.length }}</strong> 个工作室可预约
       </div>
@@ -415,5 +440,81 @@ function goBooking(studio) {
 .btn-book:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(var(--color-primary-rgb), .30);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   glass 主题细化
+   -------------------------------------------------------------
+   为什么写在组件 scoped 块里而不是 glass-app.css：
+   本组件的样式编译成 `.filter-bar[data-v-xxx]`（0,2,0），且位于路由 chunk 的
+   CSS 中、**加载顺序晚于主 CSS 包**。在主 CSS 里写同特异性的规则会输。
+   写在这里，Vue 把属性选择器加到最后一段，特异性自然变成 (0,3,0)，
+   既稳赢又与被覆盖的规则放在一起，改的时候不会两边找。
+   所有规则都以 `:root[data-theme="glass"]` 开头 —— classic 下一行都不命中。
+   ══════════════════════════════════════════════════════════════ */
+
+/* 筛选栏吸顶。
+   top 取 56px 是为了落在 ClientLayout 的 .nav-bar 下方（该条 sticky top:0，
+   高度 = logo 32px + 上下 padding 各 12px）。这两个值是一处隐式耦合，
+   改 ClientLayout 的导航高度时要同步改这里。 */
+:root[data-theme="glass"] .filter-bar {
+  position: sticky;
+  top: 56px;
+  z-index: var(--z-sticky);
+  background: var(--surface-glass-strong);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-stroke);
+  border-top-color: var(--glass-edge-top);
+}
+
+/* 筛选进度条：不替换结果区，只在顶部走一条 2px 线。
+   只动 transform，不动 width —— 避免每帧触发布局。 */
+.filter-progress {
+  position: relative;
+  height: 2px;
+  margin: -8px 0 var(--space-3);
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--border-subtle);
+}
+.filter-progress__bar {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  background: var(--color-primary-gradient);
+  transform-origin: left center;
+  animation: filterBar 1.1s var(--ease-out) infinite;
+}
+@keyframes filterBar {
+  0%   { transform: translateX(-100%) scaleX(.35); }
+  100% { transform: translateX(100%) scaleX(.35); }
+}
+/* 进度条表达的是「正在加载」这一状态信息，不是装饰；
+   但前庭敏感用户仍需能关掉，故在 reduced-motion 下改为静态满条。 */
+@media (prefers-reduced-motion: reduce) {
+  .filter-progress__bar {
+    animation: none;
+    transform: none;
+    opacity: .55;
+  }
+}
+
+/* 只给读屏的文本 */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  /* 小屏上筛选栏本身变高（控件换行），吸顶位置相应下移会挤占过多视口，
+     故小屏取消吸顶，改为随页面滚动。 */
+  :root[data-theme="glass"] .filter-bar {
+    position: static;
+  }
 }
 </style>

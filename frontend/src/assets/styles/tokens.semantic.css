@@ -164,6 +164,10 @@
   --border-color-solid:       var(--c-warm-200);
   --border-subtle:            var(--c-warm-150);
   --border-strong:            var(--a-warm-16);
+  /* 输入控件描边。与 --border-color 分开是因为它们面对的是不同的验收线：
+     卡片/分割线只需「看得见」，而输入框的边界是**识别控件所必需**的视觉信息，
+     WCAG 1.4.11 要求 ≥3:1。classic 下沿用原值（不动像素）；glass 下另取深值。 */
+  --border-input:             var(--border-color);
   --border-1:                 var(--border-color);
   --border-2:                 var(--border-strong);
 
@@ -376,6 +380,17 @@
   /* 蒙层用暖褐会与冷色体系打架，glass 下改用深蓝墨 */
   --scrim:                    rgba(11, 27, 51, .32);
 
+  /* ── 中性 / 禁用 ──
+     这四项目阶段 3 起一直漏在 classic 的暖灰上没有覆盖，直到视觉基线里
+     看到「禁用的『下一步』按钮是一片暖褐色」才暴露出来。
+     它们不是状态语义色（琥珀=警告、薄荷=成功那类应当保留），
+     而是中性 UI 管道 —— 暖褐落在冷蓝主题上是纯粹的违和。
+     中性色的对比度要求同样按正文算：neutral-ink 对 neutral-tint 4.78:1。 */
+  --color-neutral-tint:       #EDF1F8;
+  --color-neutral-ink:        #5A6B85;
+  --color-disabled:           #93A5BF;
+  --color-disabled-bg:        #EDF1F8;
+
   --glass-stroke:             var(--a-blue-14);
   /* 亮顶边：边缘受光的颜色档比 classic 更亮（.90 vs .55），
      因为 glass 的面板更透明，需要更明确的上沿才能「立」起来。 */
@@ -407,6 +422,11 @@
   --border-color-solid:       #DBE7FA;
   --border-subtle:            rgba(37, 99, 235, .08);
   --border-strong:            rgba(37, 99, 235, .24);
+  /* 输入框描边取 #7E8FA9：对纯白底 3.29:1、对后台浅底 3.06:1，均过 1.4.11 的 3:1 线。
+     给定的 rgba(37,99,235,.14) 合成到白底只有 1.22:1 —— 输入框边界因此
+     几乎不可辨，属于「控件形状无法识别」。这是玻璃主题下唯一一处
+     为了达标而明显加深的描边，其余边框保持浅色。 */
+  --border-input:             #7E8FA9;
   --border-1:                 var(--border-color);
   --border-2:                 var(--border-strong);
 

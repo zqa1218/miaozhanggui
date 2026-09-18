@@ -75,3 +75,9 @@ Desktop.ini
 backups/
 *.sql
 !backend/database/*.sql
+
+# ========== Playwright 视觉回归 ==========
+# test-results 是每次运行的失败产物，不入库；
+# __screenshots__ 是基线，**必须入库** —— 它就是回归比对的对象。
+frontend/test-results/
+frontend/playwright-report/

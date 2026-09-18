@@ -265,6 +265,69 @@ console.log(
     '  首页当前布局中这些位置由玻璃面板覆盖（面板底色更亮，对比度只会更高）。\x1b[0m'
 )
 
+// ─────────────── glass 应用层 · 后台 / 表格 / 灯箱 ───────────────
+// 这些是阶段 4 新增的表面。后台刻意改成**实色**，所以对比度不再随背景浮动，
+// 但每一层的实测值仍需逐条留档 —— 尤其是表格的 hover/zebra，
+// 它们是「不依赖透明叠加」这个决定之后才可控的。
+const ADMIN = {
+  page: hex('#F4F7FC'),
+  card: hex('#FFFFFF'),
+  thead: hex('#F4F7FC'),
+  zebra: hex('#F7FAFE'),
+  hover: hex('#EAF2FE'),
+  border: hex('#DBE7FA'),
+}
+// 灯箱遮罩：rgba(4,12,26,.94) 叠在任意底色上，6% 的透过量让结果几乎恒为 #131B29
+const LB_SCRIM = over('rgba(4,12,26,.94)', hex('#FFFFFF'))
+
+console.log('\n\x1b[1mglass 应用层 · 后台实色分层 / 表格 / 灯箱\x1b[0m')
+console.log('─'.repeat(96))
+console.log(pad('场景', 34) + pad('前景', 10) + pad('底色', 10) + '比值')
+
+const APP_CASES = [
+  ['后台 · 页面底', '--text-1', '#0B1B33', ADMIN.page, AA_BODY],
+  ['后台 · 卡片', '--text-1', '#0B1B33', ADMIN.card, AA_BODY],
+  ['后台 · 页面底', '--text-2', '#3D5372', ADMIN.page, AA_BODY],
+  ['后台 · 卡片', '--text-2', '#3D5372', ADMIN.card, AA_BODY],
+  ['后台 · 页面底', '--text-3', '#4E6288', ADMIN.page, AA_BODY],
+  ['后台 · 卡片', '--text-3', '#4E6288', ADMIN.card, AA_BODY],
+  ['表格 · 表头文字（--text-3）', '--text-3', '#4E6288', ADMIN.thead, AA_BODY],
+  ['表格 · 正文', '--text-2', '#3D5372', ADMIN.card, AA_BODY],
+  ['表格 · 斑马纹行', '--text-2', '#3D5372', ADMIN.zebra, AA_BODY],
+  ['表格 · hover 行', '--text-2', '#3D5372', ADMIN.hover, AA_BODY],
+  ['表格 · hover 行（三级字）', '--text-3', '#4E6288', ADMIN.hover, AA_BODY],
+  // 输入框边界：WCAG 1.4.11 明确要求 ≥3:1 —— 边界是「识别这是个输入控件」
+  // 所必需的视觉信息，不是装饰。
+  ['输入框 · 边界 vs 白底', '--border-input', '#7E8FA9', ADMIN.card, AA_LARGE],
+  ['输入框 · 边界 vs 玻璃面板', '--border-input', '#7E8FA9', ADMIN.page, AA_LARGE],
+  // glass 的中性色另取冷调（原来一直沿用 classic 的暖灰，视觉基线里
+  // 表现为「禁用的下一步按钮是一片暖褐色」）。这四项目一样要过线。
+  ['中性徽章 · ink on tint', '--color-neutral-ink', '#5A6B85', hex('#EDF1F8'), AA_BODY],
+  ['中性徽章 · ink on 卡片', '--color-neutral-ink', '#5A6B85', ADMIN.card, AA_BODY],
+  // 禁用态属 WCAG 明确豁免（1.4.3 / 1.4.11 均写明 except for inactive components），
+  // 所以只留档不判失败。但仍取了一个**可读**的值：classic 原值是 1.55:1，
+  // 用户读不出禁用的按钮写的是什么 —— 豁免的是「不达标」，不是「看不见」。
+  ['禁用文字 · vs 禁用底（豁免）', '--color-disabled', '#93A5BF', hex('#EDF1F8'), AA_LARGE, true],
+  ['灯箱 · 计数器/标签（白字）', '反白 #FFFFFF', '#FFFFFF', LB_SCRIM, AA_BODY],
+  ['灯箱 · 控制按钮字形', '--text-1', '#0B1B33', hex('#FFFFFF'), AA_BODY],
+  ['灯箱 · 按钮形状 vs 遮罩', '按钮 #FFFFFF', '#FFFFFF', LB_SCRIM, AA_LARGE],
+  // exempt：表格的细分隔线**不是** 1.4.11 的适用对象 ——
+  // 它既不标识控件，也不是理解内容所必需（行的范围由斑马纹与留白共同界定）。
+  // 设计要求原文就是「斑马纹或**极细**分隔线」，所以这里只留档不判失败。
+  ['表格 · 行分隔线 vs 卡片（装饰）', '边框 #DBE7FA', '#DBE7FA', ADMIN.card, AA_LARGE, true],
+]
+for (const [scene, label, fg, bg, need, exempt] of APP_CASES) {
+  const col = fg.startsWith('#') ? fg : label
+  const r = contrast(hex(col), bg)
+  const ok = r >= need
+  if (!ok && !exempt) failures++
+  const mark = ok ? '\x1b[32mPASS\x1b[0m' : exempt ? '\x1b[2m豁免\x1b[0m' : '\x1b[31mFAIL\x1b[0m'
+  console.log(
+    pad(scene, 34) + pad(label, 10) + pad(HEXPT(bg), 10) + `${r.toFixed(2)}:1  ` + mark +
+      (need !== AA_BODY ? ` \x1b[2m(线 ${need}:1)\x1b[0m` : '')
+  )
+}
+
 console.log('\n' + '─'.repeat(96))
 console.log(`最不利 glass 页面底色 = ${HEXPT(GLASS_BACKDROP_WORST)}（全视口采样得出）`)
 console.log(`光斑 A 中心底色        = ${HEXPT(GLASS_BACKDROP_TYPICAL)}`)

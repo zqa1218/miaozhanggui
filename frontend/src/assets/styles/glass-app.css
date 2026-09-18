@@ -1,0 +1,404 @@
+/* =============================================================
+   喵掌柜 · glass 主题 · 应用层
+   -------------------------------------------------------------
+   与 glass.css 的分工：
+     glass.css      —— C 端的**装饰性**玻璃：背景层 + .glass 工具类
+     glass-app.css  —— 应用层：后台实色分层、表单可读性、表格、状态页
+
+   本文件全部规则都以 `:root[data-theme="glass"]` 开头，因此**在 classic 下
+   一行都不会命中** —— 这是「不改 classic 渲染」的结构性保证，不依赖约定。
+
+   ⚠ 特异性说明（改本文件前必读）
+     组件 scoped 样式会编译成 `.foo[data-v-xxx]`（0,2,0），且它们位于路由
+     chunk 的 CSS 里，**加载顺序晚于本文件**（本文件在主 CSS 包中）。
+     也就是说同特异性时**会输**。所以：
+       · 覆盖 theme.css / global.css / element-bridge.css 里的全局类 → 本文件
+         加载更晚，同特异性即可胜出；
+       · 覆盖**组件 scoped 的类** → 不要写在这里，写进那个组件自己的
+         <style scoped> 里并加 `:root[data-theme="glass"]` 前缀
+         （Vue 会把属性选择器加在最后一段，特异性自然变成 0,3,0）。
+   ============================================================= */
+
+/* ══════════════════════════════════════════════════════════════
+   一、后台实色分层
+   -------------------------------------------------------------
+   设计要求：后台主体**不使用 backdrop-filter**，用实色分层 + 细边框构建层次。
+
+   实现方式刻意选择「覆盖令牌」而不是「覆盖规则」：
+   theme.css / global.css 里的 .panel / .glass-card / .section / .stat-card
+   写的都是 `background: var(--surface-1)` 与 `backdrop-filter: var(--glass-blur)`。
+   只要在 .dashboard 子树里把这两个令牌改掉，**所有既有规则自动跟随** ——
+   不需要为每个类各写一条覆盖，也不会漏掉将来新增的类。
+   这正是三层 token 架构该发挥的作用。
+
+   作用域选 .dashboard 是因为它是 AdminLayout 登录后的根容器（global.css 定义）。
+   未登录的 /admin/login 不在其中 —— 那一页按设计要求保留玻璃卡。
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="glass"] .dashboard {
+  --glass-blur: none;
+  --glass-blur-light: none;
+
+  /* 实色分层：越靠上的层越白，页面底略微下沉，卡片才「浮」得起来 */
+  --surface-glass: #FFFFFF;
+  --surface-glass-strong: #FFFFFF;
+  --surface-glass-quiet: #F4F7FC;
+  --surface-1: #FFFFFF;
+  --surface-2: #FFFFFF;
+  --surface-3: #F4F7FC;
+
+  /* 描边换成实色细线：半透明描边叠在实色面上会发灰 */
+  --glass-stroke: #DBE7FA;
+  --glass-hairline: #DBE7FA;
+
+  /* 表格与斑马纹：后台是长时间盯屏的场景，条纹要极淡但不能没有 */
+  --bg-table-stripe: #F7FAFE;
+  --bg-sunken: #F4F7FC;
+}
+
+/* 后台的页面底色：比卡片略深一档，让白色卡片有边界感。
+   用 .dashboard 自身的背景而不是 body —— body 上还铺着光斑与网格，
+   数据密集型界面背后有网格会干扰读数。 */
+:root[data-theme="glass"] .dashboard {
+  background: #F4F7FC;
+  border-radius: var(--radius-2xl);
+}
+
+/* 统计数字用等宽数字：四个统计卡的数值纵向排列，
+   比例字体下「1」窄「8」宽，四张卡的数字会左右错位。 */
+:root[data-theme="glass"] .stat-card .num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   二、历史玻璃类在 glass 下退为实色
+   -------------------------------------------------------------
+   .glass-card / .glass-panel / .loose-card 是改造前的类名，被大量页面当作
+   通用卡片容器使用，其中相当一部分**包裹着照片**（工作室卡、订单参考图）。
+   玻璃覆盖层会压暗照片、加一层灰雾 —— 与「照片是主角」冲突。
+
+   所以 glass 主题下这些历史类一律退为实色卡：
+   半透明仍由 --surface-1 提供（玻璃下是 rgba(255,255,255,.82)），
+   但**去掉 backdrop-filter**，避免一屏几十张卡各做一次离屏模糊。
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="glass"] .glass-card,
+:root[data-theme="glass"] .glass-panel,
+:root[data-theme="glass"] .loose-card,
+:root[data-theme="glass"] .project-card,
+:root[data-theme="glass"] .section {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: var(--surface-solid);
+  border-color: var(--border-color-solid);
+}
+:root[data-theme="glass"] .glass-card:hover,
+:root[data-theme="glass"] .loose-card:hover,
+:root[data-theme="glass"] .project-card:hover {
+  border-color: var(--brand);
+}
+
+/* .section 为什么也在退为实色之列（它是全站最该解释的一条）：
+     · 它是**批量出现**的内容容器，不是浮起面：预约流程 Step1 一页就有 9 个，
+       Step2 有 5 个。9 个 backdrop-filter 就是 9 次离屏模糊 ——
+       项目自己的规则写得很清楚「一屏 20 张卡 = 20 次离屏模糊，移动端必掉帧」。
+     · 同一页面玻璃容器 ≤5 是硬约束，9 个直接超标。
+     · 预约流程（填信息 → 付定金）的本轮方针是「可读性优先于观感」，
+       实色底上的表单比玻璃底上的更好读，这是加分而不是妥协。
+   退为实色后，这几页的玻璃只剩：ClientLayout 的吸顶导航 + 吸底 tab
+   （这两个是「内容会从它们下面滚过去」的正当用法）+ 页面里的单个 .panel。 */
+
+/* ══════════════════════════════════════════════════════════════
+   三、表单可读性（转化路径优先于观感）
+   -------------------------------------------------------------
+   规则：输入控件一律实色高不透明表面。玻璃底上的半透明输入框会让文字与
+   光标随背光变化，是转化路径上最不该省的地方。
+   实际值：--surface-solid 在 glass 下是纯白 #FFFFFF（1.0 不透明）。
+   ══════════════════════════════════════════════════════════════ */
+
+/* 原生控件（.input-field / .input-row input，见 theme.css） */
+:root[data-theme="glass"] .input-field,
+:root[data-theme="glass"] .input-row input,
+:root[data-theme="glass"] .input-row textarea,
+:root[data-theme="glass"] .input-row select {
+  background: var(--surface-solid);
+  border-color: var(--border-input);
+}
+
+/* Element Plus 输入控件的边界色。
+   EP 用 box-shadow 模拟边框，所以要覆盖的是 box-shadow 而不是 border。
+   原值 rgba(37,99,235,.14) 合成到白底只有 1.22:1 —— 输入框的形状基本看不出来；
+   --border-input 在 glass 下是 #8494AE（3.08:1），过 1.4.11 的线。
+
+   hover 态在原实现里比默认态**更浅**（--color-primary-line 比边框色淡），
+   等于「指上去边界反而消失」。这里改成品牌色，方向正确且仍与聚焦态可区分
+   （聚焦另有 4px 外发光环）。 */
+:root[data-theme="glass"] .el-input__wrapper,
+:root[data-theme="glass"] .el-textarea__inner,
+:root[data-theme="glass"] .el-select .el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--border-input) inset !important;
+}
+:root[data-theme="glass"] .el-input__wrapper:hover,
+:root[data-theme="glass"] .el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--brand) inset !important;
+}
+
+/* 聚焦：2px 品牌色环 + 外发光。
+   原来的 --shadow-glow 是 3px 半透明环，在玻璃底上不够明确；这里改成
+   实环 + 柔和外发光两层，键盘与鼠标焦点都一眼可见。 */
+:root[data-theme="glass"] .input-field:focus,
+:root[data-theme="glass"] .input-row input:focus,
+:root[data-theme="glass"] .input-row textarea:focus,
+:root[data-theme="glass"] .input-row select:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 1px var(--brand), 0 0 0 4px rgba(37, 99, 235, .18);
+  outline: none;
+}
+
+/* Element Plus 输入控件：element-bridge.css 已把它们接到 --surface-solid，
+   这里只补聚焦环的强度（EP 默认那圈太细）。 */
+:root[data-theme="glass"] .el-input__wrapper.is-focus,
+:root[data-theme="glass"] .el-input__wrapper:focus-within,
+:root[data-theme="glass"] .el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--brand) inset, 0 0 0 4px rgba(37, 99, 235, .18) !important;
+}
+
+/* ── 错误态三重编码：边框 + 图标 + 文字 ──
+   只靠颜色编码错误，色觉障碍用户完全看不到。这里补齐三样：
+     1. 边框变红加粗（视觉）
+     2. ::before 插入的感叹号圆标（形状 —— 不依赖颜色也能识别）
+     3. 文案（见各页的 .error-bar / el-form-item__error）
+   图标用 CSS 画（一个圆 + 一条竖线 + 一个点），避免往 CSS 里塞 data URI 色值。 */
+:root[data-theme="glass"] .el-form-item.is-error .el-input__wrapper,
+:root[data-theme="glass"] .input-field.is-invalid {
+  box-shadow: 0 0 0 2px var(--color-danger) inset !important;
+  background: var(--color-danger-tint);
+}
+
+:root[data-theme="glass"] .el-form-item.is-error .el-form-item__label::before,
+:root[data-theme="glass"] .field-invalid-label::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 5px;
+  vertical-align: -2px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  /* 用两层渐变在红圆上「挖」出感叹号：上面一条竖线、下面一个点 */
+  background-image:
+    linear-gradient(var(--text-inverse), var(--text-inverse)),
+    radial-gradient(circle, var(--text-inverse) 42%, transparent 46%);
+  background-size: 2px 6px, 14px 14px;
+  background-position: 6px 3px, 0 5px;
+  background-repeat: no-repeat;
+}
+
+/* 错误文案：与 danger-ink 同色，已在 tokens 里保证 ≥4.5:1 */
+:root[data-theme="glass"] .el-form-item__error {
+  color: var(--color-danger-ink);
+  font-weight: 600;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   四、表格
+   -------------------------------------------------------------
+   设计要求：行高 ≥40px、表头 sticky、斑马纹或极细分隔线、
+             数字右对齐 + tabular-nums、hover 不依赖透明叠加。
+
+   hover 为什么不能靠透明叠加：行本身可能有自己的半透明底，
+   再叠一层 rgba 高亮，最终色随上下文变化，无法预算对比度。
+   这里改用**不透明**的浅蓝实色，颜色可控。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Element Plus 表格 ── */
+:root[data-theme="glass"] .el-table {
+  --el-table-row-hover-bg-color: #EAF2FE; /* 不透明实色，非叠加 */
+  --el-table-border-color: #DBE7FA;
+  --el-table-header-bg-color: #F4F7FC;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="glass"] .el-table th.el-table__cell {
+  background: #F4F7FC !important;
+  border-bottom: 1px solid #DBE7FA !important;
+}
+/* 行高 ≥40px：EP 默认单元格上下 padding 各 8px，行高约 40px 出头，
+   这里显式钉死最小高度，保证任何字号下都不会低于 40。 */
+:root[data-theme="glass"] .el-table td.el-table__cell,
+:root[data-theme="glass"] .el-table th.el-table__cell {
+  padding: 11px 0;
+}
+:root[data-theme="glass"] .el-table .el-table__row {
+  min-height: 40px;
+}
+:root[data-theme="glass"] .el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell {
+  background: #EAF2FE !important; /* 覆盖 element-bridge 的 primary-tint 叠加 */
+}
+/* 斑马纹用极淡的实色，与 hover 区分得开 */
+:root[data-theme="glass"] .el-table .el-table__row--striped td.el-table__cell {
+  background: #F7FAFE;
+}
+
+/* ── 自绘表格 .data-table（theme.css） ── */
+:root[data-theme="glass"] .data-table {
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="glass"] .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #F4F7FC;
+  border-bottom: 1px solid #DBE7FA;
+}
+:root[data-theme="glass"] .data-table tbody td {
+  border-bottom: 1px solid #EAF0FA;
+  padding-top: 12px;
+  padding-bottom: 12px; /* 配合 12px 行内边距 → 行高 ≥40px */
+}
+:root[data-theme="glass"] .data-table tbody tr:nth-child(even) {
+  background: #F7FAFE;
+}
+:root[data-theme="glass"] .data-table tbody tr:hover {
+  background: #EAF2FE; /* 实色，非叠加 */
+}
+
+/* 数字列右对齐。用法：给单元格加 class="num"（EP 表格用 column 的
+   class-name="num"）。classic 下没有这条规则，加类名不产生任何视觉变化。 */
+:root[data-theme="glass"] .data-table .num,
+:root[data-theme="glass"] .el-table .num .cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   五、状态页：空 / 加载 / 错误
+   -------------------------------------------------------------
+   设计要求：骨架屏不用模糊动画，改用低对比灰色块 + 轻微呼吸，
+   并遵守 reduced-motion。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 占位图整体转色 ──
+   placeholder-4x3.svg 是「暖米白底 + 珊瑚调图标」，在冷蓝主题上很跳。
+   与空状态插画不同，它是通过 <img> 加载的**独立 SVG 文档**，
+   CSS 选择器进不去它内部，属性选择器那招用不上，只能用 filter 整体转色。
+
+   ⚠ 这是近似而非精确：CSS 的 hue-rotate 是矩阵近似，不是 HSL 色相旋转，
+     会让明度/饱和度有轻微漂移。这里只求「暖 → 冷」的方向正确。
+     真正的修法是给 glass 出一版冷色占位图，属资产变更，未做。 */
+:root[data-theme="glass"] img[src*='placeholder'] {
+  filter: hue-rotate(185deg) saturate(.8) brightness(1.03);
+}
+
+/* ── 空状态插画换色 ──
+   8 张插画（AppIllustration）里的颜色写成的是 SVG **表现属性**
+   （fill="#E8635C" / stroke="#756E69"），不是内联 style。
+   表现属性的特异性低于任何 CSS 规则，所以这里可以用属性选择器整体改色 ——
+   不必重做资产，也不必改组件。
+   不改的话，暖珊瑚 + 暖灰的插画会直接落在冷蓝玻璃上，是整套主题里最刺眼的
+   一处不协调。
+   图标（SvgIcon）不需要处理：它们用的是 stroke="currentColor"，本来就跟随文字色。 */
+/* stroke 与 fill 必须分开写：合并成一条会给只有 fill 的图形补上描边，
+   原本的实心圆会被勾出一圈边。 */
+:root[data-theme="glass"] .illustration [stroke='#E8635C'] {
+  stroke: var(--brand);
+}
+:root[data-theme="glass"] .illustration [fill='#E8635C'] {
+  fill: var(--brand);
+}
+:root[data-theme="glass"] .illustration [stroke='#756E69'] {
+  stroke: var(--text-2);
+}
+:root[data-theme="glass"] .illustration [stroke='#9A938C'] {
+  stroke: var(--text-4);
+}
+:root[data-theme="glass"] .illustration [fill='#FDF3F2'] {
+  fill: var(--color-primary-tint);
+}
+/* 加载插画由 CSS 旋转（theme.css 的 .is-spinning）。
+   reduced-motion 下 theme.css 已全局把 animation 压到 .01ms，
+   但旋转类没有显式关闭，这里补一条，避免那条全局规则将来被调整时漏掉。 */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="glass"] .illustration.is-spinning {
+    animation: none;
+  }
+}
+
+/* 空状态：玻璃主题下给一个实的浅底，避免插画浮在网格上显得散 */
+:root[data-theme="glass"] .empty-state {
+  color: var(--text-2);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-color-solid);
+  border-radius: var(--radius-card);
+  padding: var(--space-12) var(--space-5);
+}
+:root[data-theme="glass"] .empty-state p {
+  color: var(--text-2);
+}
+
+/* 骨架屏 */
+:root[data-theme="glass"] .sk,
+:root[data-theme="glass"] .gh-sk,
+:root[data-theme="glass"] .skeleton {
+  background: #E8EFF9;
+  border-radius: var(--radius-sm);
+  animation: glassSkBreath 1.8s ease-in-out infinite;
+}
+@keyframes glassSkBreath {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .55; }
+}
+/* 呼吸是「不传达状态的装饰性动效」的例外：它表达的是「还在加载」，
+   属于状态信息。但仍有前庭敏感用户，按要求在 reduced-motion 下停掉。
+   theme.css 已全局把 animation-duration 压到 .01ms —— 这里再显式关掉，
+   避免将来有人调整那条全局规则时这里被漏掉。 */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="glass"] .sk,
+  :root[data-theme="glass"] .gh-sk,
+  :root[data-theme="glass"] .skeleton {
+    animation: none;
+    opacity: .8;
+  }
+}
+
+/* 错误条 / 成功条：玻璃下改成实色底 + 左侧色条，
+   色条是「不依赖颜色」的第二重编码（位置本身就是信号）。 */
+:root[data-theme="glass"] .error,
+:root[data-theme="glass"] .error-bar {
+  background: var(--color-danger-tint);
+  border: 1px solid var(--color-danger);
+  border-left-width: 3px;
+  color: var(--color-danger-ink);
+}
+:root[data-theme="glass"] .success {
+  background: var(--color-success-tint);
+  border: 1px solid var(--color-success-ink);
+  border-left-width: 3px;
+  color: var(--color-success-ink);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   六、选中态 / 焦点态（非文本对比 ≥3:1）
+   -------------------------------------------------------------
+   .date-card.active / .pkg-card.active / .style-card.selected 等选中态在
+   玻璃主题下重新描一遍边：玻璃底上的浅色描边不够明确，
+   选中与否必须一眼可辨（WCAG 1.4.11 要求 UI 组件边界 ≥3:1）。
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="glass"] .step-dot.active,
+:root[data-theme="glass"] .step-dot.done {
+  box-shadow: 0 0 0 2px var(--surface-solid), 0 0 0 4px var(--brand);
+}
+:root[data-theme="glass"] .step-line.done {
+  background: var(--brand);
+}
+
+/* 键盘焦点：统一 2px 实环 + 2px 偏移，任何底色上都可见。
+   :focus-visible 保证鼠标点击不出现、键盘导航必然出现。 */
+:root[data-theme="glass"] .btn:focus-visible,
+:root[data-theme="glass"] .btn-primary:focus-visible,
+:root[data-theme="glass"] .btn-secondary:focus-visible,
+:root[data-theme="glass"] .btn--primary:focus-visible,
+:root[data-theme="glass"] .btn--secondary:focus-visible,
+:root[data-theme="glass"] .btn--ghost:focus-visible,
+:root[data-theme="glass"] .btn-glass:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}

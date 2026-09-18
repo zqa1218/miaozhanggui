@@ -1488,4 +1488,100 @@ watch(() => refreshBus?.tick, async (newTick) => {
 @media (min-width: 769px) {
   .card-list { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   图片灯箱 · glass 主题
+   -------------------------------------------------------------
+   这段只作用于 glass（全部以 `:root[data-theme="glass"]` 开头，classic 下
+   一行都不命中）。写在组件 scoped 块里是因为 .lb-* 是本组件私有类，
+   在主 CSS 包里覆盖会因加载顺序（路由 chunk 晚于主 CSS）而失败。
+
+   为什么要改：原控制按钮是 `rgba(255,255,255,.08~.12)` 的低对比玻璃。
+   实测按钮边界对比度只有 **1.27:1**（要求 ≥3:1）—— 白色字形本身没问题
+   （13.4:1），但按钮的**形状**几乎看不见，等于一排浮在图上的符号，
+   不符合「一眼可见且可点」。
+
+   做法：把控制件改成高不透明实底 + 深色字形，遮罩同时压深到 .94。
+   遮罩更深不是为了好看，是为了让照片与界面分离得更干净 ——
+   看片场景下任何与照片争夺注意力的东西都是干扰。
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="glass"] .lightbox-overlay {
+  background: rgba(4, 12, 26, .94);
+}
+
+:root[data-theme="glass"] .lb-close,
+:root[data-theme="glass"] .lb-nav {
+  background: rgba(255, 255, 255, .94);
+  color: var(--text-1);
+  border: 1px solid rgba(255, 255, 255, .98);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .45);
+}
+:root[data-theme="glass"] .lb-close:hover,
+:root[data-theme="glass"] .lb-nav:hover {
+  background: #FFFFFF;
+}
+:root[data-theme="glass"] .lb-close:focus-visible,
+:root[data-theme="glass"] .lb-nav:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+/* 键盘方向键可以切换图片，但按钮本身此前没有焦点样式 ——
+   补上，否则 Tab 到控制件时完全看不出焦点在哪。 */
+:root[data-theme="glass"] .lb-close:focus-visible { outline-offset: 3px; }
+
+/* 计数器与标签：压深遮罩后原透明度已足够，但把计数器提到实白，
+   它是「第几张 / 共几张」这一关键定位信息，不该是半透明的。 */
+:root[data-theme="glass"] .lb-counter {
+  color: #FFFFFF;
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="glass"] .lb-tag {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, .16);
+}
+
+/* 触屏：控制件加大命中区。原尺寸在 375px 上已降到 40×60，仍偏窄。 */
+@media (max-width: 767px) {
+  :root[data-theme="glass"] .lb-close { width: 48px; height: 48px; }
+  :root[data-theme="glass"] .lb-nav { width: 48px; height: 72px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   金额数字 · glass 主题
+   -------------------------------------------------------------
+   订单表里金额是逐行对照阅读的（这家收了多少、定金多少），
+   比例字体下每行数字宽度不同，纵向扫视时会跳。用等宽数字消除。
+
+   tabular-nums 会改变数字的字宽 → 属于会影响布局的属性，
+   所以只在 glass 下开，classic 保持原样。
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="glass"] .cell-price,
+:root[data-theme="glass"] .cell-deposit,
+:root[data-theme="glass"] .card-price {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+/* 表格里的金额列右对齐：数字右对齐后小数点/位数天然成列，
+   左对齐时「¥1200」与「¥80」的视觉起点一致但终点参差。 */
+:root[data-theme="glass"] .cell-price,
+:root[data-theme="glass"] .cell-deposit {
+  text-align: right;
+}
+
+/* ── 让表头吸顶真正生效 ──
+   glass-app.css 里给 .data-table thead th 加了 position: sticky。但本表的
+   容器 .table-wrap 带 `overflow-x: auto` —— 按 CSS 规范，overflow-x 非 visible
+   时 overflow-y 会被计算成 auto，于是 .table-wrap 成了**纵向滚动容器**；
+   而它高度自适应、纵向根本不会滚，sticky 因此无处可粘。
+
+   给它一个最大高度、让它自己纵向滚动，表头才会在滚动时留在顶部。
+   代价是引入了嵌套滚动（页面滚 + 表格滚）。对订单这种长列表 + 需要横向滚动的
+   宽表，这是行业通行做法，且没有滚动表头的话横向滚动时完全不知道自己看的是哪一列。
+   classic 下不生效，保持原有的整页滚动。 */
+:root[data-theme="glass"] .table-wrap {
+  max-height: 72vh;
+  overflow-y: auto;
+  /* 表头有背景色，横向滚动时不会透出后面的单元格 */
+  overscroll-behavior: contain;
+}
 </style>

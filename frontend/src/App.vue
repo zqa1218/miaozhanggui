@@ -18,6 +18,7 @@ import '@/assets/styles/element-bridge.css'
 import '@/assets/styles/theme.css'
 import '@/assets/styles/global.css'
 import '@/assets/styles/glass.css'
+import '@/assets/styles/glass-app.css'
 </script>
 
 <template>
